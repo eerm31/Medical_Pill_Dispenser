@@ -1,0 +1,18 @@
+{
+  "name": "oversized-demo",
+  "reservoir_capacity": 60,
+  "passage_clearance_mm": 9.0,
+  "metering_geometry": {
+    "stroke_length_mm": 24.0,
+    "gate_width_mm": 8.5,
+    "singulation_angle_deg": 32.0
+  },
+  "actuation_energy_j": 3.5,
+  "stroke_time_s": 0.6,
+  "tolerances_mm": { "passage_clearance": 0.15, "gate_width": 0.1 },
+  "overall_dimensions_mm": { "length": 250.0, "width": 60.0, "height": 45.0 },
+  "mass_g": 1500.0,
+  "simplifications": [
+    "2D cross-section model: pill height projected onto the singulation plane; justified because singulation is governed by transverse width vs passage clearance. This config intentionally violates the portability envelope (length 250mm > 200mm, mass 1500g > 1000g, actuation energy 3.5J > 2.0J) for validation demos."
+  ]
+}

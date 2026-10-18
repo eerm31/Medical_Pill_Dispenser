@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d1421">
+  <title>Dispenser Subsystems — Local Prototype</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="scanner-visual.css">
+  <script defer src="fixtures.js"></script>
+  <script defer src="model.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html" aria-label="Dispenser subsystem prototype home">
+      <span class="brand-mark" aria-hidden="true">M</span>
+      <span><span class="eyebrow">CAPSTONE · SYSTEM DESIGN</span><strong>Medisync <span>Subsystem Lab</span></strong></span>
+    </a>
+    <div class="session-badge"><i aria-hidden="true"></i>LOCAL SESSION · DEMO DATA</div>
+  </header>
+
+  <main class="workspace">
+    <section class="intro">
+      <div>
+        <p class="eyebrow">FEATURE 004 · SOFTWARE PROTOTYPE</p>
+        <h1>Build and inspect one subsystem at a time.</h1>
+        <p class="intro-copy">Subsystem 1 is dispensing. Subsystem 2 is container identification. The overall view lets you compose both without coupling their demo state.</p>
+      </div>
+      <div class="scope-pill"><span>01</span> Dispense first <b>→</b> <span>02</span> Identify next</div>
+    </section>
+
+    <nav class="tabs" role="tablist" aria-label="Subsystem views">
+      <button id="tab-subsystem1" class="tab" type="button" role="tab" aria-controls="view-subsystem1" aria-selected="false" tabindex="-1" data-view="subsystem1"><span class="tab-number">01</span><span>Dispensing</span><small>Subsystem 1</small></button>
+      <button id="tab-subsystem2" class="tab" type="button" role="tab" aria-controls="view-subsystem2" aria-selected="true" tabindex="0" data-view="subsystem2"><span class="tab-number">02</span><span>Container ID</span><small>Subsystem 2</small></button>
+      <button id="tab-overall" class="tab" type="button" role="tab" aria-controls="view-overall" aria-selected="false" tabindex="-1" data-view="overall"><span class="tab-number">↗</span><span>Overall Design</span><small>Composition</small></button>
+    </nav>
+
+    <section class="context-bar" aria-label="Initial loading demo state">
+      <div><span class="context-icon" aria-hidden="true">▦</span><span><strong>Loading simulation</strong><small>Four color-mapped compartments · initially empty, closed, and locked</small></span></div>
+      <span class="session-badge">NO ACTIVE LOADING</span>
+    </section>
+
+    <section id="view-subsystem1" class="view" role="tabpanel" aria-labelledby="tab-subsystem1" data-view-panel="subsystem1" hidden>
+      <div id="subsystem1Mount"></div>
+    </section>
+    <section id="view-subsystem2" class="view" role="tabpanel" aria-labelledby="tab-subsystem2" data-view-panel="subsystem2">
+      <div id="subsystem2Mount"></div>
+    </section>
+    <section id="view-overall" class="view overall-view" role="tabpanel" aria-labelledby="tab-overall" data-view-panel="overall" hidden>
+      <div class="overall-heading">
+        <div><p class="eyebrow">COMPOSITION CONTROLS</p><h2>Choose what appears in the overall design.</h2><p>These checkboxes change visibility only; they do not operate a subsystem.</p></div>
+        <span class="composition-tag">OVERALL DESIGN</span>
+      </div>
+      <div class="include-controls" aria-label="Subsystems to include">
+        <label class="include-option"><input id="includeSubsystem1" type="checkbox" checked aria-label="Show Subsystem 1 dispensing mechanism"><span class="include-number">01</span><span><strong>Dispensing mechanism</strong><small>Show in overall design</small></span><em>Show / hide</em></label>
+        <label class="include-option"><input id="includeSubsystem2" type="checkbox" checked><span class="include-number">02</span><span><strong>Subsystem 2</strong><small>Container identification</small></span><em>Include</em></label>
+      </div>
+      <p id="emptyComposition" class="empty-composition" role="status" hidden>No subsystems included. Select one or both above to compose the overall design.</p>
+      <div class="overall-grid">
+        <div id="overallSubsystem1Mount" class="composition-slot"></div>
+        <div id="overallSubsystem2Mount" class="composition-slot"></div>
+      </div>
+    </section>
+
+    <div class="disclosure"><span aria-hidden="true">ⓘ</span><p><strong>Prototype boundary</strong> Everything on this page is a fictional, in-memory software demonstration. There is no physical scanner, dispenser, lid, actuator, sensor, or real NDC lookup. A demo match does not verify container contents, dose, or safety.</p></div>
+  </main>
+
+  <footer><span>MEDISYNC · SUBSYSTEM LAB</span><a href="../../../README.md">Project overview</a><span>State resets when this page reloads.</span></footer>
+
+  <template id="subsystem1Template">
+    <article class="subsystem-card subsystem-one" data-subsystem-card="subsystem1">
+      <div class="card-head"><div class="subsystem-title"><span class="large-number">01</span><div><p class="eyebrow">FOUNDATION SUBSYSTEM</p><h2>Dispensing</h2><p>First in the build sequence</p></div></div><span class="state-chip neutral"><i></i> PRESENTATION STUB</span></div>
+      <div class="s1-content">
+        <div class="s1-illustration" aria-hidden="true"><div class="dispense-icon"><span></span><i></i><b></b></div><div class="illustration-lines"><i></i><i></i><i></i></div></div>
+        <div class="s1-copy"><h3>Subsystem 1 is the starting point.</h3><p>This view reserves a clear place for the dispensing subsystem before container identification is added. The physical dispensing mechanism is not implemented in this browser prototype.</p><div class="stub-readout"><span>Compartment assignment</span><strong>Not part of this presentation</strong></div><div class="stub-readout"><span>Operation state</span><strong>Not connected</strong></div></div>
+      </div>
+      <div class="card-foot"><span class="status-dot"></span><span>Software-only placeholder · no pill, count, or dispense event is simulated</span></div>
+    </article>
+  </template>
+
+  <template id="subsystem2Template">
+    <article class="subsystem-card subsystem-two" data-subsystem-card="subsystem2">
+      <div class="card-head"><div class="subsystem-title"><span class="large-number violet">02</span><div><p class="eyebrow violet-text">NEXT SUBSYSTEM</p><h2>Barcode &amp; Container Identification</h2><p>Local fixture scanner prototype</p></div></div><span class="state-chip demo"><i></i> FICTIONAL FIXTURES</span></div>
+      <section id="scannerSimulation" class="scanner-simulation" data-phase="ready" aria-label="Illustrative barcode scanner station simulation">
+        <div class="simulation-heading"><div><p class="eyebrow violet-text">SCANNER STATION · COMPONENT VIEW</p><h3>Scan → match color → place → load</h3><p>Illustrative components only; no physical scanner or lid is connected.</p></div><span id="scannerStageBadge" class="stage-badge">READY</span></div>
+        <svg class="scanner-diagram" viewBox="0 0 1000 310" role="img" aria-labelledby="scannerDiagramTitle scannerDiagramDescription">
+          <title id="scannerDiagramTitle">Subsystem 2 barcode scanner component schematic</title>
+          <desc id="scannerDiagramDescription">A fictional labeled container sits in a positioning guide below the scanner head and optical reader. The beam connects to a local demo fixture decoder and a four-compartment bank with simulated lids.</desc>
+          <defs>
+            <linearGradient id="scannerPanelGradient" x1="0" x2="1"><stop offset="0" stop-color="#18283b"/><stop offset="1" stop-color="#121c2b"/></linearGradient>
+            <marker id="scannerArrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#9980d7"/></marker>
+          </defs>
+          <rect x="1" y="1" width="998" height="308" rx="14" fill="url(#scannerPanelGradient)" stroke="#30415a"/>
+          <text class="diagram-kicker" x="34" y="32">01 · TEST CONTAINER</text>
+          <text class="diagram-kicker" x="300" y="32">02 · BARCODE READER</text>
+          <text class="diagram-kicker" x="493" y="32">03 · LOCAL DECODER</text>
+          <text class="diagram-kicker" x="724" y="32">04 · TARGET BANK</text>
+
+          <g data-scanner-part="container-guide" class="container-guide">
+            <path d="M28 259 H276 M42 259 V273 M262 259 V273" fill="none" stroke="#7590a8" stroke-width="4" stroke-linecap="round"/>
+            <text class="diagram-label" x="55" y="293">positioning guide</text>
+          </g>
+          <g data-scanner-part="sample-container" class="sample-container">
+            <rect x="63" y="111" width="171" height="137" rx="15" fill="#d8e0ec" stroke="#f2f5fa" stroke-width="2"/>
+            <path d="M63 127 Q63 111 79 111 H218 Q234 111 234 127 V139 H63 Z" fill="#aab8cb"/>
+            <rect x="78" y="151" width="140" height="80" rx="8" fill="#f7f8fb" stroke="#b9c4d2"/>
+            <text x="148" y="169" text-anchor="middle" class="container-label">FICTIONAL TEST CONTAINER</text>
+            <g data-scanner-part="container-barcode" class="barcode-label" aria-label="Synthetic demo barcode">
+              <path d="M91 182 v33 M97 182 v33 M102 182 v33 M111 182 v33 M115 182 v33 M123 182 v33 M131 182 v33 M136 182 v33 M145 182 v33 M151 182 v33 M157 182 v33 M165 182 v33 M170 182 v33 M179 182 v33 M186 182 v33 M193 182 v33 M201 182 v33" stroke="#172234" stroke-width="3"/>
+            </g>
+          </g>
+
+          <g data-scanner-part="scanner-head" class="scanner-head">
+            <rect x="292" y="57" width="134" height="69" rx="13" fill="#29394f" stroke="#7586a0" stroke-width="2"/>
+            <path d="M311 57 V47 H406 V57" fill="none" stroke="#7586a0" stroke-width="4" stroke-linecap="round"/>
+            <text x="359" y="84" text-anchor="middle" class="scanner-label">SCANNER HEAD</text>
+            <text x="359" y="101" text-anchor="middle" class="scanner-sub-label">illustrative reader</text>
+          </g>
+          <g data-scanner-part="scanner-optics" class="scanner-optics">
+            <circle cx="359" cy="127" r="13" fill="#111a28" stroke="#aa8beb" stroke-width="3"/>
+            <circle cx="359" cy="127" r="5" fill="#d3b8ff"/>
+            <text x="359" y="158" text-anchor="middle" class="diagram-label">optical read point</text>
+          </g>
+          <path id="scanBeam" data-scanner-part="scan-beam" class="scan-beam" d="M359 140 L172 178" fill="none" stroke="#c49aff" stroke-width="4" stroke-linecap="round"/>
+
+          <path class="signal-link" d="M435 154 H480" fill="none" stroke="#9980d7" stroke-width="2" marker-end="url(#scannerArrow)"/>
+          <g data-scanner-part="fixture-decoder" class="fixture-decoder">
+            <rect x="490" y="79" width="204" height="150" rx="13" fill="#202c40" stroke="#7f6bb1" stroke-width="2"/>
+            <rect x="508" y="96" width="168" height="83" rx="8" fill="#101b29" stroke="#42506a"/>
+            <text x="524" y="119" class="decoder-label">LOCAL FIXTURE DECODER</text>
+            <text id="scannerCodeVisual" x="524" y="144" class="decoder-code">NO CODE</text>
+            <text id="scannerResultVisual" x="524" y="165" class="decoder-result">Ready for demo</text>
+            <text x="592" y="204" text-anchor="middle" class="scanner-sub-label">fictional table · offline</text>
+          </g>
+          <path class="signal-link" d="M701 154 H721" fill="none" stroke="#9980d7" stroke-width="2" marker-end="url(#scannerArrow)"/>
+
+          <g data-scanner-part="compartment-target-bank" class="target-bank">
+            <rect x="728" y="59" width="245" height="207" rx="12" fill="#172337" stroke="#52617a"/>
+            <text x="850" y="79" text-anchor="middle" class="bank-label">COMPARTMENT BANK</text>
+            <g class="demo-compartment red" data-compartment-id="red" transform="translate(741 100)">
+              <rect class="compartment-body" x="0" y="15" width="51" height="126" rx="7"/>
+              <rect class="compartment-lid" data-scanner-part="simulated-lid" x="0" y="5" width="51" height="13" rx="4"/>
+              <text x="25" y="36" text-anchor="middle">RED</text><text class="compartment-name" x="25" y="125" text-anchor="middle">EMPTY</text>
+            </g>
+            <g class="demo-compartment blue" data-compartment-id="blue" transform="translate(798 100)">
+              <rect class="compartment-body" x="0" y="15" width="51" height="126" rx="7"/>
+              <rect class="compartment-lid" data-scanner-part="simulated-lid" x="0" y="5" width="51" height="13" rx="4"/>
+              <text x="25" y="36" text-anchor="middle">BLUE</text><text class="compartment-name" x="25" y="125" text-anchor="middle">EMPTY</text>
+            </g>
+            <g class="demo-compartment green" data-compartment-id="green" transform="translate(855 100)">
+              <rect class="compartment-body" x="0" y="15" width="51" height="126" rx="7"/>
+              <rect class="compartment-lid" data-scanner-part="simulated-lid" x="0" y="5" width="51" height="13" rx="4"/>
+              <text x="25" y="36" text-anchor="middle">GREEN</text><text class="compartment-name" x="25" y="125" text-anchor="middle">EMPTY</text>
+            </g>
+            <g class="demo-compartment orange" data-compartment-id="orange" transform="translate(912 100)">
+              <rect class="compartment-body" x="0" y="15" width="51" height="126" rx="7"/>
+              <rect class="compartment-lid" data-scanner-part="simulated-lid" x="0" y="5" width="51" height="13" rx="4"/>
+              <text x="25" y="36" text-anchor="middle">ORANGE</text><text class="compartment-name" x="25" y="125" text-anchor="middle">EMPTY</text>
+            </g>
+          </g>
+          <g id="placementPackage" class="placement-package" aria-hidden="true" style="display:none"></g>
+        </svg>
+        <div class="scanner-component-key" aria-label="Scanner station component descriptions">
+          <div><span>01</span><p><strong>Sample container + barcode</strong><small>Fictional input label</small></p></div>
+          <div><span>02</span><p><strong>Positioning guide</strong><small>Illustrates container alignment</small></p></div>
+          <div><span>03</span><p><strong>Scanner head + optics</strong><small>Illustrative read point</small></p></div>
+          <div><span>04</span><p><strong>Scan beam</strong><small>Visual-only read animation</small></p></div>
+          <div><span>05</span><p><strong>Local fixture decoder</strong><small>Fictional lookup table</small></p></div>
+          <div><span>06</span><p><strong>Compartment bank + lids</strong><small>Simulated target state</small></p></div>
+        </div>
+        <div class="scan-stage-track" aria-label="Demo scan and loading stages">
+          <span data-scan-stage="reading">01 <b>Read</b></span><i></i><span data-scan-stage="resolving">02 <b>Lookup</b></span><i></i><span data-scan-stage="result">03 <b>Result</b></span><i></i><span data-scan-stage="placing">04 <b>Place</b></span><i></i><span data-scan-stage="loading">05 <b>Load</b></span>
+        </div>
+        <p id="scannerSequenceStatus" class="scanner-sequence-status" role="status" aria-live="polite">Ready. All four color compartments are empty, unassociated, closed, and locked.</p>
+      </section>
+      <div class="scanner-layout">
+        <section class="scanner-console" aria-label="Demo barcode lookup">
+          <div class="console-title"><span class="scan-glyph" aria-hidden="true">▤</span><div><strong>Demo scanner</strong><small>Enter a synthetic fixture code</small></div></div>
+          <form id="scanForm" novalidate>
+            <label for="demoCode">Fictional demo code</label>
+            <div class="input-action"><input id="demoCode" name="demoCode" type="text" autocomplete="off" spellcheck="false" placeholder="e.g. DEMO-RED"><button class="primary-button" type="submit">Simulate scan <span aria-hidden="true">→</span></button></div>
+          </form>
+          <div class="fixture-buttons"><span>Try a fixture</span><div id="fixtureButtons"></div></div>
+          <p class="fixture-warning">Fixture codes are synthetic test values. No NDC data or network lookup is used.</p>
+        </section>
+        <section id="loadingPanel" class="compartment-detail" aria-label="Active loading demo" hidden>
+          <div class="detail-top"><div><span class="eyebrow">ACTIVE LOADING TARGET</span><h3 id="loadingTargetLabel">No active target</h3></div><span id="lidBadge" class="lid-badge open">SIMULATED · OPEN · UNLOCKED</span></div>
+          <div class="identity-box"><span class="identity-icon" aria-hidden="true">✳</span><div><small>Fictional fixture association</small><strong id="boundName">No fixture associated</strong></div></div>
+          <p>Loading is a UI-only demonstration. Finish to close and lock this compartment; no other lid opens automatically.</p>
+          <button id="finishLoadingBtn" class="primary-button" type="button">Finish loading · close and lock</button>
+        </section>
+      </div>
+      <section class="compartment-roster" aria-label="All demo compartment associations"><div class="roster-heading"><span class="eyebrow">FOUR COMPARTMENTS</span><span>Resets on page reload · refill/replace controls stay with each loaded compartment</span></div><div id="compartmentRoster" class="roster-grid"></div></section>
+      <div class="card-foot"><span class="status-dot violet-dot"></span><span>Successful match places the fictional container, then opens only its available color compartment for loading · finish loading closes and locks it</span></div>
+    </article>
+  </template>
+</body>
+</html>

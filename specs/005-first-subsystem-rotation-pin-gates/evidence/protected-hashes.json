@@ -1,0 +1,41 @@
+{
+  "directories": {
+    "specs/001-dispensing-mechanism-simulation": {
+      "file_count": 10,
+      "sha256": "3430a4568f5ce32f6bf0d46851e81eabd5174ab1afe5bf5fb4afd833178f7560"
+    },
+    "specs/002-mechanism-animation": {
+      "file_count": 9,
+      "sha256": "be7e6e4e4b2a6e3dac110e925921878452548188fd322c1962b2b6db74f073d5"
+    },
+    "specs/003-3d-mechanism-visualization": {
+      "file_count": 13,
+      "sha256": "7f24cf348c0762bb63c8e79d7d6ac02eb5227684088d43f9d6c9bf91f2b23688"
+    },
+    "specs/004-dispense-and-container-identification": {
+      "file_count": 9,
+      "sha256": "86b9b466e8a5f8f8e8f1fab3e1c2f3b576f771a4ddde4152a04d5cf47d546166"
+    },
+    "specs/006-compartment-weight-verification": {
+      "file_count": 10,
+      "sha256": "9b6f318c0fb7d7fd4c91400d4bccbf5586e82c84cd05c73cb56d3e63ec8ecb69"
+    },
+    "src/dispenser_sim/viz3d": {
+      "file_count": 6,
+      "sha256": "5fb22d7aad747afa4f5ab1459f4cb3e353e36b518b06ede0b76dfa84b0924213"
+    }
+  },
+  "files": {
+    ".specify/feature.json": "73f262554feb4b8d36d0af095e7bf30c2afbb961aa88127e5d267362d22fcf62",
+    "docs/visualizer/concept-data.js": "ea011972537d6174806dae467893db3d55e3d5a658d5ece3376a1d33a257dd7f",
+    "docs/visualizer/demo-controller.js": "24505915d85f53f39205413cd3f452e5307cf729f9d3dabd8bf5ee9c2905914d",
+    "src/dispenser_sim/viz3d/__init__.py": "d6b46e15636db4bfa9b7a12d14b7f3bac4c5de40f919aee2a8fbbf6f10a651cc",
+    "src/dispenser_sim/viz3d/concept_export.py": "6ab6dbad987e05f459e4614fff38865249cff221398cce1ec1337da92bac5e01",
+    "src/dispenser_sim/viz3d/concept_geometry.json": "6aaf3704483cdc1fc580193d9678d4d0e2e42fb8b35e0dea80889534b75c3ff9",
+    "src/dispenser_sim/viz3d/geometry_schema.py": "4e63cb8432da6456fd5f75ece02aa7975c95735b676c010802839baffd1152c5",
+    "src/dispenser_sim/viz3d/mesh.py": "e8dae598ee03af88e75b085175e1fdef7ef193d3efe6bc3964c534aa20bf84ed",
+    "src/dispenser_sim/viz3d/scene.py": "b2e1b189e6159d5dfe4e5521ecade4c184629895c006735658a38553ff1b76cc",
+    "tools/build_visualizer_data.py": "2b7aa5ce5423167ec723eef40193e218f38da73d17ca7da7fbfebddca2f0ee87"
+  },
+  "note": "SHA-256 of protected files; directory hash = sha256 over sorted 'relative-path:file-sha256' lines joined by newline (excludes .DS_Store, __pycache__, *.pyc). ASSUMED / NOT_VALIDATED record only."
+}

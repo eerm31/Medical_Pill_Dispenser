@@ -1,0 +1,21 @@
+{
+  "name": "rotary-disk-v1",
+  "reservoir_capacity": 60,
+  "passage_clearance_mm": 9.5,
+  "metering_geometry": {
+    "stroke_length_mm": 30.0,
+    "gate_width_mm": 9.0,
+    "disk_pocket_diameter_mm": 10.0,
+    "rotation_angle_deg": 45.0
+  },
+  "actuation_energy_j": 1.1,
+  "stroke_time_s": 0.8,
+  "tolerances_mm": { "passage_clearance": 0.2, "gate_width": 0.15 },
+  "overall_dimensions_mm": { "length": 140.0, "width": 70.0, "height": 50.0 },
+  "mass_g": 340.0,
+  "simplifications": [
+    "2D cross-section model: the rotary disk's pocket is projected onto the singulation plane; justified because singulation is governed by transverse width vs passage clearance, and pocket depth enters only via pill thickness and mass.",
+    "Coulomb friction with a single per-pill coefficient; justified because disk-pocket wall contact during one 45-degree rotation is brief and coated/uncoated tablets are bracketed by the mu range 0.2-0.6.",
+    "Constant-velocity disk rotation with mean force over the stroke (E = F * d); justified because the 0.8 s stroke is slow enough that impact dynamics are negligible for sub-gram pills."
+  ]
+}

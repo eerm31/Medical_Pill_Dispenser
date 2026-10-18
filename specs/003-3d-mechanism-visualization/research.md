@@ -1,0 +1,108 @@
+# Research: Rotating-Cartridge Concept Viewer and 3MF
+
+**Feature**: 003-3d-mechanism-visualization | **Updated**: 2026-10-10
+
+This research supersedes the 2026-10-06 slider-gate plan. The controlling sources are the current [specification](spec.md) and user-supplied `/Users/ice/Downloads/dispenser4_scan.html`. The scan is a standalone Three.js r128 WebGL prototype and concept reference only; it is not a drawing, validated geometry source, or hardware-control specification. The implementation built from this research is tracked in [implementation-evidence.md](implementation-evidence.md); test/render results are recorded there rather than inferred from this design analysis.
+
+## Findings from the supplied scan
+
+The source is a single HTML document with inline CSS/JavaScript, responsive-width wrapper, canvas host, color buttons, cartridge controls, five barcode buttons, cap/fill UI, schedule/reset, speed slider, labels/cap toggles, readouts and explanatory caveats. It loads Three.js r128 remotely from cdnjs and uses a perspective camera, ambient/directional lighting, pointer orbit, wheel zoom, `requestAnimationFrame`, and a continuously rendered scene. Those remote loading and nondeterministic behaviors must not be preserved.
+
+| Input or behavior | Evidence/interpretation | Provenance and status |
+|---|---|---|
+| Four positions at quarter turns; source-era Red, Blue, Purple, Yellow | Source arrays `COL`/`NAME`; transforms use `i*Math.PI/2`; superseded as main-view demo palette by current RED/BLUE/GREEN/ORANGE fixture workflow | `SCAN_EXPLICIT`; `NOT_VALIDATED` |
+| Drum outer radius 15 mm; cartridge radial position 15 mm | `RR=15`, `CY=15`; concept local transforms, not verified envelope | `SCAN_EXPLICIT`; `NOT_VALIDATED` |
+| Central post radius 2.5 mm, height 46 mm | `CylinderGeometry(2.5,2.5,46,...)` | `SCAN_EXPLICIT`; `NOT_VALIDATED` |
+| Station footprint x −22..+22, y −38..+36 mm | housing boxes; nominal 44×74 mm footprint; no complete authoritative vertical envelope | `SCAN_EXPLICIT` / `SCAN_INFERRED`; `NOT_VALIDATED` |
+| Crank radius 5.2 mm; rod length 34 mm; pivot y −54 mm, approximate z 15.2 mm | `CR=5.2`, `LR=34`, `YC=-54`, `CZ=15.2` | `SCAN_EXPLICIT`, pivot z is approximate; `NOT_VALIDATED` |
+| Carriage horizontal motion −5.2..+5.2 mm (10.4 mm), pin stroke 5 mm | `XA`, `XB`, `PUP`, controller and scene placement | `SCAN_EXPLICIT`; `NOT_VALIDATED` |
+| Pin/tab | 3 mm pin and 5×4 mm slot; prototype text says estimated ±1 mm alignment allowance | Scan estimate only, not a specified tolerance | `SCAN_EXPLICIT` / `SCAN_INFERRED`; `NOT_VALIDATED` |
+| Four upper blade tips −5.2..+5.2 mm; independent springs | arrays `bx`, `bladeG`, `springs`; illustrative placement/shape | Motion limits explicit; part shape inferred | mixed `SCAN_EXPLICIT` / `SCAN_INFERRED`; `NOT_VALIDATED` |
+| Shared tongue | nominal length 24 mm, edge positions +5.7 and −5.7 mm, 11.4 mm travel; separate actuator rod and return spring | source constants/mesh placement | `SCAN_EXPLICIT` for values, inferred spring/actuator geometry; `NOT_VALIDATED` |
+| Outlet tray | prototype description says approximately 40×58 mm; source boxes span about 43×61 mm overall including margins/walls; height absent | Approximate scan model; do not present extents as a resolved drawing | `SCAN_INFERRED`; height `MISSING`; `NOT_VALIDATED` |
+| Cartridges, blades, caps, scanner/station, actuator rails | Several box/extrude primitives, clearances and exact fits are absent; scan calls out 0.3 mm gaps as undesigned | Source shapes are not authoritative CAD | `SCAN_INFERRED`; interfaces, wall dimensions and fits `MISSING`; `NOT_VALIDATED` |
+| Pills | Four stacks, nominal five per cartridge; oval 10×7×5 mm | Source states assumed shape/count | `ASSUMED`; not medication data |
+| Current main-view barcode fixtures | 5012345678900 → RED, 5012345678917 → BLUE, 5012345678924 → GREEN, 5012345678931 → ORANGE; 5012345678948 unsupported color; 5012345678999 unmapped; 9999999999999 unknown | Fixed canonical fixture table; only four supported colors have targets | `DEMO_FIXTURE`; not a drug/medication database |
+| Phase timing/rates | source uses scan in .8 s, beam .9 s, result .9 s, scan out .8 s; mechanical rates rotation 1.3 rad/s, servo motion 3.1 rad/s, pin 8 mm/s, tongue 14 mm/s; dwell .5 s and isolation .3 s (all before speed scaling) | Prototype timing, no measured actuator motion | `SCAN_EXPLICIT` demo constants, `NOT_VALIDATED` |
+| Cartridge lift | 75 mm target lift at 60 mm/s in the removal/insertion easing update (1.25 s) | Source `LIFT=75` and `60*dt`; display only, no extraction-force evidence | `SCAN_EXPLICIT` display timing, `NOT_VALIDATED` |
+| Cap animation | Prototype applies `.15` per-frame damping toward 1.75 rad; duration is frame-rate dependent and not specified | Do not preserve as a deterministic timing contract; planned 0.25 s ease is an explicitly labeled UI-only assumption | `ASSUMED_UI_TIMING`, `NOT_VALIDATED` |
+| Timeout | successful unlock 20 seconds; timer decreases by unscaled `dt`, i.e. real wall-clock even as scan/mechanical presentation is speed-scaled | Concept interaction rule | `SCAN_EXPLICIT` demo behavior |
+| Initial state and interactions | all inserted and five assumed pills, caps locked; open cap blocks dispensing; remove/insert idle only; fill to five; cap unlock closes immediately and times out | Prototype control flow; strengthen unsafe silent behavior with visible rejection status | Demo contract, not real medication access control |
+| Determinism defect | `mkp()` calls `Math.random()` for pill yaw jitter; RAF is clamped to .05 s and directly mutates state; schedule currently appends six requests rather than defining a true repeat controller | Source observed; behavior is not accepted as requirements | Remove randomness; specify finite-state timing and repeat/depletion behavior explicitly |
+| 3MF and complete mechanical definition | No exporter or complete/authoritative mechanical dimensions exist in the HTML | Not supplied | `MISSING`; do not infer print readiness |
+
+The scan's Three coordinate convention is millimetres with X right, Y height/up and Z depth; it maps the visible scene to `(x, z, -y)`. The planned interchange/export convention is right-handed X right, Y back, Z up; conversion must be explicit, tested, and never silently relabel scan coordinates.
+
+## Decision 1 — Offline browser renderer and delivery
+
+**Decision**: Use a local static browser app in `docs/visualizer/`, matching the scan's Three.js r128/WebGL architecture. Pin and vendor the official r128 UMD/classic build as a local asset; preserve the complete upstream copyright and MIT license text adjacent to it. All application assets load using relative classic `<script>` and stylesheet links. The main entry page opens directly as a local `file://` document; no external CDN, server, runtime fetch, telemetry, remote fonts/images, npm install, Python GUI extra, or network request.
+
+**Evidence**: The supplied HTML itself uses the cdnjs Three r128 classic global build. GitHub's upstream Three.js `r128/LICENSE` states MIT and requires retaining copyright and permission notices; the `r128/build` directory contains `three.min.js` and `three.js`. MDN's JavaScript Modules guide explains that modules loaded from `file://` encounter CORS restrictions and should be served from a server, while classic scripts can be included directly. Workspace inspection found no local Three.js build and no Node/npm executable; therefore vendor the known upstream build and use browser-native validation rather than making npm/Node a test/runtime prerequisite.
+
+**Alternatives considered**:
+- Continue loading cdnjs: rejected, requires internet, fails offline, and creates an unpinned external runtime dependency.
+- ES modules plus local JSON fetch: rejected for direct local-file entry due browser-origin/CORS and server requirement; would break the standalone-offline requirement.
+- Pure handwritten WebGL: rejected because it discards the exact target Three.js architecture and adds shader/scene complexity without benefit.
+- Keep pyglet/Python CPU projection or pywebview: rejected because the target is a browser-first Three.js standalone app; Python display dependencies and old renderer do not reproduce the supplied app.
+- Vendor/build from npm on users' machines: rejected because it adds toolchain/network setup and no npm runtime is present.
+
+**Boundary**: The vendor is a third-party browser asset and is justified separately from Python dependencies. Only its license/versioned bytes are redistributed; no package manager or CDN is needed at runtime. Security updates/version upgrades are separate reviewed work; this local concept demonstrator must not load untrusted content. Current runtime support is tied to WebGL availability, not a guarantee across every device.
+
+## Decision 2 — Shared geometry source and explicit provenance
+
+**Decision**: Define the complete physical/concept assembly in a single versioned JSON package resource in `src/dispenser_sim/viz3d/concept_geometry.json`. Python validates and reads it as package data for the exporter. A stdlib script deterministically generates `docs/visualizer/concept-data.js`, a global classic-script data object that works under `file://`. A test regenerates to memory and compares exact content so the JS bundle cannot drift from the exporter input. Both runtime adapters consume the same primitive recipe, coordinate mapping, component identities and source/value records.
+
+**Provenance**: `SCAN_EXPLICIT` means the scan text/code directly supplies a value but does not make it authoritative; `SCAN_INFERRED` means it is interpreted from placement/rendered shape; `ASSUMED` means a chosen demo/model input (including pills); `DERIVED` means a versioned deterministic rule; `DEMO_FIXTURE` identifies barcode/UI fixtures; `MISSING` has null value/unit as appropriate and names evidence needed. A separate engineering status remains `NOT_VALIDATED` for every geometry value/component. Preserve the source phrase/snippet or rule identifier, units, uncertainty/caveat and relevant coordinate frame. Source values such as the ±1 mm alignment estimate and 0.3 mm gap are not manufacturing tolerances. Missing actuator, spring, material, fit, wall, overall-height and tolerance values remain null, never zero or implied by mesh QA.
+
+**Alternatives considered**: Maintaining duplicated browser and Python dimension tables risks export/viewer drift; fetching the JSON from a local module risks CORS; making the HTML the Python data source couples package export to docs markup; external config/run inputs contradict this fixed scanned concept. Canonical JSON plus generated classic script has one authored source and an automated equality gate.
+
+## Decision 3 — Deterministic visual-controller architecture
+
+**Decision**: Separate a deterministic controller from Three.js/DOM rendering. A monotonic elapsed-time finite-state machine owns the dispense/scanner/cap/inventory/schedule transitions. `requestAnimationFrame` renders continuously from immutable-ish state snapshots; an idle frame updates no mechanism coordinates or counts. Use explicit rates/dwells copied from the source and fixed per-transition names. Speed multiplies scan/mechanical presentation time in [0.3,3]; the 20-second successful cap unlock is wall-clock time. Camera orbit/zoom and visibility controls never alter the controller.
+
+**Timing mapping**: scanner in .8 s, beam .9 s, result .9 s, box out .8 s; drum angular rate 1.3 rad/s; crank/servo angular rate 3.1 rad/s; carriage pin vertical rate 8 mm/s; tongue edge rate 14 mm/s; stack settle/pill-clear dwell .5 s; post-park isolated dwell .3 s. For servo and rotation phases, derive elapsed duration from required travel divided by the named rate; do not round away interlocks. These are demonstration durations/rates, not measured hardware timing. Initial pose has servo angle 180°, pin up, carriage parked, tongue closed. End pose returns to same parked state.
+
+**State order**: parked → rotate if selected station differs (only pin up and carriage parked) → carriage approach over closed tab → pin down/engage → servo pull and selected upper blade motion → deterministic one-pill visual transfer to shared tongue with remaining stack isolated → settle → close/isolate blade → pin up → carriage park → isolated dwell → open shared tongue and move one visual pill to tray → clear dwell → tongue spring-return/park. Any busy request, open cap, scanning state, removed cartridge, empty cartridge, unsafe pin/carriage state or failed alignment blocks with a visible reason. Do not mutate inventory on failed/rejected requests. Only one dispense operation is active. Built-in demo schedule may enqueue its own six colors; a manually requested action during any active operation is rejected, not silently queued. In repeat mode, repeat the six requests while inventory allows; stop visibly at the first blocked/empty scheduled request. Never auto-refill or fake unlimited medication. Safe reset restores the four inserted/five-count initial fixture only when idle.
+
+**Interruption/large tick rule**: accumulate elapsed time and carry overshoot forward. On any update, cross no more than one FSM state boundary; hold a newly entered interlock state for at least one rendered frame before applying pending time. This prevents long background-tab/frame delays from visually skipping pin-up or blade-isolation states. A reset/refill action is refused while an operation is active. A successful scan unlocks its matching cap for 20 seconds and relocks any previous unopened unlock; an open cap stays open until explicitly closed, continues to block dispensing, and relocks immediately on closure. Unknown scan does not unlock a cap or revoke a different still-valid timeout. Cartridge removal/insertion requires idle and a closed cap and preserves counts. Filling adds assumed pills only up to the documented five-item initial capacity.
+
+**Alternatives considered**: Driving coordinates directly from RAF or using a physics engine adds time-dependent nondeterminism; connecting to core simulation records would falsely imply recorded outcomes or hardware behavior; accepting concurrent user actions risks contradictory motion/inventory. The explicit FSM and serialized action guards directly represent the scan intent and testable blocking rules.
+
+## Decision 4 — Complete assembly granularity for 3MF
+
+**Decision**: Export one fixed parked/rest portable assembly with a separate, stable, human-readable object identity per physical instance. The frozen inventory has **32 physical instances**: station/housing; central post; drum; four individually named cartridge housings; four caps; four upper blade/pull-tab parts; four upper-blade return springs; one servo unit (housing/output shaft modeled together); crank; connecting rod; pin carriage; left and right guide rails; solenoid body; pin/plunger; shared tongue; tongue actuator rod; tongue return spring; barcode scanner housing; shared outlet tray. Identical recipe geometry can be produced from common recipe parameters, but repeated physical parts have distinct names/IDs/transforms and remain individually selectable. No sensor/electronics/wiring/cap latch internals are inferred where not shown.
+
+Include fixed external scanner housing because it is part of the pictured dispenser concept. Exclude demo medication package, credit card, barcode graphics/light beam, UI labels, camera, transient moving actors and all assumed pills from the stationary physical part assembly. State exclusions in the manifest. The capsule parts' unknown fits, wall thicknesses, spring model and interfaces are recorded missing. Material/mesh appearance is not a physical material choice.
+
+**3MF Core**: Stdlib ZIP/XML writer; `unit="millimeter"`, right-handed coordinates, per-part mesh objects, one root components object and one build item. Preserve all component transforms as an assembly; do not place independent build items that can be rearranged. Fixed common rest pose, no view/camera-dependent cuts. Validate emitted Core/OPC structure, identity, transform, finite vertices and bounded topology. Numerical QA (if 0.01 mm) is only serialization/mapping tolerance. Carry every source/derived/assumed/missing input into the manifest. Keep 3MF status permanently `NOT VALIDATED`, `print_ready=false`, `fabricable_as_designed=false`; FDM/PLA/0.4 mm nozzle is provisional guidance only.
+
+**Manifest hash semantics**: manifest stores the exact package SHA-256. To avoid a self-referential hash, `manifest_sha256` is defined over canonical UTF-8 JSON with the `artifact_integrity.manifest_sha256` field omitted. Store/verify that self-excluding digest and the exact package digest. The pair is staged and checked before publishing; per-file replacement/handled rollback is possible, but ordinary filesystems cannot make two sibling replacements crash-atomic.
+
+**Alternatives considered**: slider-gate five parts is wholly obsolete; a single merged dispenser mesh loses assembly/physical identities; individual build items permit rearrangement; adding 3MF extension/material/property data is not needed for this concept; CAD libraries do not supply the absent authoritative design. 3MF assembly resources retain required identities/relative placements with bounded stdlib support.
+
+## Decision 5 — CLI and feature preservation
+
+**Decision**: Replace the run-bound export with `dispenser-sim export-3mf --output PATH.3mf [--force]`; geometry comes only from the installed/repository canonical JSON, not simulation runs/configs. Retire `animate --3d` (including its pyglet viewer path) because it is the wrong data/source/UI model. Keep `dispenser-sim animate` and all 2D feature-002 behavior exactly; preserve features 001/002, run records, failure/reliability checks and pure stdlib runtime. Remove the `[viz]` extra if no remaining callers require it. Export remains headless/offline and must not import pyglet/Three.js or alter run files.
+
+Destination validation rejects protected source/input files and source-tree or run-tree descendants (including detected aliases), symlink output or ancestors even with `--force`, unsafe/unsupported destinations and existing protected artifacts. The output parent must already exist. Stage/verify before replacement and test rollback on injected failures. Browser static assets are not part of export output except as an auditable origin of the shared source metadata.
+
+## Dependency, license and platform evidence
+
+| Item | Runtime status | Evidence / decision |
+|---|---|---|
+| Three.js r128 | Locally vendored static browser runtime, not a Python dependency | User source imports exactly r128. Upstream `mrdoob/three.js` branch `r128` has `build/three.min.js`; `r128/LICENSE` is MIT, requiring inclusion of copyright and permission notice. MIT is compatible with redistribution with notice retained. |
+| Browser WebGL/DOM | Browser platform capability | Built-in browser feature; no installable runtime or server. On missing WebGL, show actionable unsupported-context content. |
+| Node/npm | Not installed/detected in this workspace | Do not add Node as prerequisite. Test controller via browser-native local harness; use project Python for exporter tests. |
+| Python runtime | Existing package Python 3.11+ stdlib only | Keep exporter and simulation independent of browser runtime and optional graphics dependencies. |
+| CAD/3MF library | None | Bounded 3MF Core subset and mesh/ZIP/XML checks use stdlib; no dependency justified. |
+
+Sources consulted: upstream Three.js [`r128/LICENSE`](https://github.com/mrdoob/three.js/blob/r128/LICENSE) and [`r128/build`](https://github.com/mrdoob/three.js/tree/r128/build); MDN [JavaScript modules guide](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules) for local-file module CORS behavior; the supplied scan itself; current project `pyproject.toml`, CLI, 3MF source/tests, and feature-003 artifacts. These sources establish licensing/API/loading facts, not visual quality or browser performance. Browser measurements remain future evidence.
+
+## Resolved gaps and independent blockers
+
+- Spec-listed values/controls are captured above; scan-external walls, complete cartridge/drum/drive details, spring rates, actuator type/rating, torque/force, material, fasteners, fits, clearances, tolerances, complete height/envelope/mass, electronics and cap hardware remain missing.
+- Alignment ±1 mm, mentioned 0.3 mm gaps, tray and primitive shape are estimates, not tolerances or validated product dimensions.
+- Demo barcode fixtures do not establish contents of a cartridge; pill geometry/count are assumed display data. One-pill visual state change is not single-dose test evidence.
+- Constitution I is ERROR/BLOCKED by the existing 46 zero-dose/1 multi-dose run violations; no amendment/waiver or simulator changes were researched/authorized.
+- Manufacturing validation is BLOCKED by missing approved drawings, interfaces, tolerance stack, named process/material, prototype measurement and engineering sign-off.
+- Implementation now includes the local Three.js r128 asset/license, static viewer, canonical JSON/browser data bundle, deterministic FSM, 32-instance 3MF exporter/manifest and new CLI. The latest Python suite passes 126 tests and the browser-native harness passes 14/14. A local `file://` page rendered in WebGL without observed console errors; the hidden browser session prevented real elapsed-time/FPS validation. Phone-width 390px and slicer interoperability remain pending; see [implementation-evidence.md](implementation-evidence.md).

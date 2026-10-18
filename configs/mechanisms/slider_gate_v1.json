@@ -1,0 +1,20 @@
+{
+  "name": "slider-gate-v1",
+  "reservoir_capacity": 60,
+  "passage_clearance_mm": 9.0,
+  "metering_geometry": {
+    "stroke_length_mm": 24.0,
+    "gate_width_mm": 8.5,
+    "singulation_angle_deg": 32.0
+  },
+  "actuation_energy_j": 0.8,
+  "stroke_time_s": 0.6,
+  "tolerances_mm": { "passage_clearance": 0.15, "gate_width": 0.1 },
+  "overall_dimensions_mm": { "length": 120.0, "width": 60.0, "height": 45.0 },
+  "mass_g": 280.0,
+  "simplifications": [
+    "2D cross-section model: pill height projected onto the singulation plane; justified because singulation is governed by transverse width vs passage clearance.",
+    "Coulomb friction with a single per-pill coefficient; justified because reservoir wall contact is brief and coated/uncoated tablets are bracketed by the mu range 0.2-0.6.",
+    "Gravity-fed reservoir with random presentation order; justified because the hopper agitation between actuations decorrelates pill order."
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "max_dimensions_mm": { "length": 200.0, "width": 100.0, "height": 80.0 },
+  "max_mass_g": 1000.0,
+  "max_actuation_energy_j": 2.0
+}

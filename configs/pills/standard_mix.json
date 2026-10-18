@@ -1,0 +1,20 @@
+{
+  "reservoir_size": 60,
+  "category_weights": { "round_tablet": 0.5, "oblong_caplet": 0.3, "capsule": 0.2 },
+  "categories": {
+    "round_tablet": {
+      "length_mm": [3.0, 13.0], "width_mm": [3.0, 13.0], "thickness_mm": [2.0, 6.0],
+      "mass_g": [0.05, 0.8]
+    },
+    "oblong_caplet": {
+      "length_mm": [6.0, 19.0], "width_mm": [3.0, 8.0], "thickness_mm": [2.5, 7.0],
+      "mass_g": [0.15, 1.2]
+    },
+    "capsule": {
+      "length_mm": [11.0, 26.0], "width_mm": [3.0, 10.0], "thickness_mm": [3.0, 10.0],
+      "mass_g": [0.05, 1.5]
+    }
+  },
+  "friction_coefficient": [0.2, 0.6],
+  "orientation_deg": { "mode": "uniform", "min": 0.0, "max": 180.0 }
+}

@@ -1,0 +1,128 @@
+[
+  {
+    "command": [
+      "/Users/ice/Documents/smart-medical-dispenser/.venv/bin/python",
+      "tests/renderer_probe.py",
+      "--output",
+      "docs/performance/raw/legacy-static-1.json",
+      "--workload",
+      "static"
+    ],
+    "exit": 0,
+    "stderr": "2026-10-07 12:43:11.787 Python[46517:10074528] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/r5/4glfvzl970z0xwvbrb8j0ggr0000gn/T/org.python.python.savedState\nException ignored on calling ctypes callback function <function ObjCSubclass.method.<locals>.decorator.<locals>.objc_method at 0x1087b3100>:\nTraceback (most recent call last):\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/libs/darwin/cocoapy/runtime.py\", line 1531, in objc_method\n    result = f(py_self, *args)\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/cocoa.py\", line 67, in updatePyglet_\n    self._pyglet_loop.nsapp_step()\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/cocoa.py\", line 232, in nsapp_step\n    self._event_loop.idle()\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/base.py\", line 232, in idle\n    self.clock.call_scheduled_functions(dt)\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/clock.py\", line 217, in call_scheduled_functions\n    item.func(now - item.last_ts, *item.args, **item.kwargs)\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/base.py\", line 112, in _redraw_windows\n    for window in app.windows:\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/_weakrefset.py\", line 65, in __iter__\n    for itemref in self.data:\nRuntimeError: Set changed size during iteration\n",
+    "stdout": "",
+    "artifact": "docs/performance/raw/legacy-static-1.json"
+  },
+  {
+    "command": [
+      "/Users/ice/Documents/smart-medical-dispenser/.venv/bin/python",
+      "tests/renderer_probe.py",
+      "--output",
+      "docs/performance/raw/legacy-static-2.json",
+      "--workload",
+      "static"
+    ],
+    "exit": 0,
+    "stderr": "2026-10-07 12:44:23.212 Python[46534:10075662] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/r5/4glfvzl970z0xwvbrb8j0ggr0000gn/T/org.python.python.savedState\nException ignored on calling ctypes callback function <function ObjCSubclass.method.<locals>.decorator.<locals>.objc_method at 0x10b063880>:\nTraceback (most recent call last):\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/libs/darwin/cocoapy/runtime.py\", line 1531, in objc_method\n    result = f(py_self, *args)\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/cocoa.py\", line 67, in updatePyglet_\n    self._pyglet_loop.nsapp_step()\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/cocoa.py\", line 232, in nsapp_step\n    self._event_loop.idle()\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/base.py\", line 232, in idle\n    self.clock.call_scheduled_functions(dt)\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/clock.py\", line 217, in call_scheduled_functions\n    item.func(now - item.last_ts, *item.args, **item.kwargs)\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/base.py\", line 112, in _redraw_windows\n    for window in app.windows:\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/_weakrefset.py\", line 65, in __iter__\n    for itemref in self.data:\nRuntimeError: Set changed size during iteration\n",
+    "stdout": "",
+    "artifact": "docs/performance/raw/legacy-static-2.json"
+  },
+  {
+    "command": [
+      "/Users/ice/Documents/smart-medical-dispenser/.venv/bin/python",
+      "tests/renderer_probe.py",
+      "--output",
+      "docs/performance/raw/legacy-static-3.json",
+      "--workload",
+      "static"
+    ],
+    "exit": 0,
+    "stderr": "2026-10-07 12:45:34.239 Python[46547:10076834] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/r5/4glfvzl970z0xwvbrb8j0ggr0000gn/T/org.python.python.savedState\nException ignored on calling ctypes callback function <function ObjCSubclass.method.<locals>.decorator.<locals>.objc_method at 0x10ab3f880>:\nTraceback (most recent call last):\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/libs/darwin/cocoapy/runtime.py\", line 1531, in objc_method\n    result = f(py_self, *args)\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/cocoa.py\", line 67, in updatePyglet_\n    self._pyglet_loop.nsapp_step()\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/cocoa.py\", line 232, in nsapp_step\n    self._event_loop.idle()\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/base.py\", line 232, in idle\n    self.clock.call_scheduled_functions(dt)\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/clock.py\", line 217, in call_scheduled_functions\n    item.func(now - item.last_ts, *item.args, **item.kwargs)\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/base.py\", line 112, in _redraw_windows\n    for window in app.windows:\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/_weakrefset.py\", line 65, in __iter__\n    for itemref in self.data:\nRuntimeError: Set changed size during iteration\n",
+    "stdout": "",
+    "artifact": "docs/performance/raw/legacy-static-3.json"
+  },
+  {
+    "command": [
+      "/Users/ice/Documents/smart-medical-dispenser/.venv/bin/python",
+      "tests/renderer_probe.py",
+      "--output",
+      "docs/performance/raw/legacy-replay-1.json",
+      "--workload",
+      "replay"
+    ],
+    "exit": 0,
+    "stderr": "2026-10-07 12:46:45.233 Python[46554:10077827] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/r5/4glfvzl970z0xwvbrb8j0ggr0000gn/T/org.python.python.savedState\nException ignored on calling ctypes callback function <function ObjCSubclass.method.<locals>.decorator.<locals>.objc_method at 0x108fb7880>:\nTraceback (most recent call last):\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/libs/darwin/cocoapy/runtime.py\", line 1531, in objc_method\n    result = f(py_self, *args)\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/cocoa.py\", line 67, in updatePyglet_\n    self._pyglet_loop.nsapp_step()\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/cocoa.py\", line 232, in nsapp_step\n    self._event_loop.idle()\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/base.py\", line 232, in idle\n    self.clock.call_scheduled_functions(dt)\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/clock.py\", line 217, in call_scheduled_functions\n    item.func(now - item.last_ts, *item.args, **item.kwargs)\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/base.py\", line 112, in _redraw_windows\n    for window in app.windows:\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/_weakrefset.py\", line 65, in __iter__\n    for itemref in self.data:\nRuntimeError: Set changed size during iteration\n",
+    "stdout": "",
+    "artifact": "docs/performance/raw/legacy-replay-1.json"
+  },
+  {
+    "command": [
+      "/Users/ice/Documents/smart-medical-dispenser/.venv/bin/python",
+      "tests/renderer_probe.py",
+      "--output",
+      "docs/performance/raw/legacy-replay-2.json",
+      "--workload",
+      "replay"
+    ],
+    "exit": 0,
+    "stderr": "2026-10-07 12:47:56.510 Python[46571:10078833] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/r5/4glfvzl970z0xwvbrb8j0ggr0000gn/T/org.python.python.savedState\nException ignored on calling ctypes callback function <function ObjCSubclass.method.<locals>.decorator.<locals>.objc_method at 0x10693b880>:\nTraceback (most recent call last):\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/libs/darwin/cocoapy/runtime.py\", line 1531, in objc_method\n    result = f(py_self, *args)\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/cocoa.py\", line 67, in updatePyglet_\n    self._pyglet_loop.nsapp_step()\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/cocoa.py\", line 232, in nsapp_step\n    self._event_loop.idle()\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/base.py\", line 232, in idle\n    self.clock.call_scheduled_functions(dt)\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/clock.py\", line 217, in call_scheduled_functions\n    item.func(now - item.last_ts, *item.args, **item.kwargs)\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/base.py\", line 112, in _redraw_windows\n    for window in app.windows:\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/_weakrefset.py\", line 65, in __iter__\n    for itemref in self.data:\nRuntimeError: Set changed size during iteration\n",
+    "stdout": "",
+    "artifact": "docs/performance/raw/legacy-replay-2.json"
+  },
+  {
+    "command": [
+      "/Users/ice/Documents/smart-medical-dispenser/.venv/bin/python",
+      "tests/renderer_probe.py",
+      "--output",
+      "docs/performance/raw/legacy-replay-3.json",
+      "--workload",
+      "replay"
+    ],
+    "exit": 0,
+    "stderr": "2026-10-07 12:49:08.102 Python[46631:10080682] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/r5/4glfvzl970z0xwvbrb8j0ggr0000gn/T/org.python.python.savedState\nException ignored on calling ctypes callback function <function ObjCSubclass.method.<locals>.decorator.<locals>.objc_method at 0x108cdf880>:\nTraceback (most recent call last):\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/libs/darwin/cocoapy/runtime.py\", line 1531, in objc_method\n    result = f(py_self, *args)\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/cocoa.py\", line 67, in updatePyglet_\n    self._pyglet_loop.nsapp_step()\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/cocoa.py\", line 232, in nsapp_step\n    self._event_loop.idle()\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/base.py\", line 232, in idle\n    self.clock.call_scheduled_functions(dt)\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/clock.py\", line 217, in call_scheduled_functions\n    item.func(now - item.last_ts, *item.args, **item.kwargs)\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/base.py\", line 112, in _redraw_windows\n    for window in app.windows:\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/_weakrefset.py\", line 65, in __iter__\n    for itemref in self.data:\nRuntimeError: Set changed size during iteration\n",
+    "stdout": "",
+    "artifact": "docs/performance/raw/legacy-replay-3.json"
+  },
+  {
+    "command": [
+      "/Users/ice/Documents/smart-medical-dispenser/.venv/bin/python",
+      "tests/renderer_probe.py",
+      "--output",
+      "docs/performance/raw/legacy-orbit-1.json",
+      "--workload",
+      "orbit"
+    ],
+    "exit": 0,
+    "stderr": "2026-10-07 12:50:19.403 Python[46650:10081971] ApplePersistenceIgnoreState: Existing state will not be touched. New state will be written to /var/folders/r5/4glfvzl970z0xwvbrb8j0ggr0000gn/T/org.python.python.savedState\nException ignored on calling ctypes callback function <function ObjCSubclass.method.<locals>.decorator.<locals>.objc_method at 0x10a8bb880>:\nTraceback (most recent call last):\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/libs/darwin/cocoapy/runtime.py\", line 1531, in objc_method\n    result = f(py_self, *args)\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/cocoa.py\", line 67, in updatePyglet_\n    self._pyglet_loop.nsapp_step()\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/cocoa.py\", line 232, in nsapp_step\n    self._event_loop.idle()\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/base.py\", line 232, in idle\n    self.clock.call_scheduled_functions(dt)\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/clock.py\", line 217, in call_scheduled_functions\n    item.func(now - item.last_ts, *item.args, **item.kwargs)\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/app/base.py\", line 112, in _redraw_windows\n    for window in app.windows:\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/_weakrefset.py\", line 65, in __iter__\n    for itemref in self.data:\nRuntimeError: Set changed size during iteration\n",
+    "stdout": "",
+    "artifact": "docs/performance/raw/legacy-orbit-1.json"
+  },
+  {
+    "command": [
+      "/Users/ice/Documents/smart-medical-dispenser/.venv/bin/python",
+      "tests/renderer_probe.py",
+      "--output",
+      "docs/performance/raw/legacy-orbit-2.json",
+      "--workload",
+      "orbit"
+    ],
+    "exit": 1,
+    "stderr": "Traceback (most recent call last):\n  File \"/Users/ice/Documents/smart-medical-dispenser/tests/renderer_probe.py\", line 35, in <module>\n    from dispenser_sim.viz3d import glview\n  File \"/Users/ice/Documents/smart-medical-dispenser/src/dispenser_sim/viz3d/glview.py\", line 14, in <module>\n    from pyglet.window import key, mouse\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/window/__init__.py\", line 1906, in <module>\n    gl._create_shadow_window()  # noqa: SLF001\n    ~~~~~~~~~~~~~~~~~~~~~~~~^^\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/gl/__init__.py\", line 179, in _create_shadow_window\n    _shadow_window = ShadowWindow()\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/gl/__init__.py\", line 168, in __init__\n    super().__init__(width=1, height=1, visible=False)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/window/cocoa/__init__.py\", line 82, in __init__\n    super().__init__(*args, **kwargs)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/window/__init__.py\", line 513, in __init__\n    screen = display.get_default_screen()\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/display/cocoa.py\", line 32, in get_default_screen\n    return screens[0]\n           ~~~~~~~^^^\nIndexError: list index out of range\n",
+    "stdout": "",
+    "artifact": "docs/performance/raw/legacy-orbit-2.json"
+  },
+  {
+    "command": [
+      "/Users/ice/Documents/smart-medical-dispenser/.venv/bin/python",
+      "tests/renderer_probe.py",
+      "--output",
+      "docs/performance/raw/legacy-failure-1.json",
+      "--workload",
+      "failure"
+    ],
+    "exit": 1,
+    "stderr": "Traceback (most recent call last):\n  File \"/Users/ice/Documents/smart-medical-dispenser/tests/renderer_probe.py\", line 35, in <module>\n    from dispenser_sim.viz3d import glview\n  File \"/Users/ice/Documents/smart-medical-dispenser/src/dispenser_sim/viz3d/glview.py\", line 14, in <module>\n    from pyglet.window import key, mouse\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/window/__init__.py\", line 1906, in <module>\n    gl._create_shadow_window()  # noqa: SLF001\n    ~~~~~~~~~~~~~~~~~~~~~~~~^^\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/gl/__init__.py\", line 179, in _create_shadow_window\n    _shadow_window = ShadowWindow()\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/gl/__init__.py\", line 168, in __init__\n    super().__init__(width=1, height=1, visible=False)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/window/cocoa/__init__.py\", line 82, in __init__\n    super().__init__(*args, **kwargs)\n    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/window/__init__.py\", line 513, in __init__\n    screen = display.get_default_screen()\n  File \"/Users/ice/Documents/smart-medical-dispenser/.venv/lib/python3.13/site-packages/pyglet/display/cocoa.py\", line 32, in get_default_screen\n    return screens[0]\n           ~~~~~~~^^^\nIndexError: list index out of range\n",
+    "stdout": "",
+    "artifact": "docs/performance/raw/legacy-failure-1.json"
+  }
+]

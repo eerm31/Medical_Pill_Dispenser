@@ -1,0 +1,2020 @@
+{
+  "feature": "005-first-subsystem-rotation-pin-gates",
+  "scope": "rotation",
+  "mode": "a",
+  "disclosure": "NOT VALIDATED / NOT PRINT-READY; verifies control logic, ordering and interlocks only",
+  "print_ready": false,
+  "fabricable_as_designed": false,
+  "assumptions": {
+    "status": "ASSUMED / NOT_VALIDATED",
+    "colors": [
+      "red",
+      "blue",
+      "green",
+      "orange"
+    ],
+    "lash_deg": 1,
+    "overshoot_deg": 3,
+    "steps_per_rev": 2048,
+    "index_tolerance_deg": 0.5,
+    "hardware_rad_s": 0.8,
+    "hardware_ramp_s": 0.2,
+    "sim_rad_s": 1.3,
+    "home_offset_deg": 3.66,
+    "home_search_limit_steps": 2560,
+    "max_reindex_attempts": 2,
+    "fault_default_deg": 2,
+    "tongue_closed_edge": 5.7,
+    "quarter_deg": 90
+  },
+  "summary": {
+    "checks": 245,
+    "fail": 1
+  },
+  "results": [
+    {
+      "criterion_id": "ROT-C01",
+      "step": "red->red:verdict",
+      "observed": "already_at_station",
+      "threshold": "already_at_station",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "red->red:motion",
+      "observed": "STILL angle 0",
+      "threshold": "STILL angle 0",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "red->red:at_station",
+      "observed": "red",
+      "threshold": "red",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "red->blue:at_station",
+      "observed": "blue",
+      "threshold": "blue",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "red->blue:error_deg",
+      "observed": 0.175781,
+      "threshold": 0.5,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "red->green:at_station",
+      "observed": "green",
+      "threshold": "green",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "red->green:error_deg",
+      "observed": 0.175781,
+      "threshold": 0.5,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "red->orange:at_station",
+      "observed": "orange",
+      "threshold": "orange",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "red->orange:error_deg",
+      "observed": 0.175781,
+      "threshold": 0.5,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "blue->red:at_station",
+      "observed": "red",
+      "threshold": "red",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "blue->red:error_deg",
+      "observed": 0.175781,
+      "threshold": 0.5,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "blue->blue:verdict",
+      "observed": "already_at_station",
+      "threshold": "already_at_station",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "blue->blue:motion",
+      "observed": "STILL angle 0",
+      "threshold": "STILL angle 0",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "blue->blue:at_station",
+      "observed": "blue",
+      "threshold": "blue",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "blue->green:at_station",
+      "observed": "green",
+      "threshold": "green",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "blue->green:error_deg",
+      "observed": 0.175781,
+      "threshold": 0.5,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "blue->orange:at_station",
+      "observed": "orange",
+      "threshold": "orange",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "blue->orange:error_deg",
+      "observed": 0.175781,
+      "threshold": 0.5,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "green->red:at_station",
+      "observed": "red",
+      "threshold": "red",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "green->red:error_deg",
+      "observed": 0.175781,
+      "threshold": 0.5,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "green->blue:at_station",
+      "observed": "blue",
+      "threshold": "blue",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "green->blue:error_deg",
+      "observed": 0.175781,
+      "threshold": 0.5,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "green->green:verdict",
+      "observed": "already_at_station",
+      "threshold": "already_at_station",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "green->green:motion",
+      "observed": "STILL angle 0",
+      "threshold": "STILL angle 0",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "green->green:at_station",
+      "observed": "green",
+      "threshold": "green",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "green->orange:at_station",
+      "observed": "orange",
+      "threshold": "orange",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "green->orange:error_deg",
+      "observed": 0.175781,
+      "threshold": 0.5,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "orange->red:at_station",
+      "observed": "red",
+      "threshold": "red",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "orange->red:error_deg",
+      "observed": 0.175781,
+      "threshold": 0.5,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "orange->blue:at_station",
+      "observed": "blue",
+      "threshold": "blue",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "orange->blue:error_deg",
+      "observed": 0.175781,
+      "threshold": 0.5,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "orange->green:at_station",
+      "observed": "green",
+      "threshold": "green",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "orange->green:error_deg",
+      "observed": 0.175781,
+      "threshold": 0.5,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "orange->orange:verdict",
+      "observed": "already_at_station",
+      "threshold": "already_at_station",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "orange->orange:motion",
+      "observed": "STILL angle 0",
+      "threshold": "STILL angle 0",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C01",
+      "step": "orange->orange:at_station",
+      "observed": "orange",
+      "threshold": "orange",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C02",
+      "step": "red:unidirectional:spread_deg",
+      "observed": 0,
+      "threshold": 0,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C02",
+      "step": "red:unidirectional:neighbour_endings",
+      "observed": 0,
+      "threshold": 0,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C02",
+      "step": "red:unidirectional:max_abs_error_deg",
+      "observed": 0.175781,
+      "threshold": 0.5,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C02",
+      "step": "blue:unidirectional:spread_deg",
+      "observed": 0,
+      "threshold": 0,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C02",
+      "step": "blue:unidirectional:neighbour_endings",
+      "observed": 0,
+      "threshold": 0,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C02",
+      "step": "blue:unidirectional:max_abs_error_deg",
+      "observed": 0.175781,
+      "threshold": 0.5,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C02",
+      "step": "green:unidirectional:spread_deg",
+      "observed": 0,
+      "threshold": 0,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C02",
+      "step": "green:unidirectional:neighbour_endings",
+      "observed": 0,
+      "threshold": 0,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C02",
+      "step": "green:unidirectional:max_abs_error_deg",
+      "observed": 0.175781,
+      "threshold": 0.5,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C02",
+      "step": "orange:unidirectional:spread_deg",
+      "observed": 0,
+      "threshold": 0,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C02",
+      "step": "orange:unidirectional:neighbour_endings",
+      "observed": 0,
+      "threshold": 0,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C02",
+      "step": "orange:unidirectional:max_abs_error_deg",
+      "observed": 0.175781,
+      "threshold": 0.5,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C02",
+      "step": "red:shortest:spread_deg",
+      "observed": 1,
+      "threshold": 1,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C02",
+      "step": "red:shortest:neighbour_endings",
+      "observed": 0,
+      "threshold": 0,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C02",
+      "step": "blue:shortest:spread_deg",
+      "observed": 1,
+      "threshold": 1,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C02",
+      "step": "blue:shortest:neighbour_endings",
+      "observed": 0,
+      "threshold": 0,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C02",
+      "step": "green:shortest:spread_deg",
+      "observed": 1,
+      "threshold": 1,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C02",
+      "step": "green:shortest:neighbour_endings",
+      "observed": 0,
+      "threshold": 0,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C02",
+      "step": "orange:shortest:spread_deg",
+      "observed": 1,
+      "threshold": 1,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C02",
+      "step": "orange:shortest:neighbour_endings",
+      "observed": 0,
+      "threshold": 0,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "parked:allowed",
+      "observed": "true",
+      "threshold": "true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "pin_not_up:down->green:rules",
+      "observed": "pin_not_up",
+      "threshold": "pin_not_up",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "pin_not_up:down->green:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "pin_not_up:down->red:rules",
+      "observed": "pin_not_up",
+      "threshold": "pin_not_up",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "pin_not_up:down->red:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "pin_not_up:engaged->green:rules",
+      "observed": "pin_not_up",
+      "threshold": "pin_not_up",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "pin_not_up:engaged->green:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "pin_not_up:engaged->red:rules",
+      "observed": "pin_not_up",
+      "threshold": "pin_not_up",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "pin_not_up:engaged->red:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "carriage_not_parked->green:rules",
+      "observed": "carriage_not_parked",
+      "threshold": "carriage_not_parked",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "carriage_not_parked->green:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "carriage_not_parked->red:rules",
+      "observed": "carriage_not_parked",
+      "threshold": "carriage_not_parked",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "carriage_not_parked->red:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate_open:red-blade->green:rules",
+      "observed": "gate_open",
+      "threshold": "gate_open",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate_open:red-blade->green:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate_open:red-blade->red:rules",
+      "observed": "gate_open",
+      "threshold": "gate_open",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate_open:red-blade->red:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate_open:blue-blade->green:rules",
+      "observed": "gate_open",
+      "threshold": "gate_open",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate_open:blue-blade->green:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate_open:blue-blade->red:rules",
+      "observed": "gate_open",
+      "threshold": "gate_open",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate_open:blue-blade->red:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate_open:green-blade->green:rules",
+      "observed": "gate_open",
+      "threshold": "gate_open",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate_open:green-blade->green:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate_open:green-blade->red:rules",
+      "observed": "gate_open",
+      "threshold": "gate_open",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate_open:green-blade->red:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate_open:orange-blade->green:rules",
+      "observed": "gate_open",
+      "threshold": "gate_open",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate_open:orange-blade->green:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate_open:orange-blade->red:rules",
+      "observed": "gate_open",
+      "threshold": "gate_open",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate_open:orange-blade->red:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate_open:tongue->green:rules",
+      "observed": "gate_open",
+      "threshold": "gate_open",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate_open:tongue->green:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate_open:tongue->red:rules",
+      "observed": "gate_open",
+      "threshold": "gate_open",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate_open:tongue->red:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "cap_open->green:rules",
+      "observed": "cap_open",
+      "threshold": "cap_open",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "cap_open->green:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "cap_open->red:rules",
+      "observed": "cap_open",
+      "threshold": "cap_open",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "cap_open->red:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "busy:dispense->green:rules",
+      "observed": "busy",
+      "threshold": "busy",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "busy:dispense->green:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "busy:dispense->red:rules",
+      "observed": "busy",
+      "threshold": "busy",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "busy:dispense->red:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "busy:scan->green:rules",
+      "observed": "busy",
+      "threshold": "busy",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "busy:scan->green:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "busy:scan->red:rules",
+      "observed": "busy",
+      "threshold": "busy",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "busy:scan->red:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "cartridge_lift_active->green:rules",
+      "observed": "cartridge_lift_active",
+      "threshold": "cartridge_lift_active",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "cartridge_lift_active->green:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "cartridge_lift_active->red:rules",
+      "observed": "cartridge_lift_active",
+      "threshold": "cartridge_lift_active",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "cartridge_lift_active->red:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "combined:pin+gate+cap->green:rules",
+      "observed": "pin_not_up,gate_open,cap_open",
+      "threshold": "pin_not_up,gate_open,cap_open",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "combined:pin+gate+cap->green:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "combined:pin+gate+cap->red:rules",
+      "observed": "pin_not_up,gate_open,cap_open",
+      "threshold": "pin_not_up,gate_open,cap_open",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "combined:pin+gate+cap->red:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "combined:all-six->green:rules",
+      "observed": "pin_not_up,carriage_not_parked,gate_open,cap_open,busy,cartridge_lift_active",
+      "threshold": "pin_not_up,carriage_not_parked,gate_open,cap_open,busy,cartridge_lift_active",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "combined:all-six->green:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "combined:all-six->red:rules",
+      "observed": "pin_not_up,carriage_not_parked,gate_open,cap_open,busy,cartridge_lift_active",
+      "threshold": "pin_not_up,carriage_not_parked,gate_open,cap_open,busy,cartridge_lift_active",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "combined:all-six->red:zero_motion",
+      "observed": "STILL/0.175781",
+      "threshold": "STILL/0.175781",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "invalid_color",
+      "observed": "invalid_color",
+      "threshold": "invalid_color",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "not_homed+pin_not_up",
+      "observed": "not_homed,pin_not_up",
+      "threshold": "not_homed,pin_not_up",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "invalid_snapshot",
+      "observed": "invalid_snapshot",
+      "threshold": "invalid_snapshot",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "precedence_list",
+      "observed": "invalid_color,fault_active,not_homed,invalid_snapshot,pin_not_up,carriage_not_parked,gate_open,cap_open,busy,cartridge_lift_active",
+      "threshold": "invalid_color,fault_active,not_homed,invalid_snapshot,pin_not_up,carriage_not_parked,gate_open,cap_open,busy,cartridge_lift_active",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "busy:self_rotating",
+      "observed": "busy",
+      "threshold": "busy",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "dispense:rule",
+      "observed": "rotation_active",
+      "threshold": "rotation_active",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "dispense:pin_gate_allowed",
+      "observed": "false",
+      "threshold": "false",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "dispense:state_unchanged",
+      "observed": "true",
+      "threshold": "true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "dispense:rotation_completes",
+      "observed": "green",
+      "threshold": "green",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "dispense:permitted_when_still",
+      "observed": "true",
+      "threshold": "true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "pin:rule",
+      "observed": "rotation_active",
+      "threshold": "rotation_active",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "pin:pin_gate_allowed",
+      "observed": "false",
+      "threshold": "false",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "pin:state_unchanged",
+      "observed": "true",
+      "threshold": "true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "pin:rotation_completes",
+      "observed": "green",
+      "threshold": "green",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "pin:permitted_when_still",
+      "observed": "true",
+      "threshold": "true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate:rule",
+      "observed": "rotation_active",
+      "threshold": "rotation_active",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate:pin_gate_allowed",
+      "observed": "false",
+      "threshold": "false",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate:state_unchanged",
+      "observed": "true",
+      "threshold": "true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate:rotation_completes",
+      "observed": "green",
+      "threshold": "green",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "gate:permitted_when_still",
+      "observed": "true",
+      "threshold": "true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "unhomed:rule",
+      "observed": "station_not_confirmed",
+      "threshold": "station_not_confirmed",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "invalid_kind",
+      "observed": "invalid_kind",
+      "threshold": "invalid_kind",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "initial:allowed",
+      "observed": "true",
+      "threshold": "true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "dispense:started",
+      "observed": "true",
+      "threshold": "true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "dispense:pin_down_seen",
+      "observed": "true",
+      "threshold": "true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "dispense:blade_open_seen",
+      "observed": "true",
+      "threshold": "true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "dispense:tongue_open_seen",
+      "observed": "true",
+      "threshold": "true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "dispense:guard_matches_fields",
+      "observed": 0,
+      "threshold": 0,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "dispense:parked_again_allowed",
+      "observed": "true",
+      "threshold": "true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "cap:open",
+      "observed": "cap_open",
+      "threshold": "cap_open",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C03",
+      "step": "lift:active",
+      "observed": "busy,cartridge_lift_active",
+      "threshold": "busy,cartridge_lift_active",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "short:fault_code",
+      "observed": "missed_index_short",
+      "threshold": "missed_index_short",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "short:station_unconfirmed",
+      "observed": "null/false",
+      "threshold": "null/false",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "short:pin_refused",
+      "observed": "station_not_confirmed",
+      "threshold": "station_not_confirmed",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "short:motion_refused",
+      "observed": "fault_active|fault_active",
+      "threshold": "fault_active|fault_active",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "short:no_motion_after_refusal",
+      "observed": 88.175781,
+      "threshold": 88.175781,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "over:fault_code",
+      "observed": "missed_index_over",
+      "threshold": "missed_index_over",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "over:station_unconfirmed",
+      "observed": "null/false",
+      "threshold": "null/false",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "over:pin_refused",
+      "observed": "station_not_confirmed",
+      "threshold": "station_not_confirmed",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "over:motion_refused",
+      "observed": "fault_active|fault_active",
+      "threshold": "fault_active|fault_active",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "over:no_motion_after_refusal",
+      "observed": 92.175781,
+      "threshold": 92.175781,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "wrong_stop:fault_code",
+      "observed": "wrong_stop",
+      "threshold": "wrong_stop",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "wrong_stop:station_unconfirmed",
+      "observed": "null/false",
+      "threshold": "null/false",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "wrong_stop:pin_refused",
+      "observed": "station_not_confirmed",
+      "threshold": "station_not_confirmed",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "wrong_stop:motion_refused",
+      "observed": "fault_active|fault_active",
+      "threshold": "fault_active|fault_active",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "wrong_stop:no_motion_after_refusal",
+      "observed": 180.175781,
+      "threshold": 180.175781,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "reindex:recovers",
+      "observed": "HOMED_CONFIRMED/green",
+      "threshold": "HOMED_CONFIRMED/green",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "reindex:attempt1_fails",
+      "observed": "MISSED_INDEX_FAULT/1",
+      "threshold": "MISSED_INDEX_FAULT/1",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "reindex:bounded_hard_fault",
+      "observed": "HARD_FAULT/hard_fault/missed_index_short",
+      "threshold": "HARD_FAULT/hard_fault/missed_index_short",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "hard_fault:no_motion",
+      "observed": "fault_active|fault_active",
+      "threshold": "fault_active|fault_active",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "hard_fault:explicit_reset",
+      "observed": "true/UNHOMED",
+      "threshold": "true/UNHOMED",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "hard_fault:rehome_after_reset",
+      "observed": "HOMED_CONFIRMED",
+      "threshold": "HOMED_CONFIRMED",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "injected_hard_fault",
+      "observed": "HARD_FAULT",
+      "threshold": "HARD_FAULT",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "reindex_without_fault",
+      "observed": "not_faulted",
+      "threshold": "not_faulted",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "reset_while_rotating",
+      "observed": "busy",
+      "threshold": "busy",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "inside_tolerance_not_a_fault",
+      "observed": "HOMED_CONFIRMED",
+      "threshold": "HOMED_CONFIRMED",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C04",
+      "step": "constants:max_reindex_attempts",
+      "observed": 2,
+      "threshold": 2,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C05",
+      "observed": 1.3,
+      "step": "canonical-sweep:boss",
+      "threshold": 0.05,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C05",
+      "observed": 1.3,
+      "step": "canonical-sweep:clip",
+      "threshold": 0.05,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C05",
+      "observed": 0.0,
+      "step": "canonical-sweep:coupler",
+      "threshold": 0.05,
+      "threshold_label": "proposed",
+      "verdict": "fail"
+    },
+    {
+      "criterion_id": "ROT-C05",
+      "observed": 0.3,
+      "step": "canonical-sweep:deck",
+      "threshold": 0.05,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C05",
+      "observed": 5.4787,
+      "step": "canonical-sweep:hook",
+      "threshold": 0.05,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C05",
+      "observed": 0.3,
+      "step": "canonical-sweep:hub",
+      "threshold": 0.05,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C05",
+      "observed": 5.5209,
+      "step": "canonical-sweep:ledge",
+      "threshold": 0.05,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C05",
+      "observed": 0.9,
+      "step": "canonical-sweep:magnet",
+      "threshold": 0.05,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C05",
+      "observed": 6.8,
+      "step": "canonical-sweep:rod",
+      "threshold": 0.05,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "unhomed:index_refused",
+      "observed": "not_homed",
+      "threshold": "not_homed",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "unhomed:station_unconfirmed",
+      "observed": "null/false/UNHOMED",
+      "threshold": "null/false/UNHOMED",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "home:from_0deg",
+      "observed": "HOMED_CONFIRMED/red",
+      "threshold": "HOMED_CONFIRMED/red",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "home:from_0deg:error_deg",
+      "observed": 0.175781,
+      "threshold": 0.5,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "home:from_3deg",
+      "observed": "HOMED_CONFIRMED/red",
+      "threshold": "HOMED_CONFIRMED/red",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "home:from_3deg:error_deg",
+      "observed": 0.1875,
+      "threshold": 0.5,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "home:from_90deg",
+      "observed": "HOMED_CONFIRMED/red",
+      "threshold": "HOMED_CONFIRMED/red",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "home:from_90deg:error_deg",
+      "observed": 0.175781,
+      "threshold": 0.5,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "home:from_123.4deg",
+      "observed": "HOMED_CONFIRMED/red",
+      "threshold": "HOMED_CONFIRMED/red",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "home:from_123.4deg:error_deg",
+      "observed": 0.177344,
+      "threshold": 0.5,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "home:from_200deg",
+      "observed": "HOMED_CONFIRMED/red",
+      "threshold": "HOMED_CONFIRMED/red",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "home:from_200deg:error_deg",
+      "observed": 0.136719,
+      "threshold": 0.5,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "home:from_356.34deg",
+      "observed": "HOMED_CONFIRMED/red",
+      "threshold": "HOMED_CONFIRMED/red",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "home:from_356.34deg:error_deg",
+      "observed": 0.031406,
+      "threshold": 0.5,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "home:from_359deg",
+      "observed": "HOMED_CONFIRMED/red",
+      "threshold": "HOMED_CONFIRMED/red",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "home:from_359deg:error_deg",
+      "observed": 0.054688,
+      "threshold": 0.5,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "home:rotating_not_confirmed",
+      "observed": "ROTATING/null",
+      "threshold": "ROTATING/null",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "home:record",
+      "observed": "ccw_rising/21",
+      "threshold": "ccw_rising/21",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "actual_2048:uncalibrated_quarter_drift_deg",
+      "observed": 0,
+      "threshold": 0,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "actual_2048:measured_steps",
+      "observed": 2048,
+      "threshold": 2048,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "actual_2048:targets_round_k_n_over_4",
+      "observed": "true",
+      "threshold": "true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "actual_2048:calibrated_quarter_drift_deg",
+      "observed": 0,
+      "threshold": 0.2,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "actual_2037.9:uncalibrated_quarter_drift_deg",
+      "observed": 0.446047,
+      "threshold": 0.446047,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "actual_2037.9:measured_steps",
+      "observed": 2038,
+      "threshold": 2037.9,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "actual_2037.9:targets_round_k_n_over_4",
+      "observed": "true",
+      "threshold": "true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "actual_2037.9:calibrated_quarter_drift_deg",
+      "observed": 0.092742,
+      "threshold": 0.2,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "injected",
+      "observed": "HARD_FAULT/home_not_found",
+      "threshold": "HARD_FAULT/home_not_found",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "injected:index_refused",
+      "observed": "fault_active",
+      "threshold": "fault_active",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "injected:reset_to_unhomed",
+      "observed": "UNHOMED",
+      "threshold": "UNHOMED",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C06",
+      "step": "search_limit_100_steps",
+      "observed": "home_not_found",
+      "threshold": "home_not_found",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "hardware:quarter_s",
+      "observed": 2.164,
+      "threshold": 2.163495,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "hardware:half_turn_s",
+      "observed": 4.127,
+      "threshold": 4.126991,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "sim:quarter_s",
+      "observed": 1.209,
+      "threshold": 1.208305,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "red->blue:trace",
+      "observed": "index:red>blue:unidirectional | segment:ccw:512 | state:HOMED_CONFIRMED:blue",
+      "threshold": "index, segment(s), one state entry in order",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "red->blue:same_result_as_small_steps",
+      "observed": "blue/512",
+      "threshold": "blue/512",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "red->green:trace",
+      "observed": "index:red>green:unidirectional | segment:ccw:1024 | state:HOMED_CONFIRMED:green",
+      "threshold": "index, segment(s), one state entry in order",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "red->green:same_result_as_small_steps",
+      "observed": "green/1024",
+      "threshold": "green/1024",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "red->orange:trace",
+      "observed": "index:red>orange:unidirectional | segment:cw:529 | segment:ccw:17 | state:HOMED_CONFIRMED:orange",
+      "threshold": "index, segment(s), one state entry in order",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "red->orange:same_result_as_small_steps",
+      "observed": "orange/1536",
+      "threshold": "orange/1536",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "red->orange:cw_then_ccw_overshoot",
+      "observed": "-92.988281,2.988281",
+      "threshold": "about -93,3 (rounded to whole steps)",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "red->green:unidirectional:tie_ccw",
+      "observed": "180",
+      "threshold": "180",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "red->green:shortest:tie_ccw",
+      "observed": "180",
+      "threshold": "180",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "blue->orange:unidirectional:tie_ccw",
+      "observed": "180",
+      "threshold": "180",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "blue->orange:shortest:tie_ccw",
+      "observed": "180",
+      "threshold": "180",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "green->red:unidirectional:tie_ccw",
+      "observed": "180",
+      "threshold": "180",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "green->red:shortest:tie_ccw",
+      "observed": "180",
+      "threshold": "180",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "orange->blue:unidirectional:tie_ccw",
+      "observed": "180",
+      "threshold": "180",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "orange->blue:shortest:tie_ccw",
+      "observed": "180",
+      "threshold": "180",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "unidirectional:cw_needs_overshoot",
+      "observed": "-93,3",
+      "threshold": "-93,3",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "shortest:cw_direct",
+      "observed": "-90",
+      "threshold": "-90",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "wrap:270->0_is_ccw_90",
+      "observed": "90",
+      "threshold": "90",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "wrap:370->10_is_zero",
+      "observed": 0,
+      "threshold": 0,
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "default_policy",
+      "observed": "unidirectional",
+      "threshold": "unidirectional",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "angle_range_during_wrap",
+      "observed": "266.281819..358.889302",
+      "threshold": "[0, 360)",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C07",
+      "step": "lost_motion_model",
+      "observed": "0/-1",
+      "threshold": "0/-1",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C08",
+      "step": "readout:at_station",
+      "observed": "true",
+      "threshold": "true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C08",
+      "step": "readout:drum_state",
+      "observed": "true",
+      "threshold": "true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C08",
+      "step": "readout:sequence_active",
+      "observed": "true",
+      "threshold": "true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C08",
+      "step": "readout:lift_in_progress",
+      "observed": "true",
+      "threshold": "true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C08",
+      "step": "readout:pin_gate_allowed",
+      "observed": "true",
+      "threshold": "true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C08",
+      "step": "still:red",
+      "observed": "red/STILL/false/true",
+      "threshold": "red/STILL/false/true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C08",
+      "step": "rotating",
+      "observed": "null/ROTATING/true/false",
+      "threshold": "null/ROTATING/true/false",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C08",
+      "step": "arrived:green",
+      "observed": "green/STILL/true",
+      "threshold": "green/STILL/true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C08",
+      "step": "lift_in_progress",
+      "observed": "false/true",
+      "threshold": "false/true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C08",
+      "step": "snapshot_frozen",
+      "observed": "true",
+      "threshold": "true",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-C08",
+      "step": "unhomed:pin_gate_blocked",
+      "observed": "null/false",
+      "threshold": "null/false",
+      "threshold_label": "proposed",
+      "verdict": "pass"
+    },
+    {
+      "criterion_id": "ROT-R01",
+      "status": "not validated — to be measured on a built rig"
+    },
+    {
+      "criterion_id": "ROT-R02",
+      "status": "not validated — to be measured on a built rig"
+    },
+    {
+      "criterion_id": "ROT-R03",
+      "status": "not validated — to be measured on a built rig"
+    },
+    {
+      "criterion_id": "ROT-R04",
+      "status": "not validated — to be measured on a built rig"
+    },
+    {
+      "criterion_id": "ROT-R05",
+      "status": "not validated — to be measured on a built rig"
+    },
+    {
+      "criterion_id": "ROT-R06",
+      "status": "not validated — to be measured on a built rig"
+    }
+  ]
+}

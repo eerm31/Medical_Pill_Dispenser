@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101725">
+  <title>Electronics Wiring Simulation — Rotating Cartridge Dispenser</title>
+  <link rel="stylesheet" href="wiring.css">
+  <script defer src="concept-data.js"></script>
+  <script defer src="demo-controller.js"></script>
+  <script defer src="rotation-spec.js"></script>
+  <script defer src="wiring-spec.js"></script>
+  <script defer src="wiring-model.js"></script>
+  <script defer src="wiring.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div><p class="eyebrow">ELECTRONICS · CONCEPT WIRING</p><h1>ESP32-S3 wiring simulation</h1></div>
+    <div class="badges"><span id="sourceBadge" class="badge">STARTING</span><span class="badge warn">ASSUMED / NOT VALIDATED</span></div>
+  </header>
+  <main class="wrap">
+    <section class="card diagram-card" aria-label="Wiring diagram">
+      <div class="card-head"><div><span class="eyebrow">CONNECTIONS</span><h2>Wiring diagram</h2></div><span class="hint">Wires light up with the live signal level</span></div>
+      <div class="diagram-scroll"><svg id="diagram" role="img" aria-label="Wiring diagram of the ESP32-S3, ULN2003 driver, stepper, two servos, hall sensor, USB-C inlet and barcode reader" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      <p class="notice"><strong>CONCEPT ONLY.</strong> <span id="specNotice"></span> No hardware, current, timing or EMC claim is made.</p>
+    </section>
+
+    <section class="card bench-card" aria-label="Signal source">
+      <div class="card-head"><div><span class="eyebrow">SIGNAL SOURCE</span><h2>Live from the 3D viewer or bench</h2></div></div>
+      <p id="sourceNote" class="note"></p>
+      <div class="bench-row">
+        <label>Compartment <select id="benchColor" autocomplete="off"><option value="red">Red</option><option value="blue">Blue</option><option value="green">Green</option><option value="orange">Orange</option></select></label>
+        <button id="benchDispense" type="button" class="primary">Dispense</button>
+        <button id="benchScan" type="button">Scan fixture</button>
+        <button id="benchReset" type="button">Reset</button>
+      </div>
+      <p class="note small">Bench mode runs the same locked demo controller on its own with all four compartments pre-loaded (bench shortcut). While this window is open from the 3D viewer, the viewer drives every signal instead.</p>
+    </section>
+
+    <section class="card gpio-card" aria-label="GPIO assignment">
+      <div class="card-head"><div><span class="eyebrow">SINGLE SOURCE OF TRUTH</span><h2>GPIO assignment</h2></div><span id="gpioCount" class="hint"></span></div>
+      <div class="table-scroll"><table class="gpio-table"><thead><tr><th>GPIO</th><th>Net</th><th>Connects to</th><th>Function</th><th>Dir</th><th>Live</th></tr></thead><tbody id="gpioRows"></tbody></table></div>
+      <p id="plannedNote" class="note small"></p>
+      <details class="note small"><summary>GPIO pins deliberately avoided</summary><ul id="reservedList"></ul></details>
+    </section>
+
+    <section class="card" aria-label="Live signals">
+      <div class="card-head"><div><span class="eyebrow">LIVE</span><h2>Signals</h2></div></div>
+      <div class="signals-grid">
+        <div><h3>Servo PWM (first 3 ms of each 20 ms frame)</h3><svg id="scope" viewBox="0 0 320 120" class="scope"></svg></div>
+        <div><h3 id="phaseTitle">Stepper half-step table</h3><svg id="phaseTable" viewBox="0 0 320 120" class="scope"></svg><p id="stepReadout" class="note small"></p></div>
+        <div><h3 id="uartTitle">Reader UART</h3><pre id="uartLog" class="log" aria-live="off"></pre></div>
+      </div>
+    </section>
+
+    <section class="card" aria-label="Power">
+      <div class="card-head"><div><span class="eyebrow">POWER</span><h2>5 V rail estimate</h2></div><span id="powerTotal" class="hint"></span></div>
+      <div id="powerBars" class="power-bars"></div>
+      <ul id="powerNotes" class="note small"></ul>
+    </section>
+
+    <section class="card" aria-label="Wiring checks">
+      <div class="card-head"><div><span class="eyebrow">CONSISTENCY</span><h2>Wiring checks</h2></div></div>
+      <ul id="checks" class="checks"></ul>
+    </section>
+
+    <section class="card" aria-label="Event log">
+      <div class="card-head"><div><span class="eyebrow">LOG</span><h2>Phase events</h2></div></div>
+      <ol id="eventLog" class="event-log"></ol>
+    </section>
+  </main>
+</body>
+</html>

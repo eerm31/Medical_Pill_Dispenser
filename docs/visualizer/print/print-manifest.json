@@ -1,0 +1,925 @@
+{
+  "title": "Feature 005 printed parts (rotation subsystem and the first compartments)",
+  "status": "ASSUMED / NOT_VALIDATED",
+  "print_ready": false,
+  "fabricable_as_designed": false,
+  "units": "mm, right-handed, z up, bed at z = 0, STL binary",
+  "disclosure": "Nothing was printed, measured or fitted. The files carry the hole compensation below as a starting guess. Print the coupons first, fix scripts/print_profile.json from what you measure, then run scripts/export_print_files.py again.",
+  "profile": {
+    "hole_comp_mm": 0.15,
+    "xy_scale": 1.0,
+    "layer_mm": 0.2,
+    "nozzle_mm": 0.4,
+    "material": "PETG or PLA+",
+    "seat_model_mm": 15.85
+  },
+  "parts": [
+    {
+      "id": "drum",
+      "label": "Drum",
+      "file": "drum.stl",
+      "mode": "one",
+      "quantity": 1,
+      "material": "PETG or PLA+",
+      "orientation": "Upright, deck undersides on the bed, hub pointing up",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 4 walls, 5 top/bottom layers, about 30 % gyroid, 5 mm brim",
+      "supports": "needed, or tune bridging: 33.6 mm2 of downward faces off the bed at z = 14.8 mm",
+      "overhangs": {
+        "area_mm2": 33.6,
+        "levels": [
+          {
+            "z_mm": 14.8,
+            "area_mm2": 33.6
+          }
+        ]
+      },
+      "size_mm": [
+        71.0,
+        71.0,
+        42.0
+      ],
+      "volume_mm3": 11909.5,
+      "triangles": 2584,
+      "bodies": 1,
+      "sha256": "b22f7e9e038a871a4dd6f5fbf68ba459d8dbb6de4c40243b6639bd0356c400dd",
+      "features": [
+        {
+          "feature": "D bore round part",
+          "nominal_mm": 5.2,
+          "model_mm": 5.35,
+          "rule": "nominal + hole compensation",
+          "check": "pin gauge or rod (coupon C-2)"
+        },
+        {
+          "feature": "D bore flat from axis",
+          "nominal_mm": 2.1,
+          "model_mm": 2.1,
+          "rule": "unchanged",
+          "check": "caliper on the rod flat"
+        },
+        {
+          "feature": "Deck channel X / Y",
+          "nominal_mm": "10.8 / 8.4",
+          "model_mm": "10.95 / 8.55",
+          "rule": "nominal + hole compensation",
+          "check": "caliper, fit the cartridge"
+        },
+        {
+          "feature": "Magnet pocket diameter",
+          "nominal_mm": 3.1,
+          "model_mm": 3.25,
+          "rule": "nominal + hole compensation",
+          "check": "3 x 1 magnet (coupon C-3)"
+        },
+        {
+          "feature": "Hub height",
+          "nominal_mm": 42.0,
+          "model_mm": 42.0,
+          "rule": "whole layers (210)",
+          "check": "caliper"
+        }
+      ],
+      "z_levels_off_layer_grid": [],
+      "coupons": [
+        "C-2",
+        "C-3",
+        "C-6",
+        "C-7"
+      ],
+      "warnings": [
+        "Eight clip arms are 1.2 mm thick and print upright, so they bend across layer lines; coupon C-6 decides whether to print them separately and flat (R17).",
+        "Each hook overhangs 0.7 mm with nothing under it; expect a rough underside.",
+        "The four decks are 1.0 mm thick plates up to 24 mm wide on the bed; use the brim and watch for warp (R8). Avoid ABS.",
+        "The D bore keeps its flat at 2.10 from the axis; only the round part grows with the hole compensation.",
+        "Zero rod play depends on the epoxy bond, not on the print (R13, coupon C-7)."
+      ]
+    },
+    {
+      "id": "housing-platform",
+      "label": "Housing platform",
+      "file": "housing-platform.stl",
+      "mode": "one",
+      "quantity": 1,
+      "material": "PETG or PLA+",
+      "orientation": "Flipped: the top face (where the thrust ring lies) is on the bed, so it is the smooth first layer",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 4 walls, 5 top/bottom layers, about 30 % gyroid, no brim needed",
+      "supports": "needed, or tune bridging: 421.1 mm2 of downward faces off the bed at z = 3.0, 5.0, 5.35, 6.7 mm",
+      "overhangs": {
+        "area_mm2": 421.1,
+        "levels": [
+          {
+            "z_mm": 3.0,
+            "area_mm2": 12.0
+          },
+          {
+            "z_mm": 5.0,
+            "area_mm2": 81.3
+          },
+          {
+            "z_mm": 5.35,
+            "area_mm2": 327.0
+          },
+          {
+            "z_mm": 6.7,
+            "area_mm2": 0.8
+          }
+        ]
+      },
+      "size_mm": [
+        44.0,
+        74.2,
+        29.7
+      ],
+      "volume_mm3": 19789.8,
+      "triangles": 1026,
+      "bodies": 1,
+      "sha256": "fcab8677010f510eb81d177fbf89551093dd22618b2636ad45645dde531c3c65",
+      "features": [
+        {
+          "feature": "Bearing seat diameter",
+          "nominal_mm": 16.0,
+          "model_mm": 15.85,
+          "rule": "undersize, ream to 16.00 after printing",
+          "check": "625ZZ press fit (coupon C-1)"
+        },
+        {
+          "feature": "Column socket",
+          "nominal_mm": 3.3,
+          "model_mm": 3.3,
+          "rule": "already 0.15 mm per side over the 3.0 spigot",
+          "check": "spigot enters by hand (coupon C-5)"
+        },
+        {
+          "feature": "Hall pocket",
+          "nominal_mm": "4.0 x 3.0 x 3.0",
+          "model_mm": "4.0 x 3.0 x 3.0",
+          "rule": "unchanged; measure the real sensor first",
+          "check": "caliper on the sensor"
+        }
+      ],
+      "z_levels_off_layer_grid": [
+        {
+          "z_mm": 3.55,
+          "nearest_layer_mm": 3.6,
+          "deviation_mm": 0.05
+        },
+        {
+          "z_mm": 4.5,
+          "nearest_layer_mm": 4.4,
+          "deviation_mm": 0.1
+        },
+        {
+          "z_mm": 5.35,
+          "nearest_layer_mm": 5.4,
+          "deviation_mm": 0.05
+        },
+        {
+          "z_mm": 6.7,
+          "nearest_layer_mm": 6.8,
+          "deviation_mm": 0.1
+        },
+        {
+          "z_mm": 29.7,
+          "nearest_layer_mm": 29.6,
+          "deviation_mm": 0.1
+        }
+      ],
+      "coupons": [
+        "C-1",
+        "C-5"
+      ],
+      "warnings": [
+        "The bearing seat is modelled 15.85 mm and must be reamed to 16.00 mm after printing (coupon C-1).",
+        "Printed this way the bearing ledge (hole 12 mm to seat 15.85 mm) is a 1.9 mm wide overhang ring 5 mm above the bed; it may need local support or a clean bridge.",
+        "The wall between the hall pocket and the tongue pocket is about 0.71 mm, below the proposed 0.8 mm minimum (C10, open).",
+        "The wall between the bearing seat and the tongue pocket is about 0.7-0.9 mm (C4, open).",
+        "The hall pocket is 4.0 x 3.0 x 3.0 mm with no wire exit; the exit is not designed yet (R18).",
+        "The four outlet-chute wall boxes under the platform (z -12 to -3) are drawn in the viewer but are not in the print list, so they are NOT in this file.",
+        "The platform plate is 6.70 mm thick, which is not a whole number of 0.20 mm layers; the slicer will round it by 0.1 mm.",
+        "Two 2 x 13 mm cheeks hang 23 mm below the floor (z -26 to -3) to hold the tongue servo; printed flipped they stand up from the bed. The 14 x 14.5 mm opening for the servo crank arm is cut through the floor at the front.",
+        "The servo seat is 23 mm between the cheeks for a 22.7 mm servo body; screw holes for the servo ears are NOT designed."
+      ]
+    },
+    {
+      "id": "stepper-mount",
+      "label": "Stepper mount",
+      "file": "stepper-mount.stl",
+      "mode": "one",
+      "quantity": 1,
+      "material": "PETG or PLA+",
+      "orientation": "Plate flat on the bed, columns and spigots standing up",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 4 walls (the 4 mm columns print nearly solid), 30-40 % infill",
+      "supports": "needed, or tune bridging: 19.8 mm2 of downward faces off the bed at z = 2.6, 11.0 mm",
+      "overhangs": {
+        "area_mm2": 19.8,
+        "levels": [
+          {
+            "z_mm": 2.6,
+            "area_mm2": 9.2
+          },
+          {
+            "z_mm": 11.0,
+            "area_mm2": 10.6
+          }
+        ]
+      },
+      "size_mm": [
+        42.0,
+        23.0,
+        28.0
+      ],
+      "volume_mm3": 2041.6,
+      "triangles": 3552,
+      "bodies": 1,
+      "sha256": "981d4392f44dc34e617aaa14647a6b86dea9128127b2ba465d34572691b4f265",
+      "features": [
+        {
+          "feature": "Boss hole diameter",
+          "nominal_mm": 9.5,
+          "model_mm": 9.65,
+          "rule": "nominal + hole compensation",
+          "check": "motor boss fits without wobble (coupon C-4)"
+        },
+        {
+          "feature": "Screw holes",
+          "nominal_mm": 3.4,
+          "model_mm": 3.55,
+          "rule": "nominal + hole compensation",
+          "check": "M3 screw passes (coupon C-4)"
+        },
+        {
+          "feature": "M3 pilot hole",
+          "nominal_mm": 2.6,
+          "model_mm": 2.6,
+          "rule": "unchanged; coupon C-4 chooses 2.5 to 2.7",
+          "check": "M3 x 12 bites 9.4 mm without splitting"
+        }
+      ],
+      "z_levels_off_layer_grid": [],
+      "coupons": [
+        "C-4",
+        "C-5"
+      ],
+      "warnings": [
+        "The M3 pilot hole wall is about 0.7 mm (R14); coupon C-4 chooses the pilot diameter between 2.5 and 2.7 mm.",
+        "The two 4 x 4 x 24.4 mm columns are tall and slender; check rigidity and print them without a draft in the slicer.",
+        "The screw heads and the motor boss clearance depend on the 9.65 and 3.55 mm holes (coupon C-4)."
+      ]
+    },
+    {
+      "id": "levelling-base",
+      "label": "Levelling base",
+      "file": "levelling-base.stl",
+      "mode": "one",
+      "quantity": 1,
+      "material": "PETG or PLA+",
+      "orientation": "Plate underside (z = -58) on the bed, the four posts standing up",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 4 walls, 5 top/bottom layers, 30 % gyroid",
+      "supports": "needed, or tune bridging: 1572.0 mm2 of downward faces off the bed at z = 4.2, 34.0 mm",
+      "overhangs": {
+        "area_mm2": 1572.0,
+        "levels": [
+          {
+            "z_mm": 4.2,
+            "area_mm2": 112.8
+          },
+          {
+            "z_mm": 34.0,
+            "area_mm2": 1459.2
+          }
+        ]
+      },
+      "size_mm": [
+        144.0,
+        144.0,
+        35.6
+      ],
+      "volume_mm3": 100383.7,
+      "triangles": 16388,
+      "bodies": 1,
+      "sha256": "41923c003496346985a4c63552751162a00c5a3ac60875ab9ae62531abd93ab8",
+      "features": [
+        {
+          "feature": "Foot bolt hole",
+          "nominal_mm": 5.3,
+          "model_mm": 5.3,
+          "rule": "already 0.3 mm loose over the M5 thread",
+          "check": "M5 bolt turns in the nut without binding"
+        },
+        {
+          "feature": "Nut pocket across flats",
+          "nominal_mm": 8.0,
+          "model_mm": 8.3,
+          "rule": "nut AF + 0.3 mm",
+          "check": "nut drops in and cannot spin"
+        },
+        {
+          "feature": "Post pilot hole",
+          "nominal_mm": 2.6,
+          "model_mm": 2.6,
+          "rule": "unchanged; coupon C-4 chooses 2.5 to 2.7",
+          "check": "M3 x 10 bites 8.4 mm without splitting"
+        }
+      ],
+      "z_levels_off_layer_grid": [
+        {
+          "z_mm": 3.5,
+          "nearest_layer_mm": 3.6,
+          "deviation_mm": 0.1
+        }
+      ],
+      "coupons": [
+        "C-4"
+      ],
+      "warnings": [
+        "Three M5 hex-nut pockets open to the bed side: print them as 8.3 mm bridges and keep the nut flat; check the nut turns freely and cannot spin (coupon C-4 style fit test).",
+        "The four 4 x 4 x 23 mm mount posts are slender; the M3 pilot hole leaves about 0.7 mm of wall (R14).",
+        "The controller shelf (54.4 x 28 x 1.6 mm) is a bridge between four 4 x 4 x 28 mm posts; its underside is an unsupported span, so print it with supports or tune bridging.",
+        "The plate is a round 144 mm disc, so a 150 mm bed is enough.",
+        "A 3.6 mm wide, 2.5 mm deep ring groove holds the wall (0.3 mm clearance per side); a thin 3.5 mm floor remains under it. The fit is ASSUMED, so print a short test ring of the wall first.",
+        "Layer-1 boards lie on the plate with 2 mm spacing; nothing fixes them (screw bosses are not designed)."
+      ]
+    },
+    {
+      "id": "cylindrical-shell-right",
+      "label": "Cylindrical shell, right sector",
+      "file": "cylindrical-shell-right.stl",
+      "mode": "one",
+      "quantity": 1,
+      "material": "PETG or PLA+",
+      "orientation": "Sector stood on its lower edge (the z = -54.5 edge on the bed)",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 20 % infill, 5 mm brim",
+      "supports": "needed, or tune bridging: 1107.1 mm2 of downward faces off the bed at z = 18.5, 64.5, 78.5 mm",
+      "overhangs": {
+        "area_mm2": 1107.1,
+        "levels": [
+          {
+            "z_mm": 18.5,
+            "area_mm2": 63.6
+          },
+          {
+            "z_mm": 64.5,
+            "area_mm2": 37.9
+          },
+          {
+            "z_mm": 78.5,
+            "area_mm2": 1005.6
+          }
+        ]
+      },
+      "size_mm": [
+        83.765,
+        92.588,
+        117.5
+      ],
+      "volume_mm3": 51192.2,
+      "triangles": 442,
+      "bodies": 1,
+      "sha256": "7c709fde24cfba3c1a5053f221d845fce3c87216ba11f0ebd2a4176eff221fa3",
+      "features": [],
+      "z_levels_off_layer_grid": [
+        {
+          "z_mm": 2.5,
+          "nearest_layer_mm": 2.4,
+          "deviation_mm": 0.1
+        },
+        {
+          "z_mm": 18.5,
+          "nearest_layer_mm": 18.4,
+          "deviation_mm": 0.1
+        },
+        {
+          "z_mm": 64.5,
+          "nearest_layer_mm": 64.4,
+          "deviation_mm": 0.1
+        },
+        {
+          "z_mm": 78.5,
+          "nearest_layer_mm": 78.4,
+          "deviation_mm": 0.1
+        },
+        {
+          "z_mm": 80.5,
+          "nearest_layer_mm": 80.4,
+          "deviation_mm": 0.1
+        },
+        {
+          "z_mm": 117.5,
+          "nearest_layer_mm": 117.6,
+          "deviation_mm": 0.1
+        }
+      ],
+      "coupons": [],
+      "warnings": [
+        "A 3 mm wall standing 117.5 mm tall and curved: expect wobble and layer-line weakness; use the brim and print slowly.",
+        "The cup opening is 18 degrees wide (about 21 mm) and 16 mm tall (z -52 to -36), open to the bottom of the wall: print it as a bridge or add temporary supports.",
+        "The pin-servo shelf (23 mm wide, 2 mm thick, cut to the inside of the wall) and its web carry the servo; check rigidity.",
+        "Each sector has a 1 mm x 3 mm tongue on one edge and a matching 1.4 x 3.4 mm groove on the other (0.2 mm radial and 0.4 mm length clearance); the 0.8 mm skins either side of the groove are thin and may break. Fit is ASSUMED."
+      ]
+    },
+    {
+      "id": "cylindrical-shell-back",
+      "label": "Cylindrical shell, back sector",
+      "file": "cylindrical-shell-back.stl",
+      "mode": "one",
+      "quantity": 1,
+      "material": "PETG or PLA+",
+      "orientation": "Sector stood on its lower edge (the z = -54.5 edge on the bed)",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 20 % infill, 5 mm brim",
+      "supports": "none: no downward face steeper than 45 degrees off the bed",
+      "overhangs": {
+        "area_mm2": 0.0,
+        "levels": []
+      },
+      "size_mm": [
+        117.67,
+        48.914,
+        117.5
+      ],
+      "volume_mm3": 49591.3,
+      "triangles": 318,
+      "bodies": 1,
+      "sha256": "fdcc38497a1dd2dfc407af0756a1b4ec5139cf2149b688f10950b8f98b7cc844",
+      "features": [],
+      "z_levels_off_layer_grid": [
+        {
+          "z_mm": 117.5,
+          "nearest_layer_mm": 117.6,
+          "deviation_mm": 0.1
+        }
+      ],
+      "coupons": [],
+      "warnings": [
+        "3 mm curved wall, 117.5 mm tall; expect wobble and use the brim.",
+        "Each sector has a 1 mm x 3 mm tongue on one edge and a matching 1.4 x 3.4 mm groove on the other (0.2 mm radial and 0.4 mm length clearance); the 0.8 mm skins either side of the groove are thin and may break. Fit is ASSUMED."
+      ]
+    },
+    {
+      "id": "cylindrical-shell-left",
+      "label": "Cylindrical shell, left sector",
+      "file": "cylindrical-shell-left.stl",
+      "mode": "one",
+      "quantity": 1,
+      "material": "PETG or PLA+",
+      "orientation": "Sector stood on its lower edge (the z = -54.5 edge on the bed)",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 20 % infill, 5 mm brim",
+      "supports": "none: no downward face steeper than 45 degrees off the bed",
+      "overhangs": {
+        "area_mm2": 0.0,
+        "levels": []
+      },
+      "size_mm": [
+        57.545,
+        113.878,
+        117.5
+      ],
+      "volume_mm3": 49591.3,
+      "triangles": 318,
+      "bodies": 1,
+      "sha256": "f917dcfea31e6fa690004b38a35f02cfaf43e5451098d604a2caae31bf197a26",
+      "features": [],
+      "z_levels_off_layer_grid": [
+        {
+          "z_mm": 117.5,
+          "nearest_layer_mm": 117.6,
+          "deviation_mm": 0.1
+        }
+      ],
+      "coupons": [],
+      "warnings": [
+        "3 mm curved wall, 117.5 mm tall; expect wobble and use the brim.",
+        "Each sector has a 1 mm x 3 mm tongue on one edge and a matching 1.4 x 3.4 mm groove on the other (0.2 mm radial and 0.4 mm length clearance); the 0.8 mm skins either side of the groove are thin and may break. Fit is ASSUMED."
+      ]
+    },
+    {
+      "id": "service-lid",
+      "label": "Service lid",
+      "file": "service-lid.stl",
+      "mode": "one",
+      "quantity": 1,
+      "material": "PETG or PLA+",
+      "orientation": "Flipped: the top face is on the bed (smooth visible face), the 2 mm lip stands up",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 20 % infill, 5 mm brim",
+      "supports": "needed, or tune bridging: 188.4 mm2 of downward faces off the bed at z = 0.8 mm",
+      "overhangs": {
+        "area_mm2": 188.4,
+        "levels": [
+          {
+            "z_mm": 0.8,
+            "area_mm2": 188.4
+          }
+        ]
+      },
+      "size_mm": [
+        144.0,
+        144.0,
+        6.0
+      ],
+      "volume_mm3": 51106.1,
+      "triangles": 1916,
+      "bodies": 1,
+      "sha256": "b08c293029acf64108d4a4d9ed6b325b0b558c26277ec3c714d8570839313063",
+      "features": [],
+      "z_levels_off_layer_grid": [],
+      "coupons": [],
+      "warnings": [
+        "A 144 mm x 3 mm disc: expect warp at the edge; use the brim and avoid ABS.",
+        "The engraved ring (1.2 mm wide, 0.8 mm deep) prints as a short bridge above the bed; it may sag.",
+        "The 2 mm lip is a single-wall-pair rib standing 3 mm up: handle with care.",
+        "It is held by gravity only: nothing stops it sliding off if the product is tipped (magnets or a bayonet are NOT designed)."
+      ]
+    },
+    {
+      "id": "pill-trough",
+      "label": "Pill trough",
+      "file": "pill-trough.stl",
+      "mode": "one",
+      "quantity": 1,
+      "material": "PETG or PLA+",
+      "orientation": "Floor flat on the bed, side walls standing up (it is only tilted 15 degrees when assembled)",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 20 % infill",
+      "supports": "none: no downward face steeper than 45 degrees off the bed",
+      "overhangs": {
+        "area_mm2": 0.0,
+        "levels": []
+      },
+      "size_mm": [
+        68.742,
+        14.0,
+        7.5
+      ],
+      "volume_mm3": 2680.9,
+      "triangles": 36,
+      "bodies": 1,
+      "sha256": "a74fd5b0c186df05d11387c58054e361c13e16b8dadaded549e3745fe6abeee7",
+      "features": [],
+      "z_levels_off_layer_grid": [
+        {
+          "z_mm": 1.5,
+          "nearest_layer_mm": 1.6,
+          "deviation_mm": 0.1
+        },
+        {
+          "z_mm": 7.5,
+          "nearest_layer_mm": 7.6,
+          "deviation_mm": 0.1
+        }
+      ],
+      "coupons": [],
+      "warnings": [
+        "Pills sliding at 15 degrees is ASSUMED; the real friction of the printed floor is unknown (a smoother floor or a steeper slope may be needed).",
+        "The high end rests on the chute walls and the low end on one 2 mm post from the base; screws or clips are NOT designed.",
+        "It stays inside the wall and ends over the cup; the 1.5 mm walls are thin."
+      ]
+    },
+    {
+      "id": "pill-cup",
+      "label": "Pill cup",
+      "file": "pill-cup.stl",
+      "mode": "one",
+      "quantity": 1,
+      "material": "PETG or PLA+",
+      "orientation": "Floor on the bed, walls standing up",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 20 % infill",
+      "supports": "none: no downward face steeper than 45 degrees off the bed",
+      "overhangs": {
+        "area_mm2": 0.0,
+        "levels": []
+      },
+      "size_mm": [
+        22.0,
+        16.0,
+        16.0
+      ],
+      "volume_mm3": 2050.5,
+      "triangles": 28,
+      "bodies": 1,
+      "sha256": "93ed2b8fe12d151fadabb9fc85e28d262bfae863c2c8c78dabdc6910415efe68",
+      "features": [],
+      "z_levels_off_layer_grid": [
+        {
+          "z_mm": 1.5,
+          "nearest_layer_mm": 1.6,
+          "deviation_mm": 0.1
+        }
+      ],
+      "coupons": [],
+      "warnings": [
+        "It stands on the plinth and slides out through the wall opening; it has no guide rails or stop yet, and nothing keeps it from sliding in too far."
+      ]
+    },
+    {
+      "id": "rail-block",
+      "label": "Pin rail block",
+      "file": "rail-block.stl",
+      "mode": "one",
+      "quantity": 1,
+      "material": "PETG or PLA+",
+      "orientation": "Foot plate on the bed, post and rails standing up",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 4 walls, 30 % gyroid",
+      "supports": "needed, or tune bridging: 73.6 mm2 of downward faces off the bed at z = 9.3 mm",
+      "overhangs": {
+        "area_mm2": 73.6,
+        "levels": [
+          {
+            "z_mm": 9.3,
+            "area_mm2": 73.6
+          }
+        ]
+      },
+      "size_mm": [
+        18.0,
+        27.5,
+        12.9
+      ],
+      "volume_mm3": 1078.9,
+      "triangles": 64,
+      "bodies": 1,
+      "sha256": "e0fc9d2f6e703bf9332316b4430ba11d1828a7bf2dffd2f2e47303b8b0964ffd",
+      "features": [],
+      "z_levels_off_layer_grid": [
+        {
+          "z_mm": 1.5,
+          "nearest_layer_mm": 1.6,
+          "deviation_mm": 0.1
+        },
+        {
+          "z_mm": 9.3,
+          "nearest_layer_mm": 9.2,
+          "deviation_mm": 0.1
+        },
+        {
+          "z_mm": 12.9,
+          "nearest_layer_mm": 12.8,
+          "deviation_mm": 0.1
+        }
+      ],
+      "coupons": [],
+      "warnings": [
+        "The two carriage rails are 1.6 mm wide and 24 mm long, cantilevered from the post: print them slowly and check that they do not sag.",
+        "The foot plate sits on the platform top; its screw holes are NOT designed."
+      ]
+    },
+    {
+      "id": "cartridge",
+      "label": "Cartridge",
+      "file": "cartridge.stl",
+      "mode": "separate",
+      "quantity": 4,
+      "material": "PETG or PLA+",
+      "orientation": "Upright, the guide-rail undersides (z = 5) on the bed",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 20 % infill",
+      "supports": "needed, or tune bridging: 70.0 mm2 of downward faces off the bed at z = 1.0, 7.0, 11.8, 29.0 mm",
+      "overhangs": {
+        "area_mm2": 70.0,
+        "levels": [
+          {
+            "z_mm": 1.0,
+            "area_mm2": 49.4
+          },
+          {
+            "z_mm": 7.0,
+            "area_mm2": 1.4
+          },
+          {
+            "z_mm": 11.8,
+            "area_mm2": 9.6
+          },
+          {
+            "z_mm": 29.0,
+            "area_mm2": 9.6
+          }
+        ]
+      },
+      "size_mm": [
+        16.4,
+        24.2,
+        41.0
+      ],
+      "volume_mm3": 3847.5,
+      "triangles": 904,
+      "bodies": 1,
+      "sha256": "a5399e517f283ab58b0cc9a1e65c3855895fff1b87b18f1a8473dea28fc5abb8",
+      "features": [
+        {
+          "feature": "Bore X / Y",
+          "nominal_mm": "10.8 / 8.4",
+          "model_mm": "10.95 / 8.55",
+          "rule": "nominal + hole compensation",
+          "check": "pill gauge, caliper"
+        },
+        {
+          "feature": "Spring peg diameter",
+          "nominal_mm": 1.2,
+          "model_mm": 1.2,
+          "rule": "unchanged; pegs print slightly large",
+          "check": "spring eye drops over it"
+        }
+      ],
+      "z_levels_off_layer_grid": [
+        {
+          "z_mm": 7.5,
+          "nearest_layer_mm": 7.6,
+          "deviation_mm": 0.1
+        }
+      ],
+      "coupons": [
+        "C-1"
+      ],
+      "warnings": [
+        "With the rails on the bed, the tube underside is 1 mm above the bed and bridges the 10.8 mm gap between the rails; use a clean bridge or add supports.",
+        "The catch ledges overhang 0.8 mm with nothing under them; chamfer if they sag.",
+        "The spring lug underside is 1 mm above the bed (it overhangs the rail line) and the peg is 1.2 mm thick; print the peg slowly and check the loop fit.",
+        "The bore is modelled 10.95 x 8.55 mm for a nominal 10.8 x 8.4 mm channel; the 1.925 mm walls are 4 to 5 perimeters.",
+        "The colour tag is a 1.2 mm raised plate; change filament at that layer or paint it."
+      ]
+    },
+    {
+      "id": "cap",
+      "label": "Cap",
+      "file": "cap.stl",
+      "mode": "separate",
+      "quantity": 4,
+      "material": "PETG or PLA+",
+      "orientation": "Plate flat on the bed, knob up",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 20 % infill",
+      "supports": "none: no downward face steeper than 45 degrees off the bed",
+      "overhangs": {
+        "area_mm2": 0.0,
+        "levels": []
+      },
+      "size_mm": [
+        14.8,
+        12.4,
+        5.5
+      ],
+      "volume_mm3": 388.3,
+      "triangles": 396,
+      "bodies": 1,
+      "sha256": "b83abc4fdcb891d97f2fde5a7a8a69f9d4ff5477f13f6a20d0ac95da01e6003a",
+      "features": [],
+      "z_levels_off_layer_grid": [
+        {
+          "z_mm": 1.5,
+          "nearest_layer_mm": 1.6,
+          "deviation_mm": 0.1
+        },
+        {
+          "z_mm": 5.5,
+          "nearest_layer_mm": 5.6,
+          "deviation_mm": 0.1
+        }
+      ],
+      "coupons": [],
+      "warnings": [
+        "ASSUMED to be its own print. The hinge and the latch are not designed, so this file is only the lid plate and its knob.",
+        "The 14.8 x 12.4 mm plate matches the tube outside; with the real fit gap it may need trimming once the hinge exists."
+      ]
+    },
+    {
+      "id": "slide-blade",
+      "label": "Slide blade",
+      "file": "slide-blade.stl",
+      "mode": "separate",
+      "quantity": 4,
+      "material": "PETG or PLA+",
+      "orientation": "Flat on the bed, wedge nose and tab up",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 100 % infill recommended",
+      "supports": "needed, or tune bridging: 19.4 mm2 of downward faces off the bed at z = 1.0, 6.5 mm",
+      "overhangs": {
+        "area_mm2": 19.4,
+        "levels": [
+          {
+            "z_mm": 1.0,
+            "area_mm2": 18.0
+          },
+          {
+            "z_mm": 6.5,
+            "area_mm2": 1.4
+          }
+        ]
+      },
+      "size_mm": [
+        10.5,
+        24.0,
+        7.0
+      ],
+      "volume_mm3": 356.1,
+      "triangles": 820,
+      "bodies": 1,
+      "sha256": "27e002244480876f9dbe1c18ba390747cbf5f8c71917f3b036e512f62c183116",
+      "features": [
+        {
+          "feature": "Thickness",
+          "nominal_mm": 1.0,
+          "model_mm": 1.0,
+          "rule": "five layers; elephant foot adds to the first one",
+          "check": "caliper, slides in the 1.0 mm channel"
+        }
+      ],
+      "z_levels_off_layer_grid": [
+        {
+          "z_mm": 0.3,
+          "nearest_layer_mm": 0.2,
+          "deviation_mm": 0.1
+        },
+        {
+          "z_mm": 3.5,
+          "nearest_layer_mm": 3.6,
+          "deviation_mm": 0.1
+        },
+        {
+          "z_mm": 6.5,
+          "nearest_layer_mm": 6.4,
+          "deviation_mm": 0.1
+        }
+      ],
+      "coupons": [],
+      "warnings": [
+        "The blade is 1.0 mm thick and slides in a 1.0 mm channel: the fit needs a test print, and elephant foot on the first layer will make it thicker.",
+        "The wedge nose is 0.3 mm thick at the tip, thinner than one 0.4 mm line or the 0.2 mm layer step; it will print as stair steps and rounded.",
+        "The outer 2 mm of the tab (where the spring peg stands) overhangs the blade with nothing under it; use a bridge or local support.",
+        "The tab slot is 5 x 4 mm; the pin is 3 mm, so no hole compensation is applied."
+      ]
+    }
+  ],
+  "coupons": [
+    {
+      "id": "C-1",
+      "file": "coupon-c1-bearing-seat.stl",
+      "what": "Four rings modelled 15.80 / 15.85 / 15.90 / 16.00 mm (1 to 4 dots), 5 mm deep, 0.8 mm wall. Ream the 15.85 ring to 16.00 and test a 625ZZ.",
+      "size_mm": [
+        81.95,
+        21.3,
+        5.0
+      ],
+      "sha256": "1cf7e67a8c6544317b895a9f51ccfd0a09b62129049e7014829ca9012b9f752f"
+    },
+    {
+      "id": "C-2",
+      "file": "coupon-c2-rod-fit.stl",
+      "what": "Round bore and D bore (5.35, flat 2.10) plus five pins 4.85 / 4.90 / 4.95 / 5.00 / 5.05 mm; pin length 18 / 21 / 24 / 27 / 30 mm gives the diameter. Finds the hole compensation.",
+      "size_mm": [
+        36.52,
+        26.53,
+        30.0
+      ],
+      "sha256": "cc22fa9f4018a8e8621c01bc559ed3a56a631596e86eac2d90ea5016bb6b222a"
+    },
+    {
+      "id": "C-3",
+      "file": "coupon-c3-magnet-pocket.stl",
+      "what": "Three boss pockets 3.15 / 3.25 / 3.35 mm, 1.4 mm deep, 0.6 mm floor, for the 3 x 1 mm magnet.",
+      "size_mm": [
+        36.0,
+        12.0,
+        2.0
+      ],
+      "sha256": "1d440cb78e739dd7772b03c41e57d20d35a600861ae123ba4de3f4a69b855a96"
+    },
+    {
+      "id": "C-4",
+      "file": "coupon-c4-mount-joint.stl",
+      "what": "Plate with the 9.65 boss hole, two 3.55 screw holes, and two 4 x 4 column stubs with M3 pilot holes 2.5 (left) and 2.7 (right).",
+      "size_mm": [
+        42.0,
+        23.0,
+        16.0
+      ],
+      "sha256": "7c4561d3f5729e358d0e07e3d6e8dec734e9fc56bdac8bba5a41f1f76bd5198c"
+    },
+    {
+      "id": "C-5",
+      "file": "coupon-c5-column-socket.stl",
+      "what": "Block with two 3.30 mm square sockets 2.2 mm deep for the C-4 spigots.",
+      "size_mm": [
+        30.0,
+        14.0,
+        6.0
+      ],
+      "sha256": "c1b27ab41f61e6ed0b1ef93c9fd8148a295a56eb7873d97c72c6bfbfc7b4e77e"
+    },
+    {
+      "id": "C-6",
+      "file": "coupon-c6-clip-bend.stl",
+      "what": "Clip arm 1.2 x 6 x 16 mm with a 0.7 mm hook printed three ways: upright on a base, on its long edge, and flat.",
+      "size_mm": [
+        43.1,
+        16.0,
+        17.0
+      ],
+      "sha256": "a81928b9741e3ed644a9d867b8e066d2062b5360d720222d699c40d9a131cf81"
+    },
+    {
+      "id": "C-7",
+      "file": "coupon-c7-dbore-bond.stl",
+      "what": "Hub stub 16 mm diameter, 20 mm tall with the D bore (5.35, flat 2.10) for the epoxy bond test on the real rod.",
+      "size_mm": [
+        16.0,
+        16.0,
+        20.0
+      ],
+      "sha256": "2664763552e7bce937adc963722ab58b017406d2eb4590b332d7043de029ac06"
+    }
+  ]
+}

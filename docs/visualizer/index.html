@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101725">
+  <title>Rotating Cartridge Dispenser — Concept Viewer</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="overrides.css">
+  <script defer src="vendor/three-r128.min.js"></script>
+  <script defer src="concept-data.js"></script>
+  <script defer src="dimension-annotations.js"></script>
+  <script defer src="demo-controller.js"></script>
+  <script defer src="rotation-spec.js"></script>
+  <script defer src="wiring-spec.js"></script>
+  <script defer src="wiring-model.js"></script>
+  <script defer src="wiring-3d.js"></script>
+  <script defer src="wiring-layout3d.js"></script>
+  <script defer src="reference-look.js"></script>
+  <script defer src="app.js"></script>
+  <script defer src="step-animations.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div><p class="eyebrow">MECHANISM STUDY · FEATURE 003</p><h1>Rotating Cartridge Dispenser</h1></div>
+    <span class="live-badge"><i></i> LOCAL CONCEPT VIEW</span>
+  </header>
+  <main class="layout">
+    <section class="viewer card" aria-label="Interactive 3D dispenser scene">
+      <div class="scene-heading"><div><span class="eyebrow">ASSEMBLY VIEW</span><h2>Four-cartridge drum</h2></div><div class="seg-group view-modes" role="radiogroup" aria-label="Viewer mode">
+          <label class="seg"><input type="radio" name="viewMode" value="mechanism" checked autocomplete="off"><span>Mechanism</span></label>
+          <label class="seg"><input type="radio" name="viewMode" value="wiring" autocomplete="off"><span>Wiring</span></label>
+        </div>
+        <span class="scene-hint">Drag orbit · right-drag pan · scroll zoom · double-click reset</span></div>
+      <div id="sceneHost" class="scene-host" role="img" aria-label="Three-dimensional concept showing four colored cartridges around a rotating drum">
+        <button id="controlsToggle" class="view-toggle" type="button" aria-pressed="false" aria-label="Hide controls" title="Hide controls">
+          <svg class="icon-hide" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M14.5 4.5h4.5a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-4.5z" fill="currentColor"/></svg>
+          <svg class="icon-show" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div id="camTools" class="cam-tools" role="toolbar" aria-label="Camera">
+          <div class="cam-group" role="group" aria-label="Viewpoint">
+            <button type="button" data-cam="iso" title="Isometric (1)">Iso</button>
+            <button type="button" data-cam="front" title="Front (2)">Front</button>
+            <button type="button" data-cam="side" title="Side (3)">Side</button>
+            <button type="button" data-cam="top" title="Top (4)">Top</button>
+            <button type="button" data-cam="back" title="Back (5)">Back</button>
+          </div>
+          <div class="cam-group" role="group" aria-label="Zoom">
+            <button type="button" data-cam="in" title="Zoom in (+)" aria-label="Zoom in">+</button>
+            <button type="button" data-cam="out" title="Zoom out (-)" aria-label="Zoom out">&minus;</button>
+            <button type="button" data-cam="reset" title="Reset view (0)">Reset</button>
+          </div>
+        </div>
+        <div id="wiringHud" class="wiring-hud" hidden>
+          <div class="hud-head"><strong>ESP32-S3 wiring</strong><span id="wiringHudNote" class="hud-note"></span><button id="wiringHudToggle" class="hud-toggle" type="button" aria-expanded="true" aria-label="Collapse wiring panel" title="Collapse">&#9662;</button></div>
+          <div class="hud-toggles">
+            <label><input id="wireSignal" type="checkbox" checked autocomplete="off"> Signals</label>
+            <label><input id="wireMotor" type="checkbox" checked autocomplete="off"> Motor cable</label>
+            <label><input id="wirePower" type="checkbox" checked autocomplete="off"> 5 V / GND</label>
+          </div>
+          <ul id="wiringHudRows" class="hud-rows"></ul>
+          <p class="hud-foot">Red +5 V · grey GND · hall OUT also has a 10 kΩ pull-up to 3V3</p>
+        </div>
+        <iframe id="wiringFrame" class="wiring-frame" title="Wiring diagram, live from the 3D viewer" hidden></iframe>
+        <div id="webglFallback" class="fallback" hidden><strong>WebGL is unavailable</strong><p>Enable hardware acceleration or use a browser/device with WebGL support. The demo controls remain available, but the 3D scene cannot be rendered.</p></div>
+      </div>
+      <div class="concept-notice"><span aria-hidden="true">ⓘ</span><span><strong>CONCEPT ONLY — NOT VALIDATED / NOT PRINT-READY.</strong> Visual demo only; not hardware or single-dose evidence.</span></div>
+      <div class="legend" aria-label="Supported empty compartment colors"><span><i class="dot red"></i>Red</span><span><i class="dot blue"></i>Blue</span><span><i class="dot green"></i>Green</span><span><i class="dot orange"></i>Orange</span></div>
+    </section>
+    <aside class="panel card" id="controlPanel" data-active="view" aria-label="Demo controls and status">
+      <div class="panel-bar">
+        <span class="panel-bar-title">Controls</span>
+        <span class="panel-bar-actions"><button id="panelExpand" class="quiet-button" type="button">Expand all</button><button id="panelCollapse" class="quiet-button" type="button">Collapse all</button></span>
+      </div>
+      <section class="control-section wiring-panel" id="wiringPanel" hidden>
+        <div class="section-title"><div><span class="eyebrow">WIRING</span><h2>Systems</h2></div></div>
+        <div class="seg-group wiring-styles" role="radiogroup" aria-label="Wiring view">
+          <label class="seg"><input type="radio" name="wiringStyle" value="wiring3d" checked autocomplete="off"><span>In place 3D</span></label>
+          <label class="seg"><input type="radio" name="wiringStyle" value="wiringlayout" autocomplete="off"><span>Layout 3D</span></label>
+          <label class="seg"><input type="radio" name="wiringStyle" value="wiring2d" autocomplete="off"><span>2D diagram</span></label>
+        </div>
+        <div class="sys-toolbar"><span class="sys-hint">Choose the systems to follow</span><span class="sys-actions"><button id="wiringAll" class="quiet-button" type="button">All</button><button id="wiringNone" class="quiet-button" type="button">None</button></span></div>
+        <div id="wiringSystems" class="sys-list" role="group" aria-label="Systems"></div>
+        <div class="switch-list">
+          <label class="switch-row"><span><strong>Hide other systems</strong><small>Off: they stay as a faint ghost</small></span><input id="wiringHide" class="switch" type="checkbox" autocomplete="off"></label>
+        </div>
+      </section>
+      <section class="control-section wiring-panel" id="wiringPins" hidden>
+        <div class="section-title"><div><span class="eyebrow">WIRING</span><h2>Pin table</h2></div><span id="wiringTableCount" class="count-badge"></span></div>
+        <div class="pin-table-wrap"><table class="pin-table"><thead><tr><th>Pin</th><th>Signal</th><th>Connects to</th><th>Live</th></tr></thead><tbody id="pinTableRows"></tbody></table></div>
+        <p class="small-note">Every pin of every part. The ESP32 rows always stay; the others follow the systems above. ASSUMED / NOT VALIDATED.</p>
+      </section>
+      <section class="control-section housing-section">
+        <div class="section-title"><div><span class="eyebrow">APPEARANCE</span><h2>Housing</h2></div></div>
+        <div class="seg-group" role="radiogroup" aria-label="Housing view">
+          <label class="seg"><input type="radio" name="housingModeOpt" value="assembled" checked autocomplete="off"><span>Assembled</span></label>
+          <label class="seg"><input type="radio" name="housingModeOpt" value="transparent" autocomplete="off"><span>Transparent</span></label>
+          <label class="seg"><input type="radio" name="housingModeOpt" value="cutaway" autocomplete="off"><span>Cutaway</span></label>
+          <label class="seg"><input type="radio" name="housingModeOpt" value="exploded" autocomplete="off"><span>Exploded</span></label>
+        </div>
+        <div class="switch-list">
+          <label class="switch-row"><span><strong>Show housing</strong><small>Turn off to see the systems inside</small></span><input id="housingVisible" class="switch" type="checkbox" checked autocomplete="off"></label>
+          <label class="switch-row"><span><strong>Housing sub-view</strong><small>Parts list and dimensions</small></span><input id="housingOnlyToggle" class="switch" type="radio" name="subsystemView" autocomplete="off"></label>
+        </div>
+      </section>
+      <section class="control-section systems-section">
+        <div class="section-title"><div><span class="eyebrow">VISIBILITY</span><h2>Systems</h2></div></div>
+        <div class="switch-list">
+          <label class="switch-row flip"><input id="mechanismToggle" type="checkbox" checked> Subsystem 1: Dispensing mechanism</label>
+          <label class="switch-row flip sub"><input id="rotationOnlyToggle" type="radio" name="subsystemView" autocomplete="off"> Rotation mechanism</label>
+          <label class="switch-row flip sub"><input id="mountOnlyToggle" type="radio" name="subsystemView" autocomplete="off"> Stepper mount</label>
+          <label class="switch-row flip sub"><input id="compartmentOnlyToggle" type="radio" name="subsystemView" autocomplete="off"> Compartments &amp; decks</label>
+          <label class="switch-row flip"><input id="scannerSubsystemToggle" type="checkbox" checked> Subsystem 2: Barcode scanner</label>
+          <label class="switch-row flip"><input id="labelsToggle" type="checkbox" checked> Show labels</label>
+          <label class="switch-row flip"><input id="dimensionsToggle" type="checkbox"> Show dimensions</label>
+        </div>
+        <input id="capsToggle" type="checkbox" checked hidden>
+        <div class="part-filter" role="group" aria-label="Part types">
+          <span class="part-filter-title">Part types</span>
+          <label><input type="checkbox" name="partType" value="printed" autocomplete="off"> 3D-printed parts</label>
+          <label><input type="checkbox" name="partType" value="electronic" autocomplete="off"> Electronic components</label>
+        </div>
+        <p class="small-note">Tick one or both to keep those parts solid and fade the rest. Nothing ticked shows every part. Deck plates, standoffs, bearings, screws and springs count as hardware.</p>
+        <div id="printGroups" class="print-groups" hidden>
+          <ul id="printGroupsList" class="rotation-parts"></ul>
+          <p id="printJobInfo" class="small-note"></p>
+          <button id="printPlatesBtn" class="secondary-button" type="button" aria-pressed="false">Show print plates</button>
+
+          <div id="printDownloads" class="print-downloads">
+            <div class="dl-head"><strong>Print files</strong><span class="dl-badge">STL &middot; mm</span></div>
+            <p class="dl-note"><strong>Stale:</strong> these STL files were generated from the previous tower layout and have not been regenerated for the flask redesign (round deck, S1/S2 solenoid levers, base tray). NOT VALIDATED / NOT PRINT-READY.</p>
+            <p class="dl-warn"><b>NOT VALIDATED &middot; NOT PRINT-READY.</b> Nothing was printed or measured. Most parts need supports or bridging (listed per part in the manifest). Print the test coupons first.</p>
+            <ul class="download-list">
+              <li data-job="drum" data-coupons="C-2 C-3 C-6 C-7"><a class="dl-link" href="print/drum.stl" download><span class="dl-name">Drum</span><span class="dl-qty">&times;1</span></a></li>
+              <li data-job="platform" data-coupons="C-1 C-5"><a class="dl-link" href="print/housing-platform.stl" download><span class="dl-name">Housing platform <em>print flipped</em></span><span class="dl-qty">&times;1</span></a></li>
+              <li data-job="mount" data-coupons="C-4 C-5"><a class="dl-link" href="print/stepper-mount.stl" download><span class="dl-name">Stepper mount</span><span class="dl-qty">&times;1</span></a></li>
+              <li data-job="base" data-coupons="C-4"><a class="dl-link" href="print/levelling-base.stl" download><span class="dl-name">Levelling base (old layout)</span><span class="dl-qty">&times;1</span></a></li>
+              <li data-job="shell" data-coupons=""><a class="dl-link" href="print/cylindrical-shell-right.stl" download><span class="dl-name">Cylindrical shell, right</span><span class="dl-qty">&times;1</span></a></li>
+              <li data-job="shell" data-coupons=""><a class="dl-link" href="print/cylindrical-shell-back.stl" download><span class="dl-name">Cylindrical shell, back</span><span class="dl-qty">&times;1</span></a></li>
+              <li data-job="shell" data-coupons=""><a class="dl-link" href="print/cylindrical-shell-left.stl" download><span class="dl-name">Cylindrical shell, left</span><span class="dl-qty">&times;1</span></a></li>
+              <li data-job="lid" data-coupons=""><a class="dl-link" href="print/service-lid.stl" download><span class="dl-name">Service lid</span><span class="dl-qty">&times;1</span></a></li>
+              <li data-job="trough" data-coupons=""><a class="dl-link" href="print/pill-trough.stl" download><span class="dl-name">Pill trough (old layout)</span><span class="dl-qty">&times;1</span></a></li>
+              <li data-job="cup" data-coupons=""><a class="dl-link" href="print/pill-cup.stl" download><span class="dl-name">Pill drawer (old cup)</span><span class="dl-qty">&times;1</span></a></li>
+              <li data-job="rail" data-coupons=""><a class="dl-link" href="print/rail-block.stl" download><span class="dl-name">Pin rail block</span><span class="dl-qty">&times;1</span></a></li>
+              <li data-job="cartridge" data-coupons="C-1"><a class="dl-link" href="print/cartridge.stl" download><span class="dl-name">Cartridge</span><span class="dl-qty">&times;4</span></a></li>
+              <li data-job="cap" data-coupons=""><a class="dl-link" href="print/cap.stl" download><span class="dl-name">Cap</span><span class="dl-qty">&times;4</span></a></li>
+              <li data-job="blade" data-coupons=""><a class="dl-link" href="print/slide-blade.stl" download><span class="dl-name">Slide blade</span><span class="dl-qty">&times;4</span></a></li>
+            </ul>
+            <strong id="printCouponsTitle" class="dl-sub">Test coupons &middot; print these first</strong>
+            <ul class="download-list">
+              <li data-coupon="C-1"><a class="dl-link coupon" href="print/coupon-c1-bearing-seat.stl" download><span class="dl-name"><i>C-1</i>Bearing seat</span></a></li>
+              <li data-coupon="C-2"><a class="dl-link coupon" href="print/coupon-c2-rod-fit.stl" download><span class="dl-name"><i>C-2</i>Rod fit</span></a></li>
+              <li data-coupon="C-3"><a class="dl-link coupon" href="print/coupon-c3-magnet-pocket.stl" download><span class="dl-name"><i>C-3</i>Magnet pocket</span></a></li>
+              <li data-coupon="C-4"><a class="dl-link coupon" href="print/coupon-c4-mount-joint.stl" download><span class="dl-name"><i>C-4</i>Mount joint</span></a></li>
+              <li data-coupon="C-5"><a class="dl-link coupon" href="print/coupon-c5-column-socket.stl" download><span class="dl-name"><i>C-5</i>Column socket</span></a></li>
+              <li data-coupon="C-6"><a class="dl-link coupon" href="print/coupon-c6-clip-bend.stl" download><span class="dl-name"><i>C-6</i>Clip bend</span></a></li>
+              <li data-coupon="C-7"><a class="dl-link coupon" href="print/coupon-c7-dbore-bond.stl" download><span class="dl-name"><i>C-7</i>D-bore bond</span></a></li>
+            </ul>
+            <div class="download-all"><a class="dl-btn" href="print/smart-dispenser-print-files.zip" download>All files (zip)</a><a class="dl-btn" href="print/print-manifest.json" download>Manifest</a></div>
+            <details class="dl-details"><summary>How to correct the sizes</summary><p>Measure the printed coupons, then edit <code>scripts/print_profile.json</code> and run <code>python3 scripts/export_print_files.py</code> to regenerate the parts.</p></details>
+          </div>
+        </div>
+        <div id="electronicGroups" class="print-groups" hidden>
+          <strong class="electronic-title">Electronic components in this view</strong>
+          <ul id="electronicList" class="electronic-list"></ul>
+        </div>
+      </section>
+      <section class="control-section demo-section">
+        <div class="section-title"><div><span class="eyebrow">DEMO CONTROL</span><h2>Step-by-step Animation</h2></div><button id="resetBtn" class="quiet-button" type="button">Reset</button></div>
+        <div id="stepAnim" class="step-anim">
+          <label class="range-row" for="stepAnimSelect"><span>Animation</span><select id="stepAnimSelect" autocomplete="off"></select></label>
+          <label id="stepAnimColorRow" class="range-row" for="stepAnimColor"><span>Compartment</span><select id="stepAnimColor" autocomplete="off"></select></label>
+          <div class="step-progress"><span id="stepAnimCount">Ready</span><div class="step-bar" role="progressbar" aria-label="Animation progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="stepAnimBar"></i></div></div>
+          <ol id="stepAnimSteps" class="step-list"></ol>
+          <div class="step-controls">
+            <button id="stepAnimBack" class="secondary-button" type="button">Back</button>
+            <button id="stepAnimNext" class="primary-button" type="button">Start</button>
+            <button id="stepAnimPlay" class="secondary-button" type="button">Play all</button>
+            <button id="stepAnimRestart" class="secondary-button" type="button">Restart</button>
+          </div>
+          <label class="range-row" for="speedRange"><span>Playback speed</span><output id="speedOutput">1.0×</output><input id="speedRange" type="range" min="0.3" max="3" step="0.1" value="1"></label>
+          <p id="stepAnimStatus" class="small-note" aria-live="polite"></p>
+        </div>
+        <p class="sub-title">Request a dispense (full run)</p>
+        <div class="button-grid four-col">
+          <button class="color-button red" data-dispense="red" type="button">Red</button><button class="color-button blue" data-dispense="blue" type="button">Blue</button><button class="color-button green" data-dispense="green" type="button">Green</button><button class="color-button orange" data-dispense="orange" type="button">Orange</button>
+        </div>
+        <div class="schedule-row"><label for="scheduleMode">Schedule</label><select id="scheduleMode"><option value="once">Run once</option><option value="repeat">Repeat until loaded inventory is depleted</option></select><button id="scheduleBtn" class="secondary-button" type="button">Run six-request schedule</button></div>
+        <div id="rotationPanel" class="rotation-panel" hidden>
+          <strong id="rotationPanelTitle">Rotation subsystem preview</strong>
+          <div class="rotation-buttons"><button id="rotationSpin90" class="secondary-button" type="button">Index 90°</button><button id="rotationSpin360" class="secondary-button" type="button">Full turn</button><button id="rotationHome" class="secondary-button" type="button">Go home</button></div>
+          <label class="range-row" for="rotationFade"><span>Other parts opacity</span><output id="rotationFadeOut">7%</output><input id="rotationFade" type="range" min="0" max="100" step="1" value="7" autocomplete="off"></label>
+          <div class="readout-grid"><div><span>Drum angle</span><strong id="rotAngle">0.0°</strong></div><div><span>Half-steps (nominal 4096/rev)</span><strong id="rotSteps">0</strong></div><div><span>Hall sensor</span><strong id="rotHome">LOW · magnet at home</strong></div></div>
+          <div id="removalFlow" class="service-flow" hidden>
+            <label class="range-row" for="removalColor"><span>Compartment to remove</span><select id="removalColor"><option value="red">Red</option><option value="blue">Blue</option><option value="green" selected>Green</option><option value="orange">Orange</option></select></label>
+            <div class="rotation-buttons"><button id="removalNext" class="secondary-button" type="button">Next step</button><button id="removalRestart" class="secondary-button" type="button">Restart</button></div>
+            <label class="range-row" for="bladeSlide"><span>Slide the blade (closed to open)</span><output id="bladeOut">closed</output><input id="bladeSlide" type="range" min="0" max="100" step="1" value="0" autocomplete="off"></label>
+            <div class="rotation-buttons"><button id="bladeToggle" class="secondary-button" type="button">Slide blade open</button></div>
+            <ol id="removalSteps" class="service-steps"><li>Held on the deck by its clips</li><li>Pull up: the clips flex outward</li><li>Lift straight up and out</li><li>Lower it back: the clips snap over the ledges</li></ol>
+            <p id="removalStatus" class="small-note">Concept only (ASSUMED / NOT_VALIDATED): press Next step to see how a compartment comes out.</p>
+          </div>
+          <ul id="rotationPartsList" class="rotation-parts"></ul>
+          <p id="rotationNote" class="small-note">Other parts are ghosted. Click a part in the list or in the 3D view to show only its label; click it again to show all labels. Printed/bought labels, step count and sensor state are ASSUMED / NOT_VALIDATED concept values. The preview adds to the demo drum angle only while idle and never changes controller state.</p>
+        </div>
+        <label id="dimensionCategoryRow" class="dimension-category-row" for="dimensionCategory" hidden><span>Dimension group</span><select id="dimensionCategory"><option value="assembly">Assembly overview</option><option value="cartridge-channel-cap-red">Red cartridge/channel/cap</option><option value="cartridge-channel-cap-blue">Blue cartridge/channel/cap</option><option value="cartridge-channel-cap-green">Green cartridge/channel/cap</option><option value="cartridge-channel-cap-orange">Orange cartridge/channel/cap</option><option value="upper-blade-red">Red upper blade</option><option value="upper-blade-blue">Blue upper blade</option><option value="upper-blade-green">Green upper blade</option><option value="upper-blade-orange">Orange upper blade</option><option value="lower-tongue">Shared lower tongue</option><option value="pin-slot">Engagement pin</option><option value="pin-slot-red">Red pin slot</option><option value="actuator-linkage">Actuator linkage</option><option value="outlet-tray">Outlet &amp; tray</option></select></label>
+        <p class="dimension-disclosure">Each 3D dimension has a measurement segment and its own guide line to the feature. Choose one group at a time to reduce clutter; provenance and caveats are listed here. Values are NOT VALIDATED or manufacturing tolerances. Missing dimensions remain unspecified.</p>
+        <div id="dimensionDetails" class="dimension-details" hidden aria-live="polite"></div>
+      </section>
+      <section class="control-section cartridges-section">
+        <div class="section-title"><div><span class="eyebrow">EMPTY COMPARTMENTS · SCAN TO LOAD</span><h2>Cartridges &amp; caps</h2></div></div>
+        <div id="cartridgeControls" class="cartridge-list"></div>
+      </section>
+      <section class="control-section scan-section">
+        <div class="section-title"><div><span class="eyebrow">PACKAGE SCAN DEMO</span><h2>Barcode fixtures</h2></div></div>
+        <p class="small-note">Starts with four empty compartments and zero pill actors. A unique RED/BLUE/GREEN/ORANGE fixture places an empty fictional container into its same-color slot; after package-out, only that lid opens. Rescan that matching code when the container has zero pills to reopen it for Fill, without placing another container. The single invalid-container example is refused and places nothing.</p>
+        <div class="scanner-component-list" aria-label="Barcode scanner components shown in the main simulation"><strong>Scanner subsystem in the main scene</strong><span>Reader housing + optical point</span><span>Container guide rails</span><span>Fictional barcode package</span><span>Scan beam + local fixture status</span><span>Selected compartment cap</span></div>
+        <div id="barcodeControls" class="barcode-list"></div>
+        <p id="loadingNotice" class="small-note">All four supported compartments are empty, count zero, closed, and locked. No pill actors are shown; failed scans place nothing.</p>
+      </section>
+      <section class="control-section status-section" aria-live="polite" aria-atomic="false">
+        <div class="section-title"><div><span class="eyebrow">LIVE STATUS</span><h2 id="phaseLabel">Parked</h2></div><span id="busyBadge" class="status-pill">IDLE</span></div>
+        <div class="readout-grid"><div><span>Crank</span><strong id="servoStatus">180°</strong></div><div><span>Pin</span><strong id="pinStatus">UP</strong></div><div><span>Blade tip</span><strong id="bladeStatus">−5.2 mm</strong></div><div><span>Tongue edge</span><strong id="tongueStatus">+5.7 mm</strong></div><div><span>Tray</span><strong id="trayStatus">0 visual pills</strong></div><div><span>Actor</span><strong id="actorStatus">None — chamber empty</strong></div><div><span>Scanner</span><strong id="scannerStatus">Idle</strong></div></div>
+        <div id="inventoryStatus" class="inventory-status"></div>
+        <p id="scheduleStatus" class="small-note">Schedule: idle</p>
+        <p id="scanStatus" class="small-note">Scanner ready.</p>
+        <p id="rejectionStatus" class="rejection" role="status"></p>
+      </section>
+    </aside>
+  </main>
+  <footer>Compartments start empty with zero counts and no pill actors. A successful fictional scan places an empty container, then opens only its matching simulated cap after package-out. Assumed pill actors appear only after explicit Fill while that cap is open. Pill visuals are not verified medication. State is in-memory and independent of simulation runs and Feature 004.</footer>
+</body>
+</html>
