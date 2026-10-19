@@ -55,7 +55,7 @@ def test_print_view_groups_every_printed_part_into_one_piece_or_separate_jobs():
     jobs = spec["printJobs"]
     assert {j["mode"] for j in jobs} == {"one", "separate"}
     assert sum(j["qty"] for j in jobs if j["mode"] == "one") == 13
-    assert sum(j["qty"] for j in jobs if j["mode"] == "separate") == 12
+    assert sum(j["qty"] for j in jobs if j["mode"] == "separate") == 15
     covered = {label for j in jobs for label in j["labels"]}
     printed = set(re.findall(r"rtag\([^;]*?'([^']+)', 'printed'", look))
     assert printed <= covered, printed - covered

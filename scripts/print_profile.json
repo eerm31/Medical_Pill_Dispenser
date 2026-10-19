@@ -2,5 +2,6 @@
   "_note": "Printer offsets for scripts/export_print_files.py. Defaults are guesses (ASSUMED / NOT_VALIDATED). After printing the coupons, put the measured values here and run the script again.",
   "hole_comp_mm": 0.15,
   "xy_scale": 1.0,
-  "seat_model_mm": 15.85
+  "seat_model_mm": 15.85,
+  "blade_clear_mm": 0.1
 }

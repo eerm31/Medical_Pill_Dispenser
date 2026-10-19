@@ -1,5 +1,5 @@
 {
-  "title": "Feature 005 printed parts (rotation subsystem and the first compartments)",
+  "title": "Feature 005 printed parts (flask housing, rotation subsystem and first compartments)",
   "status": "ASSUMED / NOT_VALIDATED",
   "print_ready": false,
   "fabricable_as_designed": false,
@@ -11,8 +11,18 @@
     "layer_mm": 0.2,
     "nozzle_mm": 0.4,
     "material": "PETG or PLA+",
-    "seat_model_mm": 15.85
+    "seat_model_mm": 15.85,
+    "blade_clear_mm": 0.1
   },
+  "design_changes_for_printing": [
+    "Feet are separate printed parts with a spigot, so the base tray lies flat on the bed without supports.",
+    "Platform posts moved from radius 41.5 to 38 mm and rotated to -50 / 70 / 190 degrees so they clear the screw bosses and the USB-C saddle.",
+    "Screw bosses moved to radius 45 mm so they fuse into the 3 mm wall (before, they floated 0.5 mm away from it); the base ridge is notched around them.",
+    "The cam post is a 4 x 3 mm box on a 5 mm square foot; the pin and tongue levers end 2.5 mm beyond the pin so the hole keeps a wall.",
+    "Bracket legs moved inside the plate outline (local y 5.5 to 4.0); the bracket plate has a servo shaft hole.",
+    "Stepper-mount plate widened from y = 10 to y = 8 mm (the motor boss hole left 0.18 mm of plate); base chamfer reduced from 3 to 2 mm so the screw head recesses stay inside the bed-side outline.",
+    "The deck ledge is chamfered underneath (print file only); the slide blade is printed 0.2 mm thinner than the channel (profile blade_clear_mm)."
+  ],
   "parts": [
     {
       "id": "drum",
@@ -38,7 +48,9 @@
         71.0,
         42.0
       ],
+      "fits_bed_mm": 100,
       "volume_mm3": 11909.5,
+      "solid_mass_g": 15.1,
       "triangles": 2584,
       "bodies": 1,
       "sha256": "b22f7e9e038a871a4dd6f5fbf68ba459d8dbb6de4c40243b6639bd0356c400dd",
@@ -70,15 +82,14 @@
           "model_mm": 3.25,
           "rule": "nominal + hole compensation",
           "check": "3 x 1 magnet (coupon C-3)"
-        },
-        {
-          "feature": "Hub height",
-          "nominal_mm": 42.0,
-          "model_mm": 42.0,
-          "rule": "whole layers (210)",
-          "check": "caliper"
         }
       ],
+      "thin_features": {
+        "min_feature_mm": 0.72,
+        "slices_with_thinner_material": 2,
+        "worst_area_mm2": 6.9,
+        "worst_height_mm": 1.57
+      },
       "z_levels_off_layer_grid": [],
       "coupons": [
         "C-2",
@@ -91,25 +102,26 @@
         "Each hook overhangs 0.7 mm with nothing under it; expect a rough underside.",
         "The four decks are 1.0 mm thick plates up to 24 mm wide on the bed; use the brim and watch for warp (R8). Avoid ABS.",
         "The D bore keeps its flat at 2.10 from the axis; only the round part grows with the hole compensation.",
-        "Zero rod play depends on the epoxy bond, not on the print (R13, coupon C-7)."
+        "Zero rod play depends on the epoxy bond, not on the print (R13, coupon C-7).",
+        "The magnet boss is 4.4 mm round around a 3.25 mm pocket, so its wall is only 0.58 mm (below 0.8 mm). It cannot be thicker: it would touch the cartridge guide rail (0.05 mm clearance test). Print slowly or move the magnet and the hall sensor outwards."
       ]
     },
     {
       "id": "housing-platform",
-      "label": "Housing platform",
+      "label": "Housing deck",
       "file": "housing-platform.stl",
       "mode": "one",
       "quantity": 1,
       "material": "PETG or PLA+",
-      "orientation": "Flipped: the top face (where the thrust ring lies) is on the bed, so it is the smooth first layer",
-      "settings": "0.4 mm nozzle, 0.2 mm layer, 4 walls, 5 top/bottom layers, about 30 % gyroid, no brim needed",
-      "supports": "needed, or tune bridging: 421.1 mm2 of downward faces off the bed at z = 3.0, 5.0, 5.35, 6.7 mm",
+      "orientation": "Turned over: the top face (where the thrust ring lies) is on the bed; the chute walls and the two servo posts stand up",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 4 walls, 5 top/bottom layers, about 30 % gyroid, 5 mm brim",
+      "supports": "needed, or tune bridging: 290.4 mm2 of downward faces off the bed at z = 3.55, 5.0, 5.35 mm",
       "overhangs": {
-        "area_mm2": 421.1,
+        "area_mm2": 290.4,
         "levels": [
           {
-            "z_mm": 3.0,
-            "area_mm2": 12.0
+            "z_mm": 3.55,
+            "area_mm2": 11.4
           },
           {
             "z_mm": 5.0,
@@ -117,23 +129,21 @@
           },
           {
             "z_mm": 5.35,
-            "area_mm2": 327.0
-          },
-          {
-            "z_mm": 6.7,
-            "area_mm2": 0.8
+            "area_mm2": 197.7
           }
         ]
       },
       "size_mm": [
-        44.0,
-        74.2,
-        29.7
+        95.6,
+        95.6,
+        41.7
       ],
-      "volume_mm3": 19789.8,
-      "triangles": 1026,
+      "fits_bed_mm": 100,
+      "volume_mm3": 46988.1,
+      "solid_mass_g": 59.7,
+      "triangles": 2542,
       "bodies": 1,
-      "sha256": "fcab8677010f510eb81d177fbf89551093dd22618b2636ad45645dde531c3c65",
+      "sha256": "01fb2b564c75db16e0eb43f2e863e2eb672dd61c908268e102da5a46cd649a2a",
       "features": [
         {
           "feature": "Bearing seat diameter",
@@ -151,12 +161,18 @@
         },
         {
           "feature": "Hall pocket",
-          "nominal_mm": "4.0 x 3.0 x 3.0",
-          "model_mm": "4.0 x 3.0 x 3.0",
+          "nominal_mm": "4.4 x 3.4 x 3.55",
+          "model_mm": "4.4 x 3.4 x 3.55",
           "rule": "unchanged; measure the real sensor first",
           "check": "caliper on the sensor"
         }
       ],
+      "thin_features": {
+        "min_feature_mm": 0.72,
+        "slices_with_thinner_material": 4,
+        "worst_area_mm2": 0.65,
+        "worst_height_mm": 4.07
+      },
       "z_levels_off_layer_grid": [
         {
           "z_mm": 3.55,
@@ -179,8 +195,13 @@
           "deviation_mm": 0.1
         },
         {
-          "z_mm": 29.7,
-          "nearest_layer_mm": 29.6,
+          "z_mm": 9.5,
+          "nearest_layer_mm": 9.6,
+          "deviation_mm": 0.1
+        },
+        {
+          "z_mm": 41.7,
+          "nearest_layer_mm": 41.6,
           "deviation_mm": 0.1
         }
       ],
@@ -190,14 +211,14 @@
       ],
       "warnings": [
         "The bearing seat is modelled 15.85 mm and must be reamed to 16.00 mm after printing (coupon C-1).",
-        "Printed this way the bearing ledge (hole 12 mm to seat 15.85 mm) is a 1.9 mm wide overhang ring 5 mm above the bed; it may need local support or a clean bridge.",
-        "The wall between the hall pocket and the tongue pocket is about 0.71 mm, below the proposed 0.8 mm minimum (C10, open).",
-        "The wall between the bearing seat and the tongue pocket is about 0.7-0.9 mm (C4, open).",
-        "The hall pocket is 4.0 x 3.0 x 3.0 mm with no wire exit; the exit is not designed yet (R18).",
-        "The four outlet-chute wall boxes under the platform (z -12 to -3) are drawn in the viewer but are not in the print list, so they are NOT in this file.",
-        "The platform plate is 6.70 mm thick, which is not a whole number of 0.20 mm layers; the slicer will round it by 0.1 mm.",
-        "Two 2 x 13 mm cheeks hang 23 mm below the floor (z -26 to -3) to hold the tongue servo; printed flipped they stand up from the bed. The 14 x 14.5 mm opening for the servo crank arm is cut through the floor at the front.",
-        "The servo seat is 23 mm between the cheeks for a 22.7 mm servo body; screw holes for the servo ears are NOT designed."
+        "The tongue channel is a closed 1.8 mm slot, so its ceiling is a bridge about 14.5 mm wide (z 5.35 mm in this orientation); tune bridging or the gate will rub. This is inherent to a closed slot.",
+        "The bearing ledge (12 mm hole stepping to the 15.85 mm seat) is a 1.9 mm wide ring 5 mm above the bed: a short bridge.",
+        "The four chute walls are 1.2 mm thick and 35 mm tall; they print as thin vertical walls (about 3 perimeters). Print slowly; the wall is thinner than the 1.6 mm needed for 4 perimeters.",
+        "The two S2 servo posts are 3.2 mm round and 2.8 mm tall; they carry the servo through glue or a screw that is NOT designed.",
+        "The wall between the hall pocket and the tongue channel is about 0.7 mm, below the proposed 0.8 mm minimum (C10, open); the wall between the bearing seat and the channel is about 0.9 mm.",
+        "The platform is 6.70 mm thick, which is not a whole number of 0.20 mm layers; the slicer rounds it by 0.1 mm. The 0.15 and -1.65 steps of the deck layers fall between layers; the tongue channel height (1.8 mm) therefore prints as 1.8 or 2.0 mm depending on the slicer.",
+        "It sits on a 2 mm ledge of each shell sector with 0.2 mm radial play; it is held by gravity and the three posts, not by screws.",
+        "Screw holes for the servo ears are NOT designed."
       ]
     },
     {
@@ -208,30 +229,32 @@
       "quantity": 1,
       "material": "PETG or PLA+",
       "orientation": "Plate flat on the bed, columns and spigots standing up",
-      "settings": "0.4 mm nozzle, 0.2 mm layer, 4 walls (the 4 mm columns print nearly solid), 30-40 % infill",
-      "supports": "needed, or tune bridging: 19.8 mm2 of downward faces off the bed at z = 2.6, 11.0 mm",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 4 walls (the 4 mm columns print nearly solid), 5 top/bottom layers, 30-40 % infill",
+      "supports": "needed, or tune bridging: 19.8 mm2 of downward faces off the bed at z = 1.6, 10.0 mm",
       "overhangs": {
         "area_mm2": 19.8,
         "levels": [
           {
-            "z_mm": 2.6,
+            "z_mm": 1.6,
             "area_mm2": 9.2
           },
           {
-            "z_mm": 11.0,
+            "z_mm": 10.0,
             "area_mm2": 10.6
           }
         ]
       },
       "size_mm": [
         42.0,
-        23.0,
-        28.0
+        25.0,
+        15.6
       ],
-      "volume_mm3": 2041.6,
-      "triangles": 3552,
+      "fits_bed_mm": 100,
+      "volume_mm3": 1862.3,
+      "solid_mass_g": 2.4,
+      "triangles": 2000,
       "bodies": 1,
-      "sha256": "981d4392f44dc34e617aaa14647a6b86dea9128127b2ba465d34572691b4f265",
+      "sha256": "096b13438026cea1f941d98f87dc9e35db181cf41801360c627502ddd67e470a",
       "features": [
         {
           "feature": "Boss hole diameter",
@@ -252,92 +275,149 @@
           "nominal_mm": 2.6,
           "model_mm": 2.6,
           "rule": "unchanged; coupon C-4 chooses 2.5 to 2.7",
-          "check": "M3 x 12 bites 9.4 mm without splitting"
+          "check": "M3 x 10 bites without splitting"
         }
       ],
+      "thin_features": {
+        "min_feature_mm": 0.72,
+        "slices_with_thinner_material": 0,
+        "worst_area_mm2": 0.0,
+        "worst_height_mm": null
+      },
       "z_levels_off_layer_grid": [],
       "coupons": [
         "C-4",
         "C-5"
       ],
       "warnings": [
-        "The M3 pilot hole wall is about 0.7 mm (R14); coupon C-4 chooses the pilot diameter between 2.5 and 2.7 mm.",
-        "The two 4 x 4 x 24.4 mm columns are tall and slender; check rigidity and print them without a draft in the slicer.",
-        "The screw heads and the motor boss clearance depend on the 9.65 and 3.55 mm holes (coupon C-4)."
+        "The M3 pilot hole leaves a wall of about 0.7 mm (R14); coupon C-4 chooses the pilot diameter between 2.5 and 2.7 mm.",
+        "The two 4 x 4 x 12 mm columns are slender; check rigidity.",
+        "The boss hole (9.65 mm) and the 3.55 mm screw holes depend on the printer offset (coupon C-4). The plate edge was moved from y = 10 to y = 8 mm so 2.2 mm of plate remains around the boss hole (before: 0.18 mm).",
+        "The screw heads sit under the plate, outside the deck; confirm the screw length (about 10 mm) before cutting anything."
       ]
     },
     {
-      "id": "levelling-base",
-      "label": "Levelling base",
-      "file": "levelling-base.stl",
+      "id": "base-tray",
+      "label": "Base tray",
+      "file": "base-tray.stl",
       "mode": "one",
       "quantity": 1,
       "material": "PETG or PLA+",
-      "orientation": "Plate underside (z = -58) on the bed, the four posts standing up",
-      "settings": "0.4 mm nozzle, 0.2 mm layer, 4 walls, 5 top/bottom layers, 30 % gyroid",
-      "supports": "needed, or tune bridging: 1572.0 mm2 of downward faces off the bed at z = 4.2, 34.0 mm",
+      "orientation": "Underside on the bed (the 2 mm 45 degree chamfer lies on the bed side), ridge, standoffs and posts standing up",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 4 walls, 5 top/bottom layers, about 30 % gyroid, 5 mm brim only if the edge lifts",
+      "supports": "needed, or tune bridging: 101.5 mm2 of downward faces off the bed at z = 2.2, 3.4 mm",
       "overhangs": {
-        "area_mm2": 1572.0,
+        "area_mm2": 101.5,
         "levels": [
           {
-            "z_mm": 4.2,
-            "area_mm2": 112.8
+            "z_mm": 2.2,
+            "area_mm2": 57.9
           },
           {
-            "z_mm": 34.0,
-            "area_mm2": 1459.2
+            "z_mm": 3.4,
+            "area_mm2": 43.5
           }
         ]
       },
       "size_mm": [
-        144.0,
-        144.0,
-        35.6
+        102.0,
+        102.0,
+        40.0
       ],
-      "volume_mm3": 100383.7,
-      "triangles": 16388,
+      "fits_bed_mm": 120,
+      "volume_mm3": 43058.2,
+      "solid_mass_g": 54.7,
+      "triangles": 9788,
       "bodies": 1,
-      "sha256": "41923c003496346985a4c63552751162a00c5a3ac60875ab9ae62531abd93ab8",
+      "sha256": "b4428589c5b2699c69c44b83427e227e00d55587ff7d93bf5b5b042544abb01c",
       "features": [
         {
-          "feature": "Foot bolt hole",
-          "nominal_mm": 5.3,
-          "model_mm": 5.3,
-          "rule": "already 0.3 mm loose over the M5 thread",
-          "check": "M5 bolt turns in the nut without binding"
+          "feature": "Screw clearance hole",
+          "nominal_mm": 3.4,
+          "model_mm": 3.55,
+          "rule": "nominal + hole compensation",
+          "check": "M3 screw passes"
         },
         {
-          "feature": "Nut pocket across flats",
-          "nominal_mm": 8.0,
-          "model_mm": 8.3,
-          "rule": "nut AF + 0.3 mm",
-          "check": "nut drops in and cannot spin"
+          "feature": "Head recess",
+          "nominal_mm": 5.6,
+          "model_mm": 6.1,
+          "rule": "head 5.6 + 0.5",
+          "check": "head sits flush"
         },
         {
-          "feature": "Post pilot hole",
-          "nominal_mm": 2.6,
-          "model_mm": 2.6,
-          "rule": "unchanged; coupon C-4 chooses 2.5 to 2.7",
-          "check": "M3 x 10 bites 8.4 mm without splitting"
+          "feature": "Foot socket",
+          "nominal_mm": 4.0,
+          "model_mm": 4.3,
+          "rule": "spigot + 0.3",
+          "check": "foot spigot enters by hand"
         }
       ],
-      "z_levels_off_layer_grid": [
-        {
-          "z_mm": 3.5,
-          "nearest_layer_mm": 3.6,
-          "deviation_mm": 0.1
-        }
-      ],
+      "thin_features": {
+        "min_feature_mm": 0.72,
+        "slices_with_thinner_material": 0,
+        "worst_area_mm2": 0.0,
+        "worst_height_mm": null
+      },
+      "z_levels_off_layer_grid": [],
       "coupons": [
         "C-4"
       ],
       "warnings": [
-        "Three M5 hex-nut pockets open to the bed side: print them as 8.3 mm bridges and keep the nut flat; check the nut turns freely and cannot spin (coupon C-4 style fit test).",
-        "The four 4 x 4 x 23 mm mount posts are slender; the M3 pilot hole leaves about 0.7 mm of wall (R14).",
-        "The controller shelf (54.4 x 28 x 1.6 mm) is a bridge between four 4 x 4 x 28 mm posts; its underside is an unsupported span, so print it with supports or tune bridging.",
-        "The plate is a round 144 mm disc, so a 150 mm bed is enough.",
-        "A 3.6 mm wide, 2.5 mm deep ring groove holds the wall (0.3 mm clearance per side); a thin 3.5 mm floor remains under it. The fit is ASSUMED, so print a short test ring of the wall first.",
-        "Layer-1 boards lie on the plate with 2 mm spacing; nothing fixes them (screw bosses are not designed)."
+        "The three feet are NOT in this file: they are separate parts (tray-foot.stl, 3 pieces) that press into three blind sockets from below. Glue them with a drop of cyanoacrylate.",
+        "Each screw hole has a 6.1 mm head recess 2.2 mm deep that opens to the bed; the 3.55 mm hole above it is a 1.3 mm bridge ring (short).",
+        "The three platform posts (4.8 mm round, 35 mm tall) are slender; they have no spigot or pocket at the deck, so the joint is glue only (NOT designed).",
+        "The wall ridge (1.2 mm wide, 3 mm tall) is notched 4.8 degrees either side of each screw boss; the ridge locates the wall with 0.3 mm play.",
+        "Eight board standoffs (4 mm round, 3 mm tall) carry the two boards; they have no screw holes (the boards are NOT fixed).",
+        "The USB-C saddle is 12 x 8 x 7 mm; the connector fixing is NOT designed.",
+        "The exit hole 12 x 9.6 mm lines up with the deck hole; the chute walls above it are in the housing deck."
+      ]
+    },
+    {
+      "id": "tray-foot",
+      "label": "Tray foot",
+      "file": "tray-foot.stl",
+      "mode": "separate",
+      "quantity": 3,
+      "material": "PETG or PLA+",
+      "orientation": "Flat 10 mm face on the bed, 4 mm spigot standing up",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 20 % infill, 100 % infill (the part is tiny)",
+      "supports": "none: no downward face steeper than 45 degrees off the bed",
+      "overhangs": {
+        "area_mm2": 0.0,
+        "levels": []
+      },
+      "size_mm": [
+        10.0,
+        10.0,
+        11.0
+      ],
+      "fits_bed_mm": 100,
+      "volume_mm3": 665.5,
+      "solid_mass_g": 0.8,
+      "triangles": 764,
+      "bodies": 1,
+      "sha256": "42c749487efcd69aaf2e958f684ccf35f66db629a7d17ab60969eb048adf257f",
+      "features": [
+        {
+          "feature": "Spigot diameter",
+          "nominal_mm": 4.0,
+          "model_mm": 4.0,
+          "rule": "unchanged",
+          "check": "caliper"
+        }
+      ],
+      "thin_features": {
+        "min_feature_mm": 0.72,
+        "slices_with_thinner_material": 0,
+        "worst_area_mm2": 0.0,
+        "worst_height_mm": null
+      },
+      "z_levels_off_layer_grid": [],
+      "coupons": [],
+      "warnings": [
+        "Three identical pieces. The 4.0 mm spigot enters a 4.3 mm socket 3.4 mm deep (0.15 mm play per side); there is no thread, so the feet are glued.",
+        "A printed foot is a rigid plastic disc; add a stick-on rubber pad (not designed) if the tray should not slide."
       ]
     },
     {
@@ -347,74 +427,50 @@
       "mode": "one",
       "quantity": 1,
       "material": "PETG or PLA+",
-      "orientation": "Sector stood on its lower edge (the z = -54.5 edge on the bed)",
-      "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 20 % infill, 5 mm brim",
-      "supports": "needed, or tune bridging: 1107.1 mm2 of downward faces off the bed at z = 18.5, 64.5, 78.5 mm",
+      "orientation": "Upright, the lower rim (z = -38) on the bed",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 20 % infill, 5 mm brim, slow outer walls",
+      "supports": "needed, or tune bridging: 5.3 mm2 of downward faces off the bed at z = 6.0 mm",
       "overhangs": {
-        "area_mm2": 1107.1,
+        "area_mm2": 5.3,
         "levels": [
           {
-            "z_mm": 18.5,
-            "area_mm2": 63.6
-          },
-          {
-            "z_mm": 64.5,
-            "area_mm2": 37.9
-          },
-          {
-            "z_mm": 78.5,
-            "area_mm2": 1005.6
+            "z_mm": 6.0,
+            "area_mm2": 5.3
           }
         ]
       },
       "size_mm": [
-        83.765,
-        92.588,
-        117.5
+        33.135,
+        88.903,
+        92.0
       ],
-      "volume_mm3": 51192.2,
-      "triangles": 442,
+      "fits_bed_mm": 100,
+      "volume_mm3": 28959.4,
+      "solid_mass_g": 36.8,
+      "triangles": 16278,
       "bodies": 1,
-      "sha256": "7c709fde24cfba3c1a5053f221d845fce3c87216ba11f0ebd2a4176eff221fa3",
+      "sha256": "1dd866b8b87d805b6715ea00aa92335527b81871df6e3c5864d8b39fe0951842",
       "features": [],
+      "thin_features": {
+        "min_feature_mm": 0.72,
+        "slices_with_thinner_material": 0,
+        "worst_area_mm2": 0.0,
+        "worst_height_mm": null
+      },
       "z_levels_off_layer_grid": [
         {
-          "z_mm": 2.5,
-          "nearest_layer_mm": 2.4,
-          "deviation_mm": 0.1
-        },
-        {
-          "z_mm": 18.5,
-          "nearest_layer_mm": 18.4,
-          "deviation_mm": 0.1
-        },
-        {
-          "z_mm": 64.5,
-          "nearest_layer_mm": 64.4,
-          "deviation_mm": 0.1
-        },
-        {
-          "z_mm": 78.5,
-          "nearest_layer_mm": 78.4,
-          "deviation_mm": 0.1
-        },
-        {
-          "z_mm": 80.5,
-          "nearest_layer_mm": 80.4,
-          "deviation_mm": 0.1
-        },
-        {
-          "z_mm": 117.5,
-          "nearest_layer_mm": 117.6,
-          "deviation_mm": 0.1
+          "z_mm": 34.661,
+          "nearest_layer_mm": 34.6,
+          "deviation_mm": 0.061
         }
       ],
       "coupons": [],
       "warnings": [
-        "A 3 mm wall standing 117.5 mm tall and curved: expect wobble and layer-line weakness; use the brim and print slowly.",
-        "The cup opening is 18 degrees wide (about 21 mm) and 16 mm tall (z -52 to -36), open to the bottom of the wall: print it as a bridge or add temporary supports.",
-        "The pin-servo shelf (23 mm wide, 2 mm thick, cut to the inside of the wall) and its web carry the servo; check rigidity.",
-        "Each sector has a 1 mm x 3 mm tongue on one edge and a matching 1.4 x 3.4 mm groove on the other (0.2 mm radial and 0.4 mm length clearance); the 0.8 mm skins either side of the groove are thin and may break. Fit is ASSUMED."
+        "A 3 mm curved wall 92 mm tall with a 51 mm radius: expect wobble and layer-line weakness; use the brim and print slowly.",
+        "The shoulder leans inwards up to 40 degrees from vertical and the deck ledge is chamfered underneath, so neither needs supports.",
+        "One 3 mm tongue (1.0 mm thick, mid-wall) on one edge and a matching 3.4 mm groove on the other. The 0.8 mm skins either side of the groove are thinner than two perimeters and may break. Fit is ASSUMED.",
+        "A screw boss (7 mm round, 8 mm tall, 2.6 mm pilot hole 6 mm deep) is fused into the inner face; the M3 screw cuts its own thread in the hole.",
+        "The ledge chamfer is in this file only; the viewer draws the ledge square."
       ]
     },
     {
@@ -424,34 +480,47 @@
       "mode": "one",
       "quantity": 1,
       "material": "PETG or PLA+",
-      "orientation": "Sector stood on its lower edge (the z = -54.5 edge on the bed)",
-      "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 20 % infill, 5 mm brim",
-      "supports": "none: no downward face steeper than 45 degrees off the bed",
+      "orientation": "Upright, the lower rim (z = -38) on the bed",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 20 % infill, 5 mm brim, slow outer walls",
+      "supports": "needed, or tune bridging: 31.2 mm2 of downward faces off the bed at z = 6.0, 15.0 mm",
       "overhangs": {
-        "area_mm2": 0.0,
-        "levels": []
+        "area_mm2": 31.2,
+        "levels": [
+          {
+            "z_mm": 6.0,
+            "area_mm2": 5.3
+          },
+          {
+            "z_mm": 15.0,
+            "area_mm2": 25.9
+          }
+        ]
       },
       "size_mm": [
-        117.67,
-        48.914,
-        117.5
+        78.577,
+        51.0,
+        92.0
       ],
-      "volume_mm3": 49591.3,
-      "triangles": 318,
+      "fits_bed_mm": 100,
+      "volume_mm3": 28726.1,
+      "solid_mass_g": 36.5,
+      "triangles": 16408,
       "bodies": 1,
-      "sha256": "fdcc38497a1dd2dfc407af0756a1b4ec5139cf2149b688f10950b8f98b7cc844",
+      "sha256": "979404d90890d558469d15d285776aa699df98c01e5c1f10dc62093dde7e643e",
       "features": [],
-      "z_levels_off_layer_grid": [
-        {
-          "z_mm": 117.5,
-          "nearest_layer_mm": 117.6,
-          "deviation_mm": 0.1
-        }
-      ],
+      "thin_features": {
+        "min_feature_mm": 0.72,
+        "slices_with_thinner_material": 0,
+        "worst_area_mm2": 0.0,
+        "worst_height_mm": null
+      },
+      "z_levels_off_layer_grid": [],
       "coupons": [],
       "warnings": [
-        "3 mm curved wall, 117.5 mm tall; expect wobble and use the brim.",
-        "Each sector has a 1 mm x 3 mm tongue on one edge and a matching 1.4 x 3.4 mm groove on the other (0.2 mm radial and 0.4 mm length clearance); the 0.8 mm skins either side of the groove are thin and may break. Fit is ASSUMED."
+        "A 3 mm curved wall 92 mm tall; expect wobble and use the brim.",
+        "The USB-C window is 8.9 mm wide and 9 mm tall (z -32 to -23 mm) and prints as a short bridge 15 mm above the bed.",
+        "One tongue and one groove as on the other sectors (0.2 mm play per side); fit is ASSUMED.",
+        "A screw boss with a 2.6 mm pilot hole is fused into the inner face."
       ]
     },
     {
@@ -461,34 +530,42 @@
       "mode": "one",
       "quantity": 1,
       "material": "PETG or PLA+",
-      "orientation": "Sector stood on its lower edge (the z = -54.5 edge on the bed)",
-      "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 20 % infill, 5 mm brim",
-      "supports": "none: no downward face steeper than 45 degrees off the bed",
+      "orientation": "Upright, the lower rim (z = -38) on the bed",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 20 % infill, 5 mm brim, slow outer walls",
+      "supports": "needed, or tune bridging: 5.3 mm2 of downward faces off the bed at z = 6.0 mm",
       "overhangs": {
-        "area_mm2": 0.0,
-        "levels": []
+        "area_mm2": 5.3,
+        "levels": [
+          {
+            "z_mm": 6.0,
+            "area_mm2": 5.3
+          }
+        ]
       },
       "size_mm": [
-        57.545,
-        113.878,
-        117.5
+        76.5,
+        54.028,
+        92.0
       ],
-      "volume_mm3": 49591.3,
-      "triangles": 318,
+      "fits_bed_mm": 100,
+      "volume_mm3": 28959.4,
+      "solid_mass_g": 36.8,
+      "triangles": 16280,
       "bodies": 1,
-      "sha256": "f917dcfea31e6fa690004b38a35f02cfaf43e5451098d604a2caae31bf197a26",
+      "sha256": "3113b48e7bedd867194b33b4f8cedef2841f7b7819b9e52595a93f675f194a41",
       "features": [],
-      "z_levels_off_layer_grid": [
-        {
-          "z_mm": 117.5,
-          "nearest_layer_mm": 117.6,
-          "deviation_mm": 0.1
-        }
-      ],
+      "thin_features": {
+        "min_feature_mm": 0.72,
+        "slices_with_thinner_material": 0,
+        "worst_area_mm2": 0.0,
+        "worst_height_mm": null
+      },
+      "z_levels_off_layer_grid": [],
       "coupons": [],
       "warnings": [
-        "3 mm curved wall, 117.5 mm tall; expect wobble and use the brim.",
-        "Each sector has a 1 mm x 3 mm tongue on one edge and a matching 1.4 x 3.4 mm groove on the other (0.2 mm radial and 0.4 mm length clearance); the 0.8 mm skins either side of the groove are thin and may break. Fit is ASSUMED."
+        "A 3 mm curved wall 92 mm tall; expect wobble and use the brim.",
+        "One tongue and one groove as on the other sectors (0.2 mm play per side); fit is ASSUMED.",
+        "A screw boss with a 2.6 mm pilot hole is fused into the inner face."
       ]
     },
     {
@@ -498,104 +575,247 @@
       "mode": "one",
       "quantity": 1,
       "material": "PETG or PLA+",
-      "orientation": "Flipped: the top face is on the bed (smooth visible face), the 2 mm lip stands up",
+      "orientation": "Turned over: the top face is on the bed (smooth visible face), the 3 mm lip stands up",
       "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 20 % infill, 5 mm brim",
-      "supports": "needed, or tune bridging: 188.4 mm2 of downward faces off the bed at z = 0.8 mm",
+      "supports": "needed, or tune bridging: 113.0 mm2 of downward faces off the bed at z = 0.8 mm",
       "overhangs": {
-        "area_mm2": 188.4,
+        "area_mm2": 113.0,
         "levels": [
           {
             "z_mm": 0.8,
-            "area_mm2": 188.4
+            "area_mm2": 113.0
           }
         ]
       },
       "size_mm": [
-        144.0,
-        144.0,
-        6.0
+        87.0,
+        87.0,
+        6.5
       ],
-      "volume_mm3": 51106.1,
+      "fits_bed_mm": 100,
+      "volume_mm3": 22117.6,
+      "solid_mass_g": 28.1,
       "triangles": 1916,
       "bodies": 1,
-      "sha256": "b08c293029acf64108d4a4d9ed6b325b0b558c26277ec3c714d8570839313063",
+      "sha256": "76321678d70cae24ebd624365eefe2cde0ce857a87faeb6b1b3e5caaf335d0dd",
       "features": [],
-      "z_levels_off_layer_grid": [],
-      "coupons": [],
-      "warnings": [
-        "A 144 mm x 3 mm disc: expect warp at the edge; use the brim and avoid ABS.",
-        "The engraved ring (1.2 mm wide, 0.8 mm deep) prints as a short bridge above the bed; it may sag.",
-        "The 2 mm lip is a single-wall-pair rib standing 3 mm up: handle with care.",
-        "It is held by gravity only: nothing stops it sliding off if the product is tipped (magnets or a bayonet are NOT designed)."
-      ]
-    },
-    {
-      "id": "pill-trough",
-      "label": "Pill trough",
-      "file": "pill-trough.stl",
-      "mode": "one",
-      "quantity": 1,
-      "material": "PETG or PLA+",
-      "orientation": "Floor flat on the bed, side walls standing up (it is only tilted 15 degrees when assembled)",
-      "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 20 % infill",
-      "supports": "none: no downward face steeper than 45 degrees off the bed",
-      "overhangs": {
-        "area_mm2": 0.0,
-        "levels": []
+      "thin_features": {
+        "min_feature_mm": 0.72,
+        "slices_with_thinner_material": 0,
+        "worst_area_mm2": 0.0,
+        "worst_height_mm": null
       },
-      "size_mm": [
-        68.742,
-        14.0,
-        7.5
-      ],
-      "volume_mm3": 2680.9,
-      "triangles": 36,
-      "bodies": 1,
-      "sha256": "a74fd5b0c186df05d11387c58054e361c13e16b8dadaded549e3745fe6abeee7",
-      "features": [],
       "z_levels_off_layer_grid": [
         {
-          "z_mm": 1.5,
-          "nearest_layer_mm": 1.6,
+          "z_mm": 3.5,
+          "nearest_layer_mm": 3.6,
           "deviation_mm": 0.1
         },
         {
-          "z_mm": 7.5,
-          "nearest_layer_mm": 7.6,
+          "z_mm": 6.5,
+          "nearest_layer_mm": 6.4,
           "deviation_mm": 0.1
         }
       ],
       "coupons": [],
       "warnings": [
-        "Pills sliding at 15 degrees is ASSUMED; the real friction of the printed floor is unknown (a smoother floor or a steeper slope may be needed).",
-        "The high end rests on the chute walls and the low end on one 2 mm post from the base; screws or clips are NOT designed.",
-        "It stays inside the wall and ends over the cup; the 1.5 mm walls are thin."
+        "An 87 mm x 3.5 mm disc: expect warp at the edge; use the brim and avoid ABS.",
+        "The engraved ring (1.2 mm wide, 0.8 mm deep) opens to the bed and is bridged by the layers above; it may sag.",
+        "The lip is a 2 mm wide ring standing 3 mm up: handle with care.",
+        "It is held by gravity only; nothing stops it sliding off if the product is tipped (magnets or a bayonet are NOT designed)."
       ]
     },
     {
-      "id": "pill-cup",
-      "label": "Pill cup",
-      "file": "pill-cup.stl",
+      "id": "station-bracket",
+      "label": "Station bracket",
+      "file": "station-bracket.stl",
       "mode": "one",
       "quantity": 1,
       "material": "PETG or PLA+",
-      "orientation": "Floor on the bed, walls standing up",
-      "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 20 % infill",
+      "orientation": "Turned over: the plate top face (where the servo sits) is on the bed, the two legs stand up",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 4 walls, 5 top/bottom layers, 40 % infill",
       "supports": "none: no downward face steeper than 45 degrees off the bed",
       "overhangs": {
         "area_mm2": 0.0,
         "levels": []
       },
       "size_mm": [
-        22.0,
-        16.0,
-        16.0
+        24.075,
+        12.5,
+        13.9
       ],
-      "volume_mm3": 2050.5,
-      "triangles": 28,
+      "fits_bed_mm": 100,
+      "volume_mm3": 756.7,
+      "solid_mass_g": 1.0,
+      "triangles": 432,
       "bodies": 1,
-      "sha256": "93ed2b8fe12d151fadabb9fc85e28d262bfae863c2c8c78dabdc6910415efe68",
+      "sha256": "279844e24ad6eda265a3485ed9837285e788392449a6a9d4dbcfcc687ccc51f3",
+      "features": [
+        {
+          "feature": "Servo shaft hole",
+          "nominal_mm": 6.0,
+          "model_mm": 6.15,
+          "rule": "nominal + hole compensation",
+          "check": "servo output boss passes"
+        }
+      ],
+      "thin_features": {
+        "min_feature_mm": 0.72,
+        "slices_with_thinner_material": 0,
+        "worst_area_mm2": 0.0,
+        "worst_height_mm": null
+      },
+      "z_levels_off_layer_grid": [
+        {
+          "z_mm": 13.9,
+          "nearest_layer_mm": 14.0,
+          "deviation_mm": 0.1
+        }
+      ],
+      "coupons": [],
+      "warnings": [
+        "The plate has a 6.15 mm hole for the servo output shaft. The servo ears rest on the plate; their screw holes are NOT designed.",
+        "The two 3 mm legs are 11.9 mm tall, are glued to the deck, and have no pocket or spigot (NOT designed).",
+        "The plate is 0.1 mm longer than the servo footprint at one end so that the leg corners stay on the plate."
+      ]
+    },
+    {
+      "id": "pin-lever",
+      "label": "Pin lever",
+      "file": "pin-lever.stl",
+      "mode": "one",
+      "quantity": 1,
+      "material": "PETG or PLA+",
+      "orientation": "Flat on the bed",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 20 % infill, 4 walls",
+      "supports": "none: no downward face steeper than 45 degrees off the bed",
+      "overhangs": {
+        "area_mm2": 0.0,
+        "levels": []
+      },
+      "size_mm": [
+        21.3,
+        7.6,
+        2.0
+      ],
+      "fits_bed_mm": 100,
+      "volume_mm3": 169.2,
+      "solid_mass_g": 0.2,
+      "triangles": 1128,
+      "bodies": 1,
+      "sha256": "d49dc929ecb7c83ef53ccd78eacd09d972f865c5d0c355bb8c0c8d7464e2e422",
+      "features": [
+        {
+          "feature": "Pin guide hole",
+          "nominal_mm": 3.4,
+          "model_mm": 3.55,
+          "rule": "rod 3.0 + 0.4 + hole compensation",
+          "check": "rod slides freely"
+        },
+        {
+          "feature": "Shaft bore",
+          "nominal_mm": 5.0,
+          "model_mm": 5.15,
+          "rule": "nominal + hole compensation",
+          "check": "measure the servo shaft"
+        }
+      ],
+      "thin_features": {
+        "min_feature_mm": 0.72,
+        "slices_with_thinner_material": 0,
+        "worst_area_mm2": 0.0,
+        "worst_height_mm": null
+      },
+      "z_levels_off_layer_grid": [],
+      "coupons": [
+        "C-2"
+      ],
+      "warnings": [
+        "The 5.15 mm bore fits the 5 mm output shaft; the real servo output is a 4.8 mm splined shaft that is not modelled: measure the shaft or glue the lever to the stock horn (NOT designed).",
+        "The engagement pin passes through a 3.55 mm hole 15 mm from the pivot; a 0.8 mm wall surrounds it at the lever tip."
+      ]
+    },
+    {
+      "id": "tongue-lever",
+      "label": "Tongue lever",
+      "file": "tongue-lever.stl",
+      "mode": "one",
+      "quantity": 1,
+      "material": "PETG or PLA+",
+      "orientation": "Flat on the bed, crank pin standing up",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 20 % infill, 4 walls",
+      "supports": "none: no downward face steeper than 45 degrees off the bed",
+      "overhangs": {
+        "area_mm2": 0.0,
+        "levels": []
+      },
+      "size_mm": [
+        16.123,
+        7.6,
+        5.2
+      ],
+      "fits_bed_mm": 100,
+      "volume_mm3": 147.5,
+      "solid_mass_g": 0.2,
+      "triangles": 1130,
+      "bodies": 1,
+      "sha256": "805cbcd3ce17708445ea9ec3854496667d041221ddaafecb1555775f43a66fac",
+      "features": [
+        {
+          "feature": "Shaft bore",
+          "nominal_mm": 5.0,
+          "model_mm": 5.15,
+          "rule": "nominal + hole compensation",
+          "check": "measure the servo shaft"
+        }
+      ],
+      "thin_features": {
+        "min_feature_mm": 0.72,
+        "slices_with_thinner_material": 0,
+        "worst_area_mm2": 0.0,
+        "worst_height_mm": null
+      },
+      "z_levels_off_layer_grid": [],
+      "coupons": [
+        "C-2"
+      ],
+      "warnings": [
+        "The 3 mm crank pin is printed upright, so it is weak across layer lines; check that it survives the gate load or use a 3 mm steel pin pressed into a hole (NOT designed).",
+        "The bore fits a 5 mm shaft; the servo spline is not modelled (see the pin lever)."
+      ]
+    },
+    {
+      "id": "tongue-gate",
+      "label": "Tongue gate",
+      "file": "tongue-gate.stl",
+      "mode": "one",
+      "quantity": 1,
+      "material": "PETG or PLA+",
+      "orientation": "Flat on the bed",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 20 % infill, 4 walls",
+      "supports": "none: no downward face steeper than 45 degrees off the bed",
+      "overhangs": {
+        "area_mm2": 0.0,
+        "levels": []
+      },
+      "size_mm": [
+        14.0,
+        24.0,
+        1.5
+      ],
+      "fits_bed_mm": 100,
+      "volume_mm3": 437.7,
+      "solid_mass_g": 0.6,
+      "triangles": 40,
+      "bodies": 1,
+      "sha256": "74b24ddf7e4c61a577666061e01b31525238a085abd2d8bd54d87abf7f63da8a",
       "features": [],
+      "thin_features": {
+        "min_feature_mm": 0.72,
+        "slices_with_thinner_material": 0,
+        "worst_area_mm2": 0.0,
+        "worst_height_mm": null
+      },
       "z_levels_off_layer_grid": [
         {
           "z_mm": 1.5,
@@ -605,59 +825,79 @@
       ],
       "coupons": [],
       "warnings": [
-        "It stands on the plinth and slides out through the wall opening; it has no guide rails or stop yet, and nothing keeps it from sliding in too far."
+        "1.5 mm plate sliding in a 1.8 mm channel (0.15 mm play per face); elephant foot on the first layer adds to the thickness: chamfer the bed edge or lower the first layer flow.",
+        "The slot is 12 x 3.6 mm and the pin is 3.0 mm."
       ]
     },
     {
-      "id": "rail-block",
-      "label": "Pin rail block",
-      "file": "rail-block.stl",
+      "id": "pin-cam",
+      "label": "Pin cam",
+      "file": "pin-cam.stl",
       "mode": "one",
       "quantity": 1,
       "material": "PETG or PLA+",
-      "orientation": "Foot plate on the bed, post and rails standing up",
-      "settings": "0.4 mm nozzle, 0.2 mm layer, 4 walls, 30 % gyroid",
-      "supports": "needed, or tune bridging: 73.6 mm2 of downward faces off the bed at z = 9.3 mm",
+      "orientation": "Upright on the 5 mm square foot; the arm and ramp are cantilevered, so print with a small support under the arm",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 4 walls, 5 top/bottom layers, about 30 % gyroid, 100 % infill advised for the thin arm",
+      "supports": "needed, or tune bridging: 55.2 mm2 of downward faces off the bed at z = 17.8, 23.7 mm",
       "overhangs": {
-        "area_mm2": 73.6,
+        "area_mm2": 55.2,
         "levels": [
           {
-            "z_mm": 9.3,
-            "area_mm2": 73.6
+            "z_mm": 17.8,
+            "area_mm2": 52.8
+          },
+          {
+            "z_mm": 23.7,
+            "area_mm2": 2.4
           }
         ]
       },
       "size_mm": [
-        18.0,
-        27.5,
-        12.9
+        5.488,
+        20.582,
+        26.7
       ],
-      "volume_mm3": 1078.9,
-      "triangles": 64,
+      "fits_bed_mm": 100,
+      "volume_mm3": 452.7,
+      "solid_mass_g": 0.6,
+      "triangles": 74,
       "bodies": 1,
-      "sha256": "e0fc9d2f6e703bf9332316b4430ba11d1828a7bf2dffd2f2e47303b8b0964ffd",
+      "sha256": "7061b77b4b8e6ca1fad5b63856254a49b440fe085ae70b9762c35ba884ef0a26",
       "features": [],
+      "thin_features": {
+        "min_feature_mm": 0.72,
+        "slices_with_thinner_material": 4,
+        "worst_area_mm2": 2.59,
+        "worst_height_mm": 26.57
+      },
       "z_levels_off_layer_grid": [
         {
-          "z_mm": 1.5,
-          "nearest_layer_mm": 1.6,
+          "z_mm": 18.973,
+          "nearest_layer_mm": 19.0,
+          "deviation_mm": 0.027
+        },
+        {
+          "z_mm": 20.038,
+          "nearest_layer_mm": 20.0,
+          "deviation_mm": 0.038
+        },
+        {
+          "z_mm": 23.7,
+          "nearest_layer_mm": 23.6,
           "deviation_mm": 0.1
         },
         {
-          "z_mm": 9.3,
-          "nearest_layer_mm": 9.2,
-          "deviation_mm": 0.1
-        },
-        {
-          "z_mm": 12.9,
-          "nearest_layer_mm": 12.8,
+          "z_mm": 26.7,
+          "nearest_layer_mm": 26.8,
           "deviation_mm": 0.1
         }
       ],
       "coupons": [],
       "warnings": [
-        "The two carriage rails are 1.6 mm wide and 24 mm long, cantilevered from the post: print them slowly and check that they do not sag.",
-        "The foot plate sits on the platform top; its screw holes are NOT designed."
+        "The arm is a 3 mm plate cantilevered 14.7 mm from a 4 x 3 mm post (21 mm tall). It needs a support under the arm; without it the bridge sags and the pin head will not clear.",
+        "The ramp is a 60 degree wedge in a plane turned about 26 degrees from the arm; the pin head rim must be tested on a print.",
+        "The ramp crest is a 0.6 mm wide flat, thinner than two perimeters; expect it to print rounded.",
+        "The foot is glued to the deck (no pocket or screw, NOT designed). The foot corner is 0.7 mm inside the deck edge."
       ]
     },
     {
@@ -696,7 +936,9 @@
         24.2,
         41.0
       ],
+      "fits_bed_mm": 100,
       "volume_mm3": 3847.5,
+      "solid_mass_g": 4.9,
       "triangles": 904,
       "bodies": 1,
       "sha256": "a5399e517f283ab58b0cc9a1e65c3855895fff1b87b18f1a8473dea28fc5abb8",
@@ -716,6 +958,12 @@
           "check": "spring eye drops over it"
         }
       ],
+      "thin_features": {
+        "min_feature_mm": 0.72,
+        "slices_with_thinner_material": 0,
+        "worst_area_mm2": 0.0,
+        "worst_height_mm": null
+      },
       "z_levels_off_layer_grid": [
         {
           "z_mm": 7.5,
@@ -729,8 +977,8 @@
       "warnings": [
         "With the rails on the bed, the tube underside is 1 mm above the bed and bridges the 10.8 mm gap between the rails; use a clean bridge or add supports.",
         "The catch ledges overhang 0.8 mm with nothing under them; chamfer if they sag.",
-        "The spring lug underside is 1 mm above the bed (it overhangs the rail line) and the peg is 1.2 mm thick; print the peg slowly and check the loop fit.",
-        "The bore is modelled 10.95 x 8.55 mm for a nominal 10.8 x 8.4 mm channel; the 1.925 mm walls are 4 to 5 perimeters.",
+        "The spring lug underside is 1 mm above the bed and the peg is 1.2 mm thick; print the peg slowly.",
+        "The bore is modelled 10.95 x 8.55 mm for a nominal 10.8 x 8.4 mm channel.",
         "The colour tag is a 1.2 mm raised plate; change filament at that layer or paint it."
       ]
     },
@@ -753,11 +1001,19 @@
         12.4,
         5.5
       ],
+      "fits_bed_mm": 100,
       "volume_mm3": 388.3,
+      "solid_mass_g": 0.5,
       "triangles": 396,
       "bodies": 1,
       "sha256": "b83abc4fdcb891d97f2fde5a7a8a69f9d4ff5477f13f6a20d0ac95da01e6003a",
       "features": [],
+      "thin_features": {
+        "min_feature_mm": 0.72,
+        "slices_with_thinner_material": 0,
+        "worst_area_mm2": 0.0,
+        "worst_height_mm": null
+      },
       "z_levels_off_layer_grid": [
         {
           "z_mm": 1.5,
@@ -784,17 +1040,17 @@
       "quantity": 4,
       "material": "PETG or PLA+",
       "orientation": "Flat on the bed, wedge nose and tab up",
-      "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 100 % infill recommended",
-      "supports": "needed, or tune bridging: 19.4 mm2 of downward faces off the bed at z = 1.0, 6.5 mm",
+      "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 20 % infill, 100 % infill",
+      "supports": "needed, or tune bridging: 19.4 mm2 of downward faces off the bed at z = 0.8, 6.3 mm",
       "overhangs": {
         "area_mm2": 19.4,
         "levels": [
           {
-            "z_mm": 1.0,
+            "z_mm": 0.8,
             "area_mm2": 18.0
           },
           {
-            "z_mm": 6.5,
+            "z_mm": 6.3,
             "area_mm2": 1.4
           }
         ]
@@ -802,21 +1058,29 @@
       "size_mm": [
         10.5,
         24.0,
-        7.0
+        6.8
       ],
-      "volume_mm3": 356.1,
+      "fits_bed_mm": 100,
+      "volume_mm3": 312.6,
+      "solid_mass_g": 0.4,
       "triangles": 820,
       "bodies": 1,
-      "sha256": "27e002244480876f9dbe1c18ba390747cbf5f8c71917f3b036e512f62c183116",
+      "sha256": "ee436c3865219f5b0c94f1552a1fb28cc80f1b030498c43a93e1c669b3befcc9",
       "features": [
         {
           "feature": "Thickness",
           "nominal_mm": 1.0,
-          "model_mm": 1.0,
-          "rule": "five layers; elephant foot adds to the first one",
+          "model_mm": 0.8,
+          "rule": "nominal minus 2 x blade_clear_mm",
           "check": "caliper, slides in the 1.0 mm channel"
         }
       ],
+      "thin_features": {
+        "min_feature_mm": 0.72,
+        "slices_with_thinner_material": 0,
+        "worst_area_mm2": 0.0,
+        "worst_height_mm": null
+      },
       "z_levels_off_layer_grid": [
         {
           "z_mm": 0.3,
@@ -824,22 +1088,21 @@
           "deviation_mm": 0.1
         },
         {
-          "z_mm": 3.5,
-          "nearest_layer_mm": 3.6,
+          "z_mm": 3.3,
+          "nearest_layer_mm": 3.2,
           "deviation_mm": 0.1
         },
         {
-          "z_mm": 6.5,
-          "nearest_layer_mm": 6.4,
+          "z_mm": 6.3,
+          "nearest_layer_mm": 6.2,
           "deviation_mm": 0.1
         }
       ],
       "coupons": [],
       "warnings": [
-        "The blade is 1.0 mm thick and slides in a 1.0 mm channel: the fit needs a test print, and elephant foot on the first layer will make it thicker.",
-        "The wedge nose is 0.3 mm thick at the tip, thinner than one 0.4 mm line or the 0.2 mm layer step; it will print as stair steps and rounded.",
-        "The outer 2 mm of the tab (where the spring peg stands) overhangs the blade with nothing under it; use a bridge or local support.",
-        "The tab slot is 5 x 4 mm; the pin is 3 mm, so no hole compensation is applied."
+        "The viewer draws the blade 1.0 mm thick in a 1.0 mm channel (no play). This file is 0.8 mm thick (0.1 mm per face, profile blade_clear_mm) so it can slide; elephant foot may still bind it.",
+        "The wedge nose is 0.3 mm thick at the tip, thinner than one 0.4 mm line; it prints rounded.",
+        "The outer 2 mm of the tab (where the spring peg stands) overhangs the blade with nothing under it; use a bridge or local support."
       ]
     }
   ],
@@ -920,6 +1183,128 @@
         20.0
       ],
       "sha256": "2664763552e7bce937adc963722ab58b017406d2eb4590b332d7043de029ac06"
+    }
+  ],
+  "interfaces": [
+    {
+      "parts": "tongue gate / deck channel",
+      "feature": "width (total play, 14.5 vs 14.0)",
+      "modelled_mm": 0.5,
+      "as_printed_mm": 0.35,
+      "needed_min_mm": 0.1,
+      "ok": true
+    },
+    {
+      "parts": "tongue gate / deck channel",
+      "feature": "thickness (total play, 1.8 vs 1.5)",
+      "modelled_mm": 0.3,
+      "as_printed_mm": 0.3,
+      "needed_min_mm": 0.1,
+      "ok": true
+    },
+    {
+      "parts": "tongue lever crank pin / gate slot",
+      "feature": "slot width minus pin diameter",
+      "modelled_mm": 0.6,
+      "as_printed_mm": 0.45,
+      "needed_min_mm": 0.1,
+      "ok": true
+    },
+    {
+      "parts": "engagement pin / pin lever hole",
+      "feature": "hole minus rod diameter",
+      "modelled_mm": 0.55,
+      "as_printed_mm": 0.4,
+      "needed_min_mm": 0.1,
+      "ok": true
+    },
+    {
+      "parts": "slide blade / cartridge channel",
+      "feature": "channel 1.0 minus blade thickness",
+      "modelled_mm": 0.2,
+      "as_printed_mm": 0.2,
+      "needed_min_mm": 0.15,
+      "ok": true
+    },
+    {
+      "parts": "slide blade / guide rails",
+      "feature": "rail gap 10.8 minus blade width 10.5",
+      "modelled_mm": 0.3,
+      "as_printed_mm": 0.15,
+      "needed_min_mm": 0.1,
+      "ok": true
+    },
+    {
+      "parts": "shell tongue / groove",
+      "feature": "radial play (1.4 vs 1.0)",
+      "modelled_mm": 0.4,
+      "as_printed_mm": 0.4,
+      "needed_min_mm": 0.2,
+      "ok": true
+    },
+    {
+      "parts": "shell tongue / groove",
+      "feature": "length play (3.4 vs 3.0)",
+      "modelled_mm": 0.4,
+      "as_printed_mm": 0.4,
+      "needed_min_mm": 0.2,
+      "ok": true
+    },
+    {
+      "parts": "housing deck / shell wall",
+      "feature": "radial gap, deck radius 47.8 in wall radius 48.0",
+      "modelled_mm": 0.4,
+      "as_printed_mm": 0.4,
+      "needed_min_mm": 0.2,
+      "ok": true
+    },
+    {
+      "parts": "tray ridge / shell wall",
+      "feature": "radial gap, ridge 47.7 in wall 48.0",
+      "modelled_mm": 0.6,
+      "as_printed_mm": 0.6,
+      "needed_min_mm": 0.2,
+      "ok": true
+    },
+    {
+      "parts": "service lid lip / shell neck",
+      "feature": "radial gap, lip 38.6 in neck bore 39.0",
+      "modelled_mm": 0.8,
+      "as_printed_mm": 0.8,
+      "needed_min_mm": 0.2,
+      "ok": true
+    },
+    {
+      "parts": "mount spigot / deck socket",
+      "feature": "play across the 3.3 socket and 3.0 spigot",
+      "modelled_mm": 0.3,
+      "as_printed_mm": 0.15,
+      "needed_min_mm": 0.1,
+      "ok": true
+    },
+    {
+      "parts": "tray foot spigot / tray socket",
+      "feature": "play across the 4.3 socket and 4.0 spigot",
+      "modelled_mm": 0.3,
+      "as_printed_mm": 0.15,
+      "needed_min_mm": 0.1,
+      "ok": true
+    },
+    {
+      "parts": "pin lever bore / servo shaft",
+      "feature": "bore 5.15 minus shaft 5.0 (spline not modelled)",
+      "modelled_mm": 0.15,
+      "as_printed_mm": 0.0,
+      "needed_min_mm": 0.0,
+      "ok": true
+    },
+    {
+      "parts": "hall pocket / A3144 body",
+      "feature": "pocket 4.4 x 3.4 minus body 4.0 x 3.0",
+      "modelled_mm": 0.4,
+      "as_printed_mm": 0.25,
+      "needed_min_mm": 0.1,
+      "ok": true
     }
   ]
 }

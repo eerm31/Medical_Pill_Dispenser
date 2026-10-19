@@ -51,10 +51,10 @@
     // Subsystem 1 has two sub-views: the rotation mechanism and the stepper mount; the stepper belongs to both.
     var VIEW_LABELS = {
       mount: ['Stepper mount', 'M3 screws', 'Housing socket collar', 'Station housing platform', '28BYJ-48 stepper', 'Base tray'],
-      housing: ['Cylindrical shell', 'Service lid', 'Base tray', 'Station housing platform'],
+      housing: ['Cylindrical shell', 'Service lid', 'Base tray', 'Tray foot', 'Station housing platform'],
       compartment: ['Compartment cartridges', 'Slide blades', 'Blade return springs', 'Catch ledges', 'Drum hub + socket decks']
     };
-    var activeView = 'rotation', OWN_VIEW = ['Stepper mount', 'Station bracket', 'Pin cam', 'Pin return spring', 'Pin lever', 'Tongue lever', 'Tongue gate', 'Cylindrical shell', 'Service lid', 'Base tray', 'M3 screws', 'Housing socket collar', 'Station housing platform', 'Compartment cartridges', 'Slide blades', 'Blade return springs', 'Catch ledges'];
+    var activeView = 'rotation', OWN_VIEW = ['Stepper mount', 'Station bracket', 'Pin cam', 'Pin return spring', 'Pin lever', 'Tongue lever', 'Tongue gate', 'Cylindrical shell', 'Service lid', 'Base tray', 'Tray foot', 'M3 screws', 'Housing socket collar', 'Station housing platform', 'Compartment cartridges', 'Slide blades', 'Blade return springs', 'Catch ledges'];
     function viewHas(label) { return activeView === 'rotation' ? OWN_VIEW.indexOf(label) < 0 : VIEW_LABELS[activeView].indexOf(label) >= 0; }
     function inRotationSet(o) { while (o) { var p = o.userData && o.userData.rotationPart; if (p) return !p.label || viewHas(p.label); o = o.parent; } return false; }
     var calloutMap = {};
@@ -191,7 +191,7 @@
       var fs = new T.Shape(), fh = new T.Path(); fs.absarc(0, CYc, RB, 0, Math.PI * 2, false);
       fh.moveTo(FH.x[0], FH.y[0]); fh.lineTo(FH.x[0], FH.y[1]); fh.lineTo(FH.x[1], FH.y[1]); fh.lineTo(FH.x[1], FH.y[0]); fh.closePath(); fs.holes.push(fh);
       hs(rtag(slab(fs, S.base_z0, S.base_z1, H2), 'Base tray', 'printed', 'base'), PLINTH_SOLID, 'plinth');
-      BF.angles.forEach(function (a) { hs(rtag(cylA(fixedRoot, 'z', BF.r * Math.cos(a * DEG), CYc + BF.r * Math.sin(a * DEG), S.base_z0 - BF.h / 2, BF.rad, BF.h, H2, 28), 'Base tray', 'printed', 'base'), PLINTH_SOLID, 'plinth'); });
+      BF.angles.forEach(function (a) { hs(rtag(cylA(fixedRoot, 'z', BF.r * Math.cos(a * DEG), CYc + BF.r * Math.sin(a * DEG), S.base_z0 - BF.h / 2, BF.rad, BF.h, H2, 28), 'Tray foot', 'printed', 'foot'), PLINTH_SOLID, 'plinth'); });
       // platform posts: three printed posts from the tray floor to the deck underside, so the product stands with the wall removed
       (function () {
         var PP = S.platform_posts, h = -3.0 - S.base_z1;
@@ -199,7 +199,15 @@
       }());
       // locating ridge inside the wall foot
       var rz0 = S.base_z1, rz1 = S.base_z1 + S.base_ridge[2];
-      spansFor(-180, 180, rz0, rz1).forEach(function (sp) { hs(rtag(ringSector(S.base_ridge[0], S.base_ridge[1], sp[0], sp[1], rz0, rz1), 'Base tray', 'printed', 'base'), PLINTH_SOLID, 'plinth'); });
+      // the ridge is notched where the wall's screw bosses stand (boss radius + 0.4 mm of clearance)
+      var ridgeGap = Math.asin((S.base_screws.boss_r + 0.4) / ((S.base_ridge[0] + S.base_ridge[1]) / 2)) * 180 / Math.PI;
+      var ridgeSpans = spansFor(-180, 180, rz0, rz1);
+      S.base_screws.angles.forEach(function (a) {
+        var c = ((a + 180) % 360 + 360) % 360 - 180, lo0 = c - ridgeGap, hi0 = c + ridgeGap, next = [];
+        ridgeSpans.forEach(function (sp) { var lo = Math.max(sp[0], lo0), hi = Math.min(sp[1], hi0); if (hi <= lo) { next.push(sp); return; } if (lo > sp[0]) next.push([sp[0], lo]); if (hi < sp[1]) next.push([hi, sp[1]]); });
+        ridgeSpans = next;
+      });
+      ridgeSpans.forEach(function (sp) { hs(rtag(ringSector(S.base_ridge[0], S.base_ridge[1], sp[0], sp[1], rz0, rz1), 'Base tray', 'printed', 'base'), PLINTH_SOLID, 'plinth'); });
       // wall: flask profile, banded by window heights; each sector is a lathe of the closed wall section
       var OUT = S.housing_outer, WT = S.shell_r1 - S.shell_r0;
       function rOut(z) { for (var i = 0; i + 1 < OUT.length; i++) { var a = OUT[i], b = OUT[i + 1]; if (z >= a[1] - 1e-9 && z <= b[1] + 1e-9) return a[0] + (b[0] - a[0]) * (z - a[1]) / Math.max(1e-9, b[1] - a[1]); } return OUT[OUT.length - 1][0]; }
@@ -313,7 +321,7 @@
       return g;
     }
     function arm(par, vx, vy, hw, z0, z1, mat, label, piece) {
-      var len = Math.hypot(vx, vy), tip = .8, m = new T.Mesh(new T.BoxGeometry(len + hw + tip, z1 - z0, 2 * hw), mat), mid = (len + tip - hw) / 2 / len;
+      var len = Math.hypot(vx, vy), tip = hw, m = new T.Mesh(new T.BoxGeometry(len + hw + tip, z1 - z0, 2 * hw), mat), mid = (len + tip - hw) / 2 / len;
       m.position.set(vx * mid, (z0 + z1) / 2, -vy * mid); m.rotation.y = Math.atan2(vy, vx); par.add(m); return rtag(m, label, 'printed', piece);
     }
     function leverGroup(cfg, label, piece, h) {
@@ -339,7 +347,8 @@
     (function () {
       var C = A1.cam, E = [A1.pin_parked[0], A1.pin_parked[1] + CY], Rr = leverAt(A1, A1.pin_parked[1] + A1.release).pin, R = [Rr[0], Rr[1] + CY], py = C.post_v + CY;
       function tagC(o) { rtag(o, 'Pin cam', 'printed', 'cam'); ex('platform', o); return o; }
-      tagC(cylA(fixedRoot, 'z', E[0], py, (S.platform_top + C.z0 + C.t) / 2, C.post_r, C.z0 + C.t - S.platform_top, H, 20));
+      tagC(box(E[0] - C.hw, E[0] + C.hw, py - C.post_r, py + C.post_r, S.platform_top, C.z0 + C.t, H, fixedRoot));
+      tagC(box(E[0] - C.flange, E[0] + C.flange, py - C.flange, py + C.flange, S.platform_top, S.platform_top + C.flange_t, H, fixedRoot));
       tagC(box(E[0] - C.hw, E[0] + C.hw, py - C.post_r, E[1], C.z0, C.z0 + C.t, H, fixedRoot));
       var d = [R[0] - E[0], R[1] - E[1]], L = Math.hypot(d[0], d[1]), rg = new T.Group(), rh = PIN.head_r, Lr = L - rh, rt = C.ramp_top;
       CAMD = { E: A1.pin_parked, dir: [d[0] / L, d[1] / L], L: L };
@@ -923,6 +932,7 @@
         var mat = std(parseInt(job.color.slice(1), 16), { roughness: .6 });
         jobMats[job.id] = mat;
         var insts = job.anchor === 'drum' ? [{ name: '', anchor: ctx.drumGroup }] : job.anchor === 'fixed' ? [{ name: '', anchor: fixedRoot }]
+          : job.anchor === 'each' ? rotParts.concat(jobObjs).filter(function (o) { return matches(o, job); }).map(function (o, i) { return { name: String(i + 1), anchor: o }; })
           : COLORS.map(function (c) { return { name: c.charAt(0).toUpperCase() + c.slice(1), anchor: cgByColor[c] }; });
         insts.forEach(function (inst) {
           var roots = rotParts.concat(jobObjs).filter(function (o) { return matches(o, job) && under(o, inst.anchor); });
@@ -934,7 +944,7 @@
             cl.traverse(function (n) { var rp = n.userData && n.userData.rotationPart; if (n !== cl && rp && (rp.feature || rp.dimension || rp.draft || rp.callout)) kill.push(n); });
             kill.forEach(function (n) { if (n.parent) n.parent.remove(n); });
             cl.traverse(function (n) { n.userData = {}; n.visible = true; if (n.isMesh) n.material = mat; });
-            if (job.anchor === 'self') { cl.position.set(0, 0, 0); cl.quaternion.identity(); cl.scale.set(1, 1, 1); }
+            if (job.anchor === 'self' || job.anchor === 'each') { cl.position.set(0, 0, 0); cl.quaternion.identity(); cl.scale.set(1, 1, 1); }
             else new T.Matrix4().multiplyMatrices(inv, o.matrixWorld).decompose(cl.position, cl.quaternion, cl.scale);
             var meshes = []; cl.traverse(function (n) { if (n.isMesh) meshes.push(n); });
             meshes.forEach(function (m) {

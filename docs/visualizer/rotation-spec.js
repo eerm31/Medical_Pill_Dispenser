@@ -55,7 +55,7 @@ window.DispenserRotationSpec = {
     "motor_offset_y": 8.0,
     "ear_pitch": 35.0,
     "plate_x": 21.0,
-    "plate_y0": 10.0,
+    "plate_y0": 8.0,
     "plate_y1": 33.0,
     "plate_z0": -16.6,
     "plate_z1": -15.0,
@@ -301,7 +301,7 @@ window.DispenserRotationSpec = {
         54.0
       ]
     ],
-    "base_chamfer": 3.0,
+    "base_chamfer": 2.0,
     "base_ridge": [
       46.5,
       47.7,
@@ -313,7 +313,7 @@ window.DispenserRotationSpec = {
         75,
         195
       ],
-      "r": 44.0,
+      "r": 45.0,
       "boss_r": 3.5,
       "boss_z1": -30.0,
       "head_r": 2.8,
@@ -362,11 +362,11 @@ window.DispenserRotationSpec = {
         "legs": [
           [
             -4.0,
-            5.5
+            4.0
           ],
           [
             14.0,
-            5.5
+            4.0
           ]
         ],
         "leg": 3.0,
@@ -385,7 +385,9 @@ window.DispenserRotationSpec = {
           "z0": 21.5,
           "t": 3.0,
           "post_r": 1.5,
-          "ramp_top": 27.4
+          "ramp_top": 27.4,
+          "flange": 2.5,
+          "flange_t": 1.0
         }
       },
       "s2": {
@@ -455,7 +457,10 @@ window.DispenserRotationSpec = {
       ],
       "r": 44.0,
       "h": 8.0,
-      "rad": 5.0
+      "rad": 5.0,
+      "spigot_r": 2.0,
+      "spigot_h": 3.0,
+      "socket_h": 3.4
     },
     "seat_r_low": 8.8,
     "s1_cable_hole": [
@@ -466,11 +471,11 @@ window.DispenserRotationSpec = {
     ],
     "platform_posts": {
       "angles": [
-        -45,
-        75,
-        195
+        -50,
+        70,
+        190
       ],
-      "r": 41.5,
+      "r": 38.0,
       "rad": 2.4
     }
   },
@@ -903,16 +908,16 @@ window.DispenserRotationSpec = {
       "mode": "one",
       "qty": 1,
       "anchor": "fixed",
-      "flip": false,
+      "flip": true,
       "labels": [
         "Station housing platform",
         "Housing socket collar",
         "Bearing seat"
       ],
       "color": "#5aa9f0",
-      "includes": "round 95.6 mm plate with the bearing seat, column sockets, hall pocket, tongue channel, tongue-lever boss and the S2 cheeks",
-      "orientation": "underside on the bed",
-      "note": "One round plate carried by the wall ledge; the S2 cheeks hang below it, so print it top face down with supports for the cheeks or flip it."
+      "includes": "round 95.6 mm plate (three layers) with the bearing seat, column sockets, hall pocket and lead slot, tongue channel, servo cable hole, the pill chute walls and the two S2 servo posts",
+      "orientation": "top face on the bed, chute walls and servo posts standing up",
+      "note": "The chute walls (1.2 mm, 35 mm tall) and the 3.2 mm servo posts stand up from the plate; print slowly with a brim. The bearing seat is modelled 15.85 mm and is reamed to 16.00 mm."
     },
     {
       "id": "mount",
@@ -924,13 +929,13 @@ window.DispenserRotationSpec = {
         "Stepper mount"
       ],
       "color": "#7f9cf5",
-      "includes": "plate with two integral columns and spigots",
+      "includes": "plate with the boss hole, two integral columns with spigots and the M3 pilot holes",
       "orientation": "plate flat on the bed, columns standing up",
       "note": "The 4 mm columns print nearly solid; check rigidity."
     },
     {
       "id": "base",
-      "label": "Levelling base",
+      "label": "Base tray",
       "mode": "one",
       "qty": 1,
       "anchor": "fixed",
@@ -938,9 +943,23 @@ window.DispenserRotationSpec = {
         "Base tray"
       ],
       "color": "#5fd0a6",
-      "includes": "100 mm round base tray with the locating ridge, board standoffs, exit hole, three feet and three screw holes",
-      "orientation": "plate underside on the bed, standoffs standing up",
-      "note": "Fits a 110 mm bed. It is the service tray: the boards and the cup ride on it."
+      "includes": "102 mm round tray with chamfered edge, wall ridge (notched at the screw bosses), 8 board standoffs, 3 platform posts, USB-C saddle, exit hole, 3 foot sockets and 3 screw holes with head recesses",
+      "orientation": "underside on the bed, standoffs and posts standing up",
+      "note": "Fits a 110 mm bed. The three feet are separate prints (see Tray foot)."
+    },
+    {
+      "id": "feet",
+      "label": "Tray foot",
+      "mode": "separate",
+      "qty": 3,
+      "anchor": "each",
+      "labels": [
+        "Tray foot"
+      ],
+      "color": "#5fd0a6",
+      "includes": "10 mm disc, 8 mm tall, with a 4 mm spigot that presses into the tray",
+      "orientation": "flat face on the bed, spigot standing up",
+      "note": "Printed separately so the tray can lie flat on the bed without supports."
     },
     {
       "id": "shell",
@@ -952,9 +971,9 @@ window.DispenserRotationSpec = {
         "Cylindrical shell"
       ],
       "color": "#9a8cf0",
-      "includes": "three 120 degree wall sectors, 3 mm thick, flask profile (body 51 mm radius, shoulder, 42 mm neck), each with a tongue on one edge and a groove on the other; the deck ledge ring and three screw bosses are printed in; the right sector adds the cup opening and the pin-lever pivot bridge",
+      "includes": "three 120 degree wall sectors, 3 mm thick, flask profile (body 51 mm radius, shoulder, 42 mm neck), each with a tongue on one edge and a groove on the other; the deck ledge ring (chamfered underneath) and three screw bosses are printed in; the second sector has the USB-C window",
       "orientation": "sector stood on its lower edge",
-      "note": "Fit of the joints and the long unsupported shoulder are ASSUMED; print slowly with a brim."
+      "note": "Fit of the joints is ASSUMED; print slowly with a brim. The wall is 3 mm thick and 92 mm tall."
     },
     {
       "id": "lid",
@@ -977,13 +996,14 @@ window.DispenserRotationSpec = {
       "mode": "one",
       "qty": 1,
       "anchor": "fixed",
+      "flip": true,
       "labels": [
         "Station bracket"
       ],
       "color": "#c58cf0",
-      "includes": "plate with two legs that holds the pin servo above the peg tops",
-      "orientation": "legs standing on the bed",
-      "note": "The shelf is a short cantilever; check rigidity. Locating pockets and screws are not designed."
+      "includes": "servo plate with the horn shaft hole and two legs that stand on the deck",
+      "orientation": "plate top face on the bed, legs standing up",
+      "note": "Servo ear screws and the leg locating pockets are not designed."
     },
     {
       "id": "pin-lever",
@@ -995,9 +1015,9 @@ window.DispenserRotationSpec = {
         "Pin lever"
       ],
       "color": "#f6a05c",
-      "includes": "pin lever, tongue lever and the tongue gate plate",
+      "includes": "15 mm lever arm with the horn hub and the guide hole for the engagement pin",
       "orientation": "flat on the bed",
-      "note": "1.8 mm plates; the pivot holes need a test print."
+      "note": "2 mm plate; attach to the stock servo horn (fit not designed)."
     },
     {
       "id": "tongue-lever",
@@ -1009,9 +1029,9 @@ window.DispenserRotationSpec = {
         "Tongue lever"
       ],
       "color": "#f6a05c",
-      "includes": "pin lever, tongue lever and the tongue gate plate",
-      "orientation": "flat on the bed",
-      "note": "1.8 mm plates; the pivot holes need a test print."
+      "includes": "9.8 mm lever arm with the horn hub and the integral crank pin",
+      "orientation": "flat on the bed, crank pin standing up",
+      "note": "1.8 mm plate; attach to the stock servo horn (fit not designed)."
     },
     {
       "id": "tongue",
@@ -1023,9 +1043,9 @@ window.DispenserRotationSpec = {
         "Tongue gate"
       ],
       "color": "#f6a05c",
-      "includes": "pin lever, tongue lever and the tongue gate plate",
+      "includes": "14 x 24 mm gate plate with the transverse slot for the crank pin",
       "orientation": "flat on the bed",
-      "note": "1.8 mm plates; the pivot holes need a test print."
+      "note": "1.5 mm plate sliding in the 1.8 mm deck channel; the fit needs a test print."
     },
     {
       "id": "cartridge",
@@ -1061,7 +1081,7 @@ window.DispenserRotationSpec = {
       "color": "#ee7b5a",
       "includes": "hinged lid plate with finger knob",
       "orientation": "plate flat on the bed, knob up",
-      "note": "ASSUMED to be its own print because it turns on a hinge; the print list does not include it yet."
+      "note": "ASSUMED to be its own print because it turns on a hinge; the hinge is not designed."
     },
     {
       "id": "blade",
@@ -1079,7 +1099,7 @@ window.DispenserRotationSpec = {
     },
     {
       "id": "cam",
-      "label": "Station bracket",
+      "label": "Pin cam",
       "mode": "one",
       "qty": 1,
       "anchor": "fixed",
@@ -1087,9 +1107,9 @@ window.DispenserRotationSpec = {
         "Pin cam"
       ],
       "color": "#c58cf0",
-      "includes": "post on the deck and a holding arm with a release ramp",
-      "orientation": "legs standing on the bed",
-      "note": "The shelf is a short cantilever; check rigidity. Locating pockets and screws are not designed."
+      "includes": "5 mm square foot, post, holding arm and release ramp",
+      "orientation": "foot on the bed, post standing up",
+      "note": "Needs a small support under the arm. Glue the foot to the deck; locating pocket not designed."
     }
   ],
   "dims": [
@@ -4549,13 +4569,13 @@ window.DispenserRotationSpec = {
       "kind": "printed",
       "frame": "fixed",
       "a": [
-        26.945,
-        -14.345,
+        22.026,
+        -14.11,
         -20
       ],
       "b": [
-        31.745,
-        -14.345,
+        26.826,
+        -14.11,
         -20
       ],
       "off": [
@@ -4578,13 +4598,13 @@ window.DispenserRotationSpec = {
       "kind": "printed",
       "frame": "fixed",
       "a": [
-        31.745,
-        -14.345,
+        26.826,
+        -14.11,
         -38.0
       ],
       "b": [
-        31.745,
-        -14.345,
+        26.826,
+        -14.11,
         -3.0
       ],
       "off": [
@@ -4601,18 +4621,18 @@ window.DispenserRotationSpec = {
       ],
       "group": "mnt-housing",
       "short": "Post circle \u00d8",
-      "nominal": 83.0,
+      "nominal": 76.0,
       "tol": "\u00b10.30",
       "print": "printed; model value",
       "kind": "printed",
       "frame": "fixed",
       "a": [
-        -41.5,
+        -38.0,
         15,
         -30
       ],
       "b": [
-        41.5,
+        38.0,
         15,
         -30
       ],

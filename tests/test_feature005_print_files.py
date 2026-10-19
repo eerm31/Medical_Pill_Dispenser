@@ -64,7 +64,9 @@ def test_manifest_discloses_status():
 
 def test_every_part_is_one_closed_solid_on_the_bed():
     assert {p["id"] for p in MANIFEST["parts"]} == {
-        "drum", "housing-platform", "stepper-mount", "levelling-base", "cylindrical-shell-right", "cylindrical-shell-back", "cylindrical-shell-left", "service-lid", "pill-trough", "pill-cup", "rail-block", "cartridge", "cap", "slide-blade",
+        "drum", "housing-platform", "stepper-mount", "base-tray", "tray-foot", "cylindrical-shell-right",
+        "cylindrical-shell-back", "cylindrical-shell-left", "service-lid", "station-bracket", "pin-lever",
+        "tongue-lever", "tongue-gate", "pin-cam", "cartridge", "cap", "slide-blade",
     }
     for part in MANIFEST["parts"]:
         path = PRINT / part["file"]
@@ -81,16 +83,50 @@ def test_every_part_is_one_closed_solid_on_the_bed():
 
 def test_part_sizes_match_the_design_values():
     sizes = {p["id"]: p["size_mm"] for p in MANIFEST["parts"]}
+    qty = {p["id"]: p["quantity"] for p in MANIFEST["parts"]}
     assert sizes["drum"] == [71.0, 71.0, 42.0]
-    assert sizes["housing-platform"] == [44.0, 74.2, 29.7]
-    assert sizes["stepper-mount"] == [42.0, 23.0, 28.0]
-    assert sizes["levelling-base"] == [144.0, 144.0, 35.6]
-    assert sizes["service-lid"] == [144.0, 144.0, 6.0]
-    assert all(sizes[k][2] == 117.5 for k in ("cylindrical-shell-right", "cylindrical-shell-back", "cylindrical-shell-left"))
-    assert sizes["pill-trough"] == pytest.approx([68.74, 14.0, 7.5], abs=0.01) and sizes["pill-cup"] == [22.0, 16.0, 16.0] and sizes["rail-block"] == [18.0, 27.5, 12.9]
+    assert sizes["housing-platform"] == [95.6, 95.6, 41.7]   # 6.7 mm plate plus 35 mm chute walls, turned over
+    assert sizes["stepper-mount"] == [42.0, 25.0, 15.6]
+    assert sizes["base-tray"] == [102.0, 102.0, 40.0]       # plate, 35 mm platform posts, no feet
+    assert sizes["tray-foot"] == [10.0, 10.0, 11.0] and qty["tray-foot"] == 3
+    assert sizes["service-lid"] == [87.0, 87.0, 6.5]
+    assert all(sizes[k][2] == 92.0 for k in ("cylindrical-shell-right", "cylindrical-shell-back", "cylindrical-shell-left"))
+    assert sizes["tongue-gate"] == [14.0, 24.0, 1.5] and sizes["pin-lever"][2] == 2.0
+    assert sizes["tongue-lever"][2] == 5.2  # 1.8 mm arm with a 3.4 mm crank pin standing up
+    assert sizes["station-bracket"][1:] == [12.5, 13.9]
     assert sizes["cartridge"] == [16.4, 24.2, 41.0]
     assert sizes["cap"] == [14.8, 12.4, 5.5]
-    assert sizes["slide-blade"] == [10.5, 24.0, 7.0]
+    assert sizes["slide-blade"] == [10.5, 24.0, 6.8]
+
+
+def test_every_part_fits_a_220_mm_bed_and_the_small_ones_a_110_mm_bed():
+    for p in MANIFEST["parts"]:
+        assert p["fits_bed_mm"] is not None and p["fits_bed_mm"] <= 220, p["id"]
+        assert p["size_mm"][2] <= 100, p["id"]
+    assert max(p["fits_bed_mm"] for p in MANIFEST["parts"]) <= 120
+
+
+def test_every_interface_keeps_its_play_after_the_hole_shrinks():
+    assert MANIFEST["interfaces"]
+    for row in MANIFEST["interfaces"]:
+        assert row["ok"], row
+        assert row["as_printed_mm"] >= row["needed_min_mm"], row
+
+
+def test_thin_wall_findings_are_recorded_and_the_bad_ones_were_fixed():
+    thin = {p["id"]: p["thin_features"]["slices_with_thinner_material"] for p in MANIFEST["parts"]}
+    for fixed in ("stepper-mount", "base-tray", "cylindrical-shell-right", "cylindrical-shell-back", "cylindrical-shell-left", "service-lid", "station-bracket"):
+        assert thin[fixed] == 0, fixed
+    drum = next(p for p in MANIFEST["parts"] if p["id"] == "drum")
+    assert any("0.58 mm" in w for w in drum["warnings"])  # the magnet boss wall stays thin and is disclosed
+    cam = next(p for p in MANIFEST["parts"] if p["id"] == "pin-cam")
+    assert "support" in cam["orientation"] and cam["overhangs"]["area_mm2"] > 40
+
+
+def test_design_changes_for_printing_are_listed():
+    text = " ".join(MANIFEST["design_changes_for_printing"])
+    for word in ("Feet are separate", "posts", "bosses", "cam post", "Bracket legs", "chamfer"):
+        assert word in text, word
 
 
 def test_coupons_exist_and_are_closed():
@@ -144,7 +180,8 @@ def test_base_tray_clears_the_motor_and_the_screw_bosses_stand_inside_it():
     assert len(s["angles"]) == 3
     for ang in s["angles"]:
         bx, by = s["r"] * math.cos(math.radians(ang)), cy + s["r"] * math.sin(math.radians(ang))
-        assert math.hypot(bx, by - cy) + s["boss_r"] <= g["shell_r0"] - 0.5  # inside the wall
+        reach = math.hypot(bx, by - cy) + s["boss_r"]
+        assert g["shell_r0"] + 0.3 <= reach <= g["shell_r1"] - 1.0  # fused into the wall, not through it
         assert math.hypot(bx, by - my) > g["motor_body_r"] + s["boss_r"]
     a = sorted(s["angles"])
     assert all(abs((b - c) % 360 - 120) < 1e-6 for b, c in zip(a[1:] + a[:1], a))  # 120 degrees apart
