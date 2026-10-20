@@ -130,19 +130,39 @@
     var show = { signal: true, motor: true, power: true }, groupsOn = null, hideOthers = false;
     function groupOn(g) { return !groupsOn || g === 'core' || groupsOn.indexOf(g) >= 0; }
     function fadeMat(m, on, base) { m.transparent = !on || base < 1; m.opacity = on ? base : 0.1; m.depthWrite = on; }
-    // parts of systems that are not picked swap to a ghost copy of their material (materials are shared between parts)
-    function fadePart(o, on) {
+    // parts of systems that are not picked swap to a ghost copy of their material; when the filter is narrowed the picked ones glow and get an x-ray outline
+    function narrowed() { return Boolean(groupsOn) && W.groups.some(function (x) { return !groupOn(x.id); }); }
+    function outline(o, on) {
+      if (!on) { if (o.userData.edge) o.userData.edge.visible = false; return; }
+      if (!o.userData.edge) {
+        var ls = new T.LineSegments(new T.EdgesGeometry(o.geometry, 25), new T.LineBasicMaterial({ color: 0xffc233, transparent: true, opacity: 0.95, depthTest: false }));
+        ls.renderOrder = 40; o.add(ls); o.userData.edge = ls;
+      }
+      o.userData.edge.visible = true;
+    }
+    function fadePart(o, on, hi) {
       if (o.isSprite) { o.material.opacity = on ? 1 : 0.15; return; }
       if (!o.isMesh) return;
-      if (!o.userData.orig) { o.userData.orig = o.material; o.userData.ghost = o.material.clone(); o.userData.ghost.transparent = true; o.userData.ghost.depthWrite = false; o.userData.ghost.opacity = Math.min(0.12, o.material.opacity); }
-      o.material = on ? o.userData.orig : o.userData.ghost;
+      if (!o.userData.orig) {
+        o.userData.orig = o.material; o.userData.ghost = o.material.clone(); o.userData.ghost.transparent = true; o.userData.ghost.depthWrite = false; o.userData.ghost.opacity = Math.min(0.12, o.material.opacity);
+        o.userData.lit = o.material.clone(); if (o.userData.lit.emissive) { o.userData.lit.emissive.setHex(0xffa000); o.userData.lit.emissiveIntensity = 0.45; } o.userData.lit.transparent = true; o.userData.lit.depthWrite = false; o.userData.lit.opacity = Math.min(0.85, o.material.opacity);
+      }
+      o.material = !on ? o.userData.ghost : hi ? o.userData.lit : o.userData.orig;
+      outline(o, hi && o.visible);
     }
     function applyClasses() {
-      Object.keys(parts).forEach(function (id) { var on = groupOn(comps[id].group); parts[id].forEach(function (o) { o.visible = on || !hideOthers; fadePart(o, on); }); });
+      var hot = narrowed();
+      Object.keys(parts).forEach(function (id) { var on = groupOn(comps[id].group); parts[id].forEach(function (o) { o.visible = on || !hideOthers; fadePart(o, on, on && hot); }); });
       wires.forEach(function (w) { var on = groupOn(w.group); w.dim = !on; w.mesh.visible = Boolean(grp.visible && show[w.cls] && (on || !hideOthers)); fadeMat(w.mat, on, 1); w.pulses.forEach(function (p) { if (!w.mesh.visible || w.dim) p.mesh.visible = false; }); });
     }
+    function bounds() {
+      var b = new T.Box3(), any = false;
+      Object.keys(parts).forEach(function (id) { if (!groupOn(comps[id].group)) return; parts[id].forEach(function (o) { if (o.isMesh && o.visible) { b.expandByObject(o); any = true; } }); });
+      wires.forEach(function (w) { if (w.mesh.visible) { b.expandByObject(w.mesh); any = true; } });
+      return any ? b : null;
+    }
     return {
-      group: grp,
+      group: grp, bounds: bounds,
       setVisible: function (on) { grp.visible = Boolean(on); applyClasses(); },
       setClass: function (cls, on) { show[cls] = Boolean(on); applyClasses(); },
       setGroups: function (list, hide) { groupsOn = list ? list.slice() : null; hideOthers = Boolean(hide); applyClasses(); },

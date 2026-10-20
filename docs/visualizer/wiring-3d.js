@@ -317,12 +317,25 @@
           if (on && !hi) return;
           o.userData.wfOrig = o.material; o.userData.wfVis = o.visible;
           var gh = o.material.clone(); gh.transparent = true; gh.depthWrite = false; gh.opacity = Math.min(0.12, o.material.opacity === undefined ? 1 : o.material.opacity); o.userData.wfGhost = gh;
-          var lit = o.material.clone(); if (lit.emissive) { lit.emissive.setHex(0xffa000); lit.emissiveIntensity = 0.45; } o.userData.wfLit = lit;
+          var lit = o.material.clone(); if (lit.emissive) { lit.emissive.setHex(0xffa000); lit.emissiveIntensity = 0.45; } lit.transparent = true; lit.depthWrite = false; lit.opacity = Math.min(0.6, o.material.opacity === undefined ? 1 : o.material.opacity); o.userData.wfLit = lit;
         }
         o.material = !on ? o.userData.wfGhost : hi ? o.userData.wfLit : o.userData.wfOrig;
         o.visible = on ? o.userData.wfVis : (o.userData.wfVis && !hideOthers);
         outline(o, hi && o.visible);
       });
+    }
+    // box around the electronic parts and wires that are currently shown, so the camera can frame them
+    function bounds() {
+      var b = new T.Box3(), any = false;
+      function shown(o) { for (var n = o; n; n = n.parent) if (!n.visible) return false; return true; }
+      root.updateMatrixWorld(true);
+      if (ctx.partGroup) root.traverse(function (o) {
+        if (!o.isMesh || !shown(o)) return;
+        for (var n = o; n; n = n.parent) if (n === grp) return;
+        var g = ctx.partGroup(o); if (g && groupOn(g)) { b.expandByObject(o); any = true; }
+      });
+      wires.forEach(function (w) { if (w.mesh && w.mesh.visible && grp.visible) { b.expandByObject(w.mesh); any = true; } });
+      return any ? b : null;
     }
     function applyClasses() {
       applyParts();
@@ -338,7 +351,7 @@
     function probe(a, b, grp, wr, clear) { ensure(); if (clear) occ.fill(0); var p0 = anchor(a), p1 = anchor(b), r = route(p0, p1, { hr: [hardR(a), hardR(b)], wr: wr || [2, 2], grp: grp || 250 }); return { from: p0, to: p1, startHard: hardAt(p0[0], p0[1], p0[2]), endHard: hardAt(p1[0], p1[1], p1[2]), pts: r && r.pts }; }
     function hardAt(x, y, z) { var i = idxOf(x, y, z); return i < 0 ? null : Boolean(hard && hard[i]); }
     return {
-      group: grp, ensure: ensure, setVisible: setVisible, setClass: setClass, setGroups: setGroups, setPartsLive: setPartsLive, reapply: applyParts, update: update,
+      group: grp, ensure: ensure, setVisible: setVisible, setClass: setClass, setGroups: setGroups, setPartsLive: setPartsLive, reapply: applyParts, bounds: bounds, update: update,
       colors: function () { return wires.map(function (w) { return { id: w.id, cls: w.cls, fn: w.fn, color: '#' + ('000000' + w.color.toString(16)).slice(-6) }; }); },
       report: function () { return { routed: routed, failed: failed.slice(), routeMs: grp.userData.routeMs, wires: wires.filter(function (w) { return w.mesh; }).map(function (w) { return { id: w.id, cls: w.cls, length: Math.round(w.length * 10) / 10, points: w.points.map(function (p) { return p.map(function (v) { return Math.round(v * 10) / 10; }); }) }; }) }; },
       samples: function () { return wires.filter(function (w) { return w.mesh; }).map(function (w) { var n = Math.ceil(w.length / 0.5), pts = []; for (var k = 0; k <= n; k++) { var v = w.curve.getPointAt(k / n); pts.push([v.x, -v.z, v.y]); } return { id: w.id, cls: w.cls, pts: pts }; }); },
