@@ -144,15 +144,15 @@
       if (o.isSprite) { o.material.opacity = on ? 1 : 0.15; return; }
       if (!o.isMesh) return;
       if (!o.userData.orig) {
-        o.userData.orig = o.material; o.userData.ghost = o.material.clone(); o.userData.ghost.transparent = true; o.userData.ghost.depthWrite = false; o.userData.ghost.opacity = Math.min(0.12, o.material.opacity);
-        o.userData.lit = o.material.clone(); if (o.userData.lit.emissive) { o.userData.lit.emissive.setHex(0xffa000); o.userData.lit.emissiveIntensity = 0.45; } o.userData.lit.transparent = true; o.userData.lit.depthWrite = false; o.userData.lit.opacity = Math.min(0.85, o.material.opacity);
+        o.userData.orig = o.material; o.userData.ghost = o.material.clone(); o.userData.ghost.transparent = true; o.userData.ghost.depthWrite = false; o.userData.ghost.opacity = Math.min(0.16, o.material.opacity);
+        o.userData.lit = o.material.clone(); if (o.userData.lit.emissive) { o.userData.lit.emissive.setHex(0xffa000); o.userData.lit.emissiveIntensity = 0.3; }
       }
       o.material = !on ? o.userData.ghost : hi ? o.userData.lit : o.userData.orig;
       outline(o, hi && o.visible);
     }
     function applyClasses() {
       var hot = narrowed();
-      Object.keys(parts).forEach(function (id) { var on = groupOn(comps[id].group); parts[id].forEach(function (o) { o.visible = on || !hideOthers; fadePart(o, on, on && hot); }); });
+      Object.keys(parts).forEach(function (id) { var on = groupOn(comps[id].group); parts[id].forEach(function (o) { o.visible = true; fadePart(o, on, on && hot); }); });
       wires.forEach(function (w) { var on = groupOn(w.group); w.dim = !on; w.mesh.visible = Boolean(grp.visible && show[w.cls] && (on || !hideOthers)); fadeMat(w.mat, on, 1); w.pulses.forEach(function (p) { if (!w.mesh.visible || w.dim) p.mesh.visible = false; }); });
     }
     function bounds() {

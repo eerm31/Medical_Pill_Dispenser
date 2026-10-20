@@ -316,11 +316,11 @@
         if (!o.userData.wfOrig) {
           if (on && !hi) return;
           o.userData.wfOrig = o.material; o.userData.wfVis = o.visible;
-          var gh = o.material.clone(); gh.transparent = true; gh.depthWrite = false; gh.opacity = Math.min(0.12, o.material.opacity === undefined ? 1 : o.material.opacity); o.userData.wfGhost = gh;
-          var lit = o.material.clone(); if (lit.emissive) { lit.emissive.setHex(0xffa000); lit.emissiveIntensity = 0.45; } lit.transparent = true; lit.depthWrite = false; lit.opacity = Math.min(0.6, o.material.opacity === undefined ? 1 : o.material.opacity); o.userData.wfLit = lit;
+          var gh = o.material.clone(); gh.transparent = true; gh.depthWrite = false; gh.opacity = Math.min(0.16, o.material.opacity === undefined ? 1 : o.material.opacity); o.userData.wfGhost = gh;
+          var lit = o.material.clone(); if (lit.emissive) { lit.emissive.setHex(0xffa000); lit.emissiveIntensity = 0.3; } o.userData.wfLit = lit;
         }
         o.material = !on ? o.userData.wfGhost : hi ? o.userData.wfLit : o.userData.wfOrig;
-        o.visible = on ? o.userData.wfVis : (o.userData.wfVis && !hideOthers);
+        o.visible = o.userData.wfVis; // parts of other systems stay in place, only dimmed
         outline(o, hi && o.visible);
       });
     }

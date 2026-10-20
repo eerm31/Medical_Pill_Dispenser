@@ -223,14 +223,12 @@ def test_upper_blade_slides_with_the_controller_blade_state():
     assert "tw.blade.position.z = z" in look and "XA + STROKE * b" in look and "setSpring(tw.spring, z + SPRING_OFF)" in look
 
 
-def test_wiring_filter_isolates_the_picked_systems_in_both_3d_views_and_frames_them():
+def test_wiring_filter_filters_wires_and_dims_other_parts_but_never_hides_them():
     app = (VIS / "app.js").read_text(encoding="utf-8")
-    html = (VIS / "index.html").read_text(encoding="utf-8")
     w3d = (VIS / "wiring-3d.js").read_text(encoding="utf-8")
     lay = (VIS / "wiring-layout3d.js").read_text(encoding="utf-8")
-    assert 'id="wiringHide"' in html and re.search(r'id="wiringHide"[^>]*\bchecked\b', html)  # other systems are hidden by default
-    assert "function focusWiring()" in app and "api.bounds()" in app and "flyTo(camHome)" in app and "focusWiring();" in app
-    assert "function bounds()" in w3d and "bounds: bounds" in w3d
-    assert "function bounds()" in lay and "bounds: bounds" in lay
-    assert "function narrowed()" in lay and "fadePart(o, on, on && hot)" in lay
-    assert "scanner guide and decoder" in app  # the scanner demo labels go away with the scanner system, the boards under the scanner root stay
+    assert "o.visible = o.userData.wfVis;" in w3d  # parts of other systems stay in place
+    assert "o.visible = true; fadePart(o, on, on && hot);" in lay
+    assert "(on || !hideOthers)" in w3d and "(on || !hideOthers)" in lay  # only wires disappear
+    assert "wiringGroups=checked.length?checked:null" in app  # nothing ticked is the normal view
+    assert "focusWiring" not in app  # the filter never moves the camera

@@ -773,28 +773,13 @@
   function wiringGroupOn(g){return g==='core'||!wiringGroups||wiringGroups.indexOf(g)>=0;}
   function applyWiringGroups(){
     var checked=Array.prototype.map.call(document.querySelectorAll('#wiringSystems input:checked'),function(c){return c.value;}),shown=0;
-    wiringGroups=checked;
+    wiringGroups=checked.length?checked:null; // nothing ticked is the normal, unfiltered view
     wiringHide=document.getElementById('wiringHide').checked;
-    wiringApis().forEach(function(a){a.setGroups(checked,wiringHide);});
+    wiringApis().forEach(function(a){a.setGroups(wiringGroups,wiringHide);});
     pinRows.forEach(function(r){var on=wiringGroupOn(r.group);r.tr.hidden=!on&&wiringHide;r.tr.classList.toggle('faded',!on&&!wiringHide);if(on&&!r.header)shown+=1;});
     Object.keys(hudRows).forEach(function(id){var on=wiringGroupOn(hudRows[id].group);hudRows[id].li.hidden=!on&&wiringHide;hudRows[id].li.classList.toggle('faded',!on&&!wiringHide);});
     document.getElementById('wiringTableCount').textContent=shown+' of '+pinRows.filter(function(r){return !r.header;}).length+' pins';
-    if(wiringFrame.contentWindow)wiringFrame.contentWindow.postMessage({source:'dispenser-viewer-filter',groups:checked,hide:wiringHide},'*');
-    focusWiring();
-  }
-  // The filter drives the 3D view: when it is narrowed the camera frames the parts and wires that are left, and clearing it goes home again.
-  var wiringFocused=false;
-  function wiringNarrowed(){var W=window.DispenserWiringSpec;return Boolean(W&&wiringGroups&&W.groups.some(function(g){return wiringGroups.indexOf(g.id)<0;}));}
-  function focusWiring(){
-    if(viewMode!=='wiring3d'&&viewMode!=='wiringlayout')return;
-    var api=wiringApi(),look=window.DispenserReferenceLook,narrow=wiringNarrowed();
-    if(look&&look.setGhostOpacity&&viewMode==='wiring3d')look.setGhostOpacity(narrow&&wiringHide?.01:.03);
-    if(viewMode==='wiring3d'){var hideScan=narrow&&wiringHide&&!wiringGroupOn('scanner');scannerVisualObjects.forEach(function(o){if(o.name&&o.name.indexOf('scanner guide and decoder')===0)o.visible=!hideScan&&scannerToggle.checked;});}
-    if(!api||!api.bounds)return;
-    if(!narrow){if(wiringFocused){wiringFocused=false;flyTo(camHome);}return;}
-    var b=api.bounds();if(!b)return;
-    var c=b.getCenter(new THREE.Vector3()),diag=b.getSize(new THREE.Vector3()).length(),fit=(diag/2)/Math.tan(camera.fov*Math.PI/360*Math.min(1,camera.aspect))*1.6;
-    wiringFocused=true;flyTo({x:c.x,y:c.y,z:c.z,radius:Math.max(70,Math.min(560,fit))});
+    if(wiringFrame.contentWindow)wiringFrame.contentWindow.postMessage({source:'dispenser-viewer-filter',groups:wiringGroups||[],hide:wiringHide&&Boolean(wiringGroups)},'*');
   }
   function buildWiringPanel(){
     var W=window.DispenserWiringSpec;if(pinTableBuilt||!W)return;pinTableBuilt=true;
@@ -882,14 +867,14 @@
   function enterWiring3d(){
     var api=wiringApi();
     wiringSaved={mech:captureMech(),target:cameraTarget.clone(),orbit:{theta:orbit.theta,phi:orbit.phi,radius:orbit.radius}};
-    wiringBaseline();wiringFocused=false;
+    wiringBaseline();
     var look3=window.DispenserReferenceLook;if(look3&&look3.setGhostOpacity)look3.setGhostOpacity(.03);
     api.setPartsLive(true);if(pinTableBuilt)applyWiringGroups();
     cameraTarget.set(-12,-14,-4);orbit.theta=.72;orbit.phi=.95;orbit.radius=235;updateCamera();setCamHome();
     wiringHud.hidden=false;document.getElementById('wiringHudNote').textContent='routing wires…';
     window.setTimeout(function(){
       if(viewMode!=='wiring3d')return;
-      api.setVisible(true);buildWiringHud();var r=api.report();focusWiring();
+      api.setVisible(true);buildWiringHud();var r=api.report();
       document.getElementById('wiringHudNote').textContent=r.failed.length?('not routed: '+r.failed.join(', ')):(r.wires.length+' wires routed');
     },40);
   }
@@ -921,9 +906,9 @@
     wiringSaved={mech:captureMech(),target:cameraTarget.clone(),orbit:{theta:orbit.theta,phi:orbit.phi,radius:orbit.radius}};
     wiringBaseline();
     layoutHidden=[];root3d.children.forEach(function(ch){if(ch!==api.group&&ch.visible){layoutHidden.push(ch);ch.visible=false;}});
-    wiringFocused=false;api.setVisible(true);buildWiringHud();
+    api.setVisible(true);buildWiringHud();
     cameraTarget.set(55,14,0);orbit.theta=.28;orbit.phi=.78;orbit.radius=Math.max(330,Math.min(600,335/(Math.tan(camera.fov*Math.PI/360)*Math.min(camera.aspect,1.7))));updateCamera();setCamHome();
-    wiringHud.hidden=false;document.getElementById('wiringHudNote').textContent='organised layout, not to scale';focusWiring();
+    wiringHud.hidden=false;document.getElementById('wiringHudNote').textContent='organised layout, not to scale';
   }
   function leaveWiringLayout(){
     var look=window.DispenserReferenceLook,s=wiringSaved;if(look&&look.wiringLayout)look.wiringLayout.setVisible(false);

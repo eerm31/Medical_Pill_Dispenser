@@ -258,7 +258,7 @@
   var feed = { state: null, angle: 0, at: -1e9 }, bench = { ctrl: null, closeAt: 0 };
   window.addEventListener('message', function (e) {
     var d = e.data;
-    if (d && d.source === 'dispenser-viewer-filter' && Array.isArray(d.groups) && (e.source === window.parent || e.source === window.opener)) { hideOthers = Boolean(d.hide); applyGroups(d.groups.filter(function (g) { return typeof g === 'string'; })); return; }
+    if (d && d.source === 'dispenser-viewer-filter' && Array.isArray(d.groups) && (e.source === window.parent || e.source === window.opener)) { hideOthers = Boolean(d.hide); applyGroups(d.groups.length ? d.groups.filter(function (g) { return typeof g === 'string'; }) : null); return; }
     if (!d || d.source !== 'dispenser-viewer' || !d.state || typeof d.state.phase !== 'string') return;
     if (e.source !== window.parent && e.source !== window.opener) return;
     if (typeof d.drumAngle !== 'number' || typeof d.state.carriage !== 'number' || typeof d.state.pinZ !== 'number' || typeof d.state.tongueEdge !== 'number') return;
