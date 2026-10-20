@@ -836,15 +836,40 @@
     });
     Object.keys(sysDots).forEach(function(g){sysDots[g].classList.toggle('on',Boolean(activeBy[g]));});
   }
+  // The wiring view keeps its own settings: Mechanism filters are saved, replaced by a clean baseline, and put back on leaving.
+  function setBox(box,on){if(box.checked===on)return;box.checked=on;box.dispatchEvent(new Event('change',{bubbles:true}));}
+  function captureMech(){
+    var look=window.DispenserReferenceLook,host=window.DispenserStepHost,part=function(v){return document.querySelector('input[name="partType"][value="'+v+'"]').checked;},view=host?host.view():'main';
+    if(view!=='main')host.setView('main'); // leaving a subsystem view first puts the real toggle values back
+    return {view:view,housing:document.getElementById('housingVisible').checked,mode:look&&look.housingMode?look.housingMode():'assembled',electronic:part('electronic'),printed:part('printed'),
+      scanner:scannerToggle.checked,mechanism:mechanismToggle.checked,labels:labelToggle.checked,dims:dimensionsToggle.checked,job:look&&look.selectedPrintJob?look.selectedPrintJob():null,plates:Boolean(look&&look.printLayoutOn&&look.printLayoutOn())};
+  }
+  function wiringBaseline(){
+    var look=window.DispenserReferenceLook,host=window.DispenserStepHost;
+    if(host&&host.view()!=='main')host.setView('main');
+    closePrintPlates();if(look&&look.selectPrintJob)look.selectPrintJob(null);
+    if(look&&look.setHousingMode)look.setHousingMode('assembled');
+    if(look&&look.setRemovalState)look.setRemovalState({flex:false,lift:false,blade:0});
+    setBox(document.getElementById('housingVisible'),false);
+    setBox(mechanismToggle,true);setBox(scannerToggle,true);setBox(dimensionsToggle,false);setBox(labelToggle,false);
+    setBox(document.querySelector('input[name="partType"][value="printed"]'),false);setBox(document.querySelector('input[name="partType"][value="electronic"]'),true);
+  }
+  function restoreMech(s){
+    var look=window.DispenserReferenceLook,host=window.DispenserStepHost;
+    setBox(document.getElementById('housingVisible'),s.housing);
+    if(look&&look.setHousingMode)look.setHousingMode(s.mode);
+    setBox(document.querySelector('input[name="partType"][value="printed"]'),s.printed);setBox(document.querySelector('input[name="partType"][value="electronic"]'),s.electronic);
+    setBox(mechanismToggle,s.mechanism);setBox(scannerToggle,s.scanner);setBox(dimensionsToggle,s.dims);setBox(labelToggle,s.labels);
+    if(host&&s.view!=='main')host.setView(s.view);
+    if(look&&look.selectPrintJob&&s.job)look.selectPrintJob(s.job);
+    if(s.plates&&look&&look.setPrintLayout){look.setPrintLayout(true);var btn=document.getElementById('printPlatesBtn');btn.textContent='Hide print plates';btn.setAttribute('aria-pressed','true');}
+  }
   function enterWiring3d(){
-    var api=wiringApi(),housing=document.getElementById('housingVisible'),box=document.querySelector('input[name="partType"][value="electronic"]'),printed=document.querySelector('input[name="partType"][value="printed"]');
-    if(window.DispenserStepHost&&window.DispenserStepHost.view()!=='main')window.DispenserStepHost.setView('main');
-    wiringSaved={housing:housing.checked,electronic:box.checked,printed:printed.checked,scanner:scannerToggle.checked,target:cameraTarget.clone(),orbit:{theta:orbit.theta,phi:orbit.phi,radius:orbit.radius}};
-    housing.checked=false;housing.dispatchEvent(new Event('change',{bubbles:true}));
+    var api=wiringApi();
+    wiringSaved={mech:captureMech(),target:cameraTarget.clone(),orbit:{theta:orbit.theta,phi:orbit.phi,radius:orbit.radius}};
+    wiringBaseline();
     var look3=window.DispenserReferenceLook;if(look3&&look3.setGhostOpacity)look3.setGhostOpacity(.03);
-    printed.checked=false;box.checked=true;applyPartType();
     api.setPartsLive(true);if(pinTableBuilt)applyWiringGroups();
-    scannerToggle.checked=true;setScannerSubsystemVisibility(true);
     cameraTarget.set(-12,-14,-4);orbit.theta=.72;orbit.phi=.95;orbit.radius=235;updateCamera();setCamHome();
     wiringHud.hidden=false;document.getElementById('wiringHudNote').textContent='routing wires…';
     window.setTimeout(function(){
@@ -855,10 +880,7 @@
   }
   function leaveWiring3d(){
     var api=wiringApi(),s=wiringSaved,look3=window.DispenserReferenceLook;if(api){api.setVisible(false);api.setPartsLive(false);}if(look3&&look3.setGhostOpacity)look3.setGhostOpacity(.07);wiringHud.hidden=true;if(!s)return;wiringSaved=null;
-    var housing=document.getElementById('housingVisible'),box=document.querySelector('input[name="partType"][value="electronic"]'),printed=document.querySelector('input[name="partType"][value="printed"]');
-    housing.checked=s.housing;housing.dispatchEvent(new Event('change',{bubbles:true}));
-    printed.checked=s.printed;box.checked=s.electronic;applyPartType();
-    scannerToggle.checked=s.scanner;setScannerSubsystemVisibility(s.scanner);
+    restoreMech(s.mech);
     cameraTarget.copy(s.target);orbit.theta=s.orbit.theta;orbit.phi=s.orbit.phi;orbit.radius=s.orbit.radius;updateCamera();camHome={x:-8,y:4,z:-12,theta:.72,phi:1.02,radius:330};
   }
   // Side panel: every section is a collapsible group under its own header.
@@ -880,8 +902,9 @@
   }
   var layoutHidden=[];
   function enterWiringLayout(){
-    var api=wiringApi();if(window.DispenserStepHost&&window.DispenserStepHost.view()!=='main')window.DispenserStepHost.setView('main');
-    wiringSaved={target:cameraTarget.clone(),orbit:{theta:orbit.theta,phi:orbit.phi,radius:orbit.radius}};
+    var api=wiringApi();
+    wiringSaved={mech:captureMech(),target:cameraTarget.clone(),orbit:{theta:orbit.theta,phi:orbit.phi,radius:orbit.radius}};
+    wiringBaseline();
     layoutHidden=[];root3d.children.forEach(function(ch){if(ch!==api.group&&ch.visible){layoutHidden.push(ch);ch.visible=false;}});
     api.setVisible(true);buildWiringHud();
     cameraTarget.set(55,14,0);orbit.theta=.28;orbit.phi=.78;orbit.radius=Math.max(330,Math.min(600,335/(Math.tan(camera.fov*Math.PI/360)*Math.min(camera.aspect,1.7))));updateCamera();setCamHome();
@@ -890,7 +913,7 @@
   function leaveWiringLayout(){
     var look=window.DispenserReferenceLook,s=wiringSaved;if(look&&look.wiringLayout)look.wiringLayout.setVisible(false);
     layoutHidden.forEach(function(ch){ch.visible=true;});layoutHidden=[];wiringHud.hidden=true;
-    if(s){wiringSaved=null;cameraTarget.copy(s.target);orbit.theta=s.orbit.theta;orbit.phi=s.orbit.phi;orbit.radius=s.orbit.radius;updateCamera();camHome={x:-8,y:4,z:-12,theta:.72,phi:1.02,radius:330};}
+    if(s){wiringSaved=null;restoreMech(s.mech);cameraTarget.copy(s.target);orbit.theta=s.orbit.theta;orbit.phi=s.orbit.phi;orbit.radius=s.orbit.radius;updateCamera();camHome={x:-8,y:4,z:-12,theta:.72,phi:1.02,radius:330};}
   }
   function setViewMode(mode){
     if(mode===viewMode)return;

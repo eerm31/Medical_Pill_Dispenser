@@ -677,7 +677,7 @@ PART_NOTES = {
         "warnings": [
             "The M3 pilot hole leaves a wall of about 0.7 mm (R14); coupon C-4 chooses the pilot diameter between 2.5 and 2.7 mm.",
             "The two 4 x 4 x 12 mm columns are slender; check rigidity.",
-            "The boss hole (9.65 mm) and the 3.55 mm screw holes depend on the printer offset (coupon C-4). The plate edge was moved from y = 10 to y = 8 mm so 2.2 mm of plate remains around the boss hole (before: 0.18 mm).",
+            "The boss hole (9.65 mm) and the 3.55 mm screw holes depend on the printer offset (coupon C-4). The plate edge was moved from y = 10 to y = 9.2 mm so 1.0 mm of plate remains around the boss hole (before: 0.18 mm).",
             "The screw heads sit under the plate, outside the deck; confirm the screw length (about 10 mm) before cutting anything.",
         ],
     },
@@ -919,7 +919,7 @@ def main():
             "Screw bosses moved to radius 45 mm so they fuse into the 3 mm wall (before, they floated 0.5 mm away from it); the base ridge is notched around them.",
             "The cam post is a 4 x 3 mm box on a 5 mm square foot; the pin and tongue levers end 2.5 mm beyond the pin so the hole keeps a wall.",
             "Bracket legs moved inside the plate outline (local y 5.5 to 4.0); the bracket plate has a servo shaft hole.",
-            "Stepper-mount plate widened from y = 10 to y = 8 mm (the motor boss hole left 0.18 mm of plate); base chamfer reduced from 3 to 2 mm so the screw head recesses stay inside the bed-side outline.",
+            "Stepper-mount plate widened from y = 10 to y = 9.2 mm (the motor boss hole left 0.18 mm of plate); base chamfer reduced from 3 to 2 mm so the screw head recesses stay inside the bed-side outline.",
             "The deck ledge is chamfered underneath (print file only); the slide blade is printed 0.2 mm thinner than the channel (profile blade_clear_mm).",
         ],
         "parts": [],

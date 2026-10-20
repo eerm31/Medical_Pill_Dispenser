@@ -183,7 +183,7 @@ def test_boards_fade_by_system_as_soon_as_the_wiring_view_opens():
     w3d = (VIS / "wiring-3d.js").read_text(encoding="utf-8")
     app = (VIS / "app.js").read_text(encoding="utf-8")
     look = (VIS / "reference-look.js").read_text(encoding="utf-8")
-    assert "setPartsLive" in w3d and "var on = groupOn(g) || !partsLive;" in w3d
+    assert "setPartsLive" in w3d and "var on = groupOn(g) || !partsLive, hi = on && hot;" in w3d
     assert "api.setPartsLive(true)" in app and "api.setPartsLive(false)" in app
     assert "wiring3d.reapply()" in look  # the part-type filter never leaves a faded board solid again
     assert "setGhostOpacity(.03)" in app and "setGhostOpacity(.07)" in app
@@ -199,3 +199,25 @@ def test_placed_containers_follow_the_lifted_or_exploded_cartridge():
 def test_exploded_view_flies_the_camera_back_far_enough_for_the_whole_stack():
     app = (VIS / "app.js").read_text(encoding="utf-8")
     assert "flyTo({y:98,radius:Math.max(orbit.radius,610)})" in app
+
+
+def test_picked_boards_glow_and_get_an_xray_outline_when_the_filter_is_narrowed():
+    w3d = (VIS / "wiring-3d.js").read_text(encoding="utf-8")
+    assert "function narrowed()" in w3d and "depthTest: false" in w3d and "wfLit" in w3d and "outline(o, hi && o.visible)" in w3d
+
+
+def test_wiring_view_ignores_mechanism_filters_and_gives_them_back():
+    app = (VIS / "app.js").read_text(encoding="utf-8")
+    for needle in ("function captureMech()", "function wiringBaseline()", "function restoreMech(s)", "look.setHousingMode('assembled')",
+                   "look.selectPrintJob(null)", "setBox(mechanismToggle,true)"):
+        assert needle in app, needle
+    enter = app[app.index("function enterWiring3d()"): app.index("function leaveWiring3d()")]
+    assert "captureMech()" in enter and "wiringBaseline()" in enter
+    assert "restoreMech(s.mech)" in app[app.index("function leaveWiring3d()"): app.index("// Side panel: every section")]
+    layout = app[app.index("function enterWiringLayout()"): app.index("function setViewMode")]
+    assert "captureMech()" in layout and "restoreMech(s.mech)" in layout
+
+
+def test_upper_blade_slides_with_the_controller_blade_state():
+    look = (VIS / "reference-look.js").read_text(encoding="utf-8")
+    assert "tw.blade.position.z = z" in look and "XA + STROKE * b" in look and "setSpring(tw.spring, z + SPRING_OFF)" in look

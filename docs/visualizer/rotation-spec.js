@@ -55,7 +55,7 @@ window.DispenserRotationSpec = {
     "motor_offset_y": 8.0,
     "ear_pitch": 35.0,
     "plate_x": 21.0,
-    "plate_y0": 8.0,
+    "plate_y0": 9.2,
     "plate_y1": 33.0,
     "plate_z0": -16.6,
     "plate_z1": -15.0,

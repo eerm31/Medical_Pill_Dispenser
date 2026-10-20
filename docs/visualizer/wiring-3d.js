@@ -294,21 +294,34 @@
     function groupOn(g) { return !groupsOn || g === 'core' || groupsOn.indexOf(g) >= 0; }
     // picked groups stay solid and lit; the rest fade to a faint ghost (or disappear when hideOthers is set)
     function fadeMat(m, on, base) { m.transparent = !on || base < 1; m.opacity = on ? base : 0.1; m.depthWrite = on; }
-    // the real electronic parts of systems that are not picked turn into a faint ghost; picked ones stay solid
+    // electronic parts of systems that are not picked turn into a faint ghost; when the filter is narrowed the picked ones glow and get an x-ray outline
+    function narrowed() { return partsLive && ctx.W.groups.some(function (x) { return !groupOn(x.id); }); }
+    function outline(o, on) {
+      if (!on) { if (o.userData.wfEdge) o.userData.wfEdge.visible = false; return; }
+      if (!o.userData.wfEdge) {
+        if (!o.geometry || !o.geometry.attributes || !o.geometry.attributes.position || o.geometry.attributes.position.count > 4000) return;
+        var ls = new T.LineSegments(new T.EdgesGeometry(o.geometry, 25), new T.LineBasicMaterial({ color: 0xffc233, transparent: true, opacity: 0.95, depthTest: false }));
+        ls.renderOrder = 40; ls.userData.rotationPart = { draft: true }; o.add(ls); o.userData.wfEdge = ls;
+      }
+      o.userData.wfEdge.visible = true;
+    }
     function applyParts() {
       if (!ctx.partGroup) return;
+      var hot = narrowed();
       root.traverse(function (o) {
         if (!o.isMesh || !o.material || Array.isArray(o.material)) return;
         for (var n = o; n; n = n.parent) if (n === grp) return;
         var g = ctx.partGroup(o); if (!g) return;
-        var on = groupOn(g) || !partsLive;
+        var on = groupOn(g) || !partsLive, hi = on && hot;
         if (!o.userData.wfOrig) {
-          if (on) return;
+          if (on && !hi) return;
           o.userData.wfOrig = o.material; o.userData.wfVis = o.visible;
           var gh = o.material.clone(); gh.transparent = true; gh.depthWrite = false; gh.opacity = Math.min(0.12, o.material.opacity === undefined ? 1 : o.material.opacity); o.userData.wfGhost = gh;
+          var lit = o.material.clone(); if (lit.emissive) { lit.emissive.setHex(0xffa000); lit.emissiveIntensity = 0.45; } o.userData.wfLit = lit;
         }
-        o.material = on ? o.userData.wfOrig : o.userData.wfGhost;
+        o.material = !on ? o.userData.wfGhost : hi ? o.userData.wfLit : o.userData.wfOrig;
         o.visible = on ? o.userData.wfVis : (o.userData.wfVis && !hideOthers);
+        outline(o, hi && o.visible);
       });
     }
     function applyClasses() {

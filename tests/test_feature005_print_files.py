@@ -86,7 +86,7 @@ def test_part_sizes_match_the_design_values():
     qty = {p["id"]: p["quantity"] for p in MANIFEST["parts"]}
     assert sizes["drum"] == [71.0, 71.0, 42.0]
     assert sizes["housing-platform"] == [95.6, 95.6, 41.7]   # 6.7 mm plate plus 35 mm chute walls, turned over
-    assert sizes["stepper-mount"] == [42.0, 25.0, 15.6]
+    assert sizes["stepper-mount"] == [42.0, 23.8, 15.6]
     assert sizes["base-tray"] == [102.0, 102.0, 40.0]       # plate, 35 mm platform posts, no feet
     assert sizes["tray-foot"] == [10.0, 10.0, 11.0] and qty["tray-foot"] == 3
     assert sizes["service-lid"] == [87.0, 87.0, 6.5]

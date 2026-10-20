@@ -864,6 +864,14 @@
       removalTick();
       var e = s.tongueEdge, tongueClosed = s.tongueMotion === 'closed' && Math.abs(e - 5.7) < 1e-9;
       actuate(s.carriage, s.tongueEdge, s.pinZ);
+      // the upper blade slides straight along its rails by the controller's blade state (open = +z, 10.4 mm); the return spring stretches with it
+      COLORS.forEach(function (c) {
+        var tw = towers[c], st = s.cartridges && s.cartridges[c]; if (!tw || !st) return;
+        var b = tongueClosed ? Math.max(0, Math.min(1, st.blade || 0)) : 0;
+        if (c === rem.color) b = Math.max(b, rem.blade);
+        var z = XA + STROKE * b;
+        if (tw.z !== z) { tw.z = z; tw.blade.position.z = z; setSpring(tw.spring, z + SPRING_OFF); }
+      });
     }
     // Ghost everything outside the rotation set; shared state and controller are never touched.
     function setRotationViewCore(on, view) {
