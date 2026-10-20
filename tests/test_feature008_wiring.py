@@ -177,3 +177,25 @@ def test_scene_has_camera_presets_pan_and_reset():
         assert f'data-cam="{cam}"' in index
     for needle in ("function flyTo", "setCamHome", "contextmenu", "dblclick", "e.shiftKey"):
         assert needle in app, needle
+
+
+def test_boards_fade_by_system_as_soon_as_the_wiring_view_opens():
+    w3d = (VIS / "wiring-3d.js").read_text(encoding="utf-8")
+    app = (VIS / "app.js").read_text(encoding="utf-8")
+    look = (VIS / "reference-look.js").read_text(encoding="utf-8")
+    assert "setPartsLive" in w3d and "var on = groupOn(g) || !partsLive;" in w3d
+    assert "api.setPartsLive(true)" in app and "api.setPartsLive(false)" in app
+    assert "wiring3d.reapply()" in look  # the part-type filter never leaves a faded board solid again
+    assert "setGhostOpacity(.03)" in app and "setGhostOpacity(.07)" in app
+
+
+def test_placed_containers_follow_the_lifted_or_exploded_cartridge():
+    app = (VIS / "app.js").read_text(encoding="utf-8")
+    look = (VIS / "reference-look.js").read_text(encoding="utf-8")
+    assert "look.cartridgeOffset(color)" in app
+    assert "cartridgeOffset: function (c)" in look and "cgByColor[c].position.y - cgBase[c].y" in look
+
+
+def test_exploded_view_flies_the_camera_back_far_enough_for_the_whole_stack():
+    app = (VIS / "app.js").read_text(encoding="utf-8")
+    assert "flyTo({y:98,radius:Math.max(orbit.radius,610)})" in app

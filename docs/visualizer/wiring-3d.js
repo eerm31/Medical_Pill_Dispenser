@@ -290,7 +290,7 @@
     }
 
     // ---------- live ----------
-    var show = { signal: true, motor: true, power: true }, groupsOn = null, hideOthers = false;
+    var show = { signal: true, motor: true, power: true }, groupsOn = null, hideOthers = false, partsLive = false;
     function groupOn(g) { return !groupsOn || g === 'core' || groupsOn.indexOf(g) >= 0; }
     // picked groups stay solid and lit; the rest fade to a faint ghost (or disappear when hideOthers is set)
     function fadeMat(m, on, base) { m.transparent = !on || base < 1; m.opacity = on ? base : 0.1; m.depthWrite = on; }
@@ -301,7 +301,7 @@
         if (!o.isMesh || !o.material || Array.isArray(o.material)) return;
         for (var n = o; n; n = n.parent) if (n === grp) return;
         var g = ctx.partGroup(o); if (!g) return;
-        var on = groupOn(g) || !grp.visible;
+        var on = groupOn(g) || !partsLive;
         if (!o.userData.wfOrig) {
           if (on) return;
           o.userData.wfOrig = o.material; o.userData.wfVis = o.visible;
@@ -320,10 +320,12 @@
     function setVisible(on) { if (on) ensure(); grp.visible = Boolean(on); applyClasses(); }
     function setClass(cls, on) { show[cls] = Boolean(on); applyClasses(); }
     function setGroups(list, hide) { groupsOn = list ? list.slice() : null; hideOthers = Boolean(hide); applyClasses(); }
+    // the boards fade by system as soon as the wiring view opens, not only once the harness has been routed
+    function setPartsLive(on) { partsLive = Boolean(on); applyParts(); }
     function probe(a, b, grp, wr, clear) { ensure(); if (clear) occ.fill(0); var p0 = anchor(a), p1 = anchor(b), r = route(p0, p1, { hr: [hardR(a), hardR(b)], wr: wr || [2, 2], grp: grp || 250 }); return { from: p0, to: p1, startHard: hardAt(p0[0], p0[1], p0[2]), endHard: hardAt(p1[0], p1[1], p1[2]), pts: r && r.pts }; }
     function hardAt(x, y, z) { var i = idxOf(x, y, z); return i < 0 ? null : Boolean(hard && hard[i]); }
     return {
-      group: grp, ensure: ensure, setVisible: setVisible, setClass: setClass, setGroups: setGroups, update: update,
+      group: grp, ensure: ensure, setVisible: setVisible, setClass: setClass, setGroups: setGroups, setPartsLive: setPartsLive, reapply: applyParts, update: update,
       colors: function () { return wires.map(function (w) { return { id: w.id, cls: w.cls, fn: w.fn, color: '#' + ('000000' + w.color.toString(16)).slice(-6) }; }); },
       report: function () { return { routed: routed, failed: failed.slice(), routeMs: grp.userData.routeMs, wires: wires.filter(function (w) { return w.mesh; }).map(function (w) { return { id: w.id, cls: w.cls, length: Math.round(w.length * 10) / 10, points: w.points.map(function (p) { return p.map(function (v) { return Math.round(v * 10) / 10; }); }) }; }) }; },
       samples: function () { return wires.filter(function (w) { return w.mesh; }).map(function (w) { var n = Math.ceil(w.length / 0.5), pts = []; for (var k = 0; k <= n; k++) { var v = w.curve.getPointAt(k / n); pts.push([v.x, -v.z, v.y]); } return { id: w.id, cls: w.cls, pts: pts }; }); },

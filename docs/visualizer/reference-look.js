@@ -1049,10 +1049,16 @@
       if (typeFilter.length && typeFilter.indexOf(t) < 0) return true;
       return Boolean(printSel && t === 'printed' && !inJob(o, printSel));
     }
+    var ghostOpacity = .07;
     function ghostOf(mat) {
       for (var i = 0; i < ghostCache.length; i++) if (ghostCache[i].src === mat) return ghostCache[i].ghost;
-      var g = mat.clone(); g.transparent = true; g.opacity = Math.min(g.opacity === undefined ? 1 : g.opacity, .07); g.depthWrite = false;
+      var g = mat.clone(); g.transparent = true; g.opacity = Math.min(g.opacity === undefined ? 1 : g.opacity, ghostOpacity); g.depthWrite = false;
       ghostCache.push({ src: mat, ghost: g }); return g;
+    }
+    // how faint the parts outside the Part types filter are (the wiring view uses a fainter ghost so the boards stay clear)
+    function setGhostOpacity(v) {
+      ghostOpacity = Math.max(0, Math.min(.5, v));
+      ghostCache.forEach(function (e) { e.ghost.opacity = Math.min(e.src.opacity === undefined ? 1 : e.src.opacity, ghostOpacity); });
     }
     function clearMainFilter() {
       mainSaved.forEach(function (s) { if (s.material) s.o.material = s.material; else s.o.visible = true; });
@@ -1069,6 +1075,7 @@
           if (partFilterMiss(o)) { mainSaved.push({ o: o, material: o.material }); o.material = ghostOf(o.material); }
         } else if (o.isLineSegments && o.visible && o.parent && o.parent.isMesh && partFilterMiss(o.parent)) { mainSaved.push({ o: o }); o.visible = false; }
       });
+      if (wiring3d && wiring3d.reapply) wiring3d.reapply();
     }
     function setPartFilter(types) {
       typeFilter = (Array.isArray(types) ? types : []).filter(function (t) { return t === 'printed' || t === 'electronic'; });
@@ -1173,7 +1180,7 @@
     var wiringLayout = null;
     try { if (window.DispenserWiringLayout3D && window.DispenserWiring3D && window.DispenserWiringSpec) wiringLayout = window.DispenserWiringLayout3D.build({ THREE: T, root3d: root3d, W: window.DispenserWiringSpec }); }
     catch (error) { wiringLayout = null; if (window.console) console.error('Wiring layout not built.', error); }
-    return { wiring: wiring3d, wiringLayout: wiringLayout, setHousingMode: setHousingMode, setHousingHidden: setHousingHidden, housingMode: function () { return housingMode; }, update: update, report: report, removalSettled: removalSettled, printJobs: printJobsList, selectPrintJob: selectPrintJob, setPartFilter: setPartFilter, partFilter: function () { return typeFilter.slice(); }, electronicList: electronicList, setPrintLayout: setPrintLayout, printLayoutOn: function () { return layoutOn; }, selectedPrintJob: function () { return printSel; }, printLayoutInfo: function () { return printLayout ? printLayout.info : null; }, setRotationView: setRotationView, parts: partsList, active: function () { return rotActive; }, select: selectPart, selected: function () { return rotSelected; }, setLabels: setRotationLabels, setFade: setRotationFade, setDimensions: setRotationDimensions, declutter: declutterLabels, highlightDim: highlightDimensionFull, selectDim: selectDimension, selectedDim: function () { return rotSelectedDim; }, highlightLabel: highlightPartLabel, partLabelOf: partLabelOf, view: function () { return activeView; }, viewHas: viewHas, setRemoval: setRemovalState,
+    return { wiring: wiring3d, wiringLayout: wiringLayout, setGhostOpacity: setGhostOpacity, cartridgeOffset: function (c) { return cgByColor[c] ? cgByColor[c].position.y - cgBase[c].y : 0; }, setHousingMode: setHousingMode, setHousingHidden: setHousingHidden, housingMode: function () { return housingMode; }, update: update, report: report, removalSettled: removalSettled, printJobs: printJobsList, selectPrintJob: selectPrintJob, setPartFilter: setPartFilter, partFilter: function () { return typeFilter.slice(); }, electronicList: electronicList, setPrintLayout: setPrintLayout, printLayoutOn: function () { return layoutOn; }, selectedPrintJob: function () { return printSel; }, printLayoutInfo: function () { return printLayout ? printLayout.info : null; }, setRotationView: setRotationView, parts: partsList, active: function () { return rotActive; }, select: selectPart, selected: function () { return rotSelected; }, setLabels: setRotationLabels, setFade: setRotationFade, setDimensions: setRotationDimensions, declutter: declutterLabels, highlightDim: highlightDimensionFull, selectDim: selectDimension, selectedDim: function () { return rotSelectedDim; }, highlightLabel: highlightPartLabel, partLabelOf: partLabelOf, view: function () { return activeView; }, viewHas: viewHas, setRemoval: setRemovalState,
       clearance: function (pieceA, pieceB) {
         function boxes(match) { root3d.updateMatrixWorld(true); return rotParts.filter(function (o) { return match(o.userData.rotationPart.piece); }).map(function (o) { return new T.Box3().setFromObject(o); }); }
         var a = boxes(function (p) { return p === pieceA; }), b = boxes(function (p) { return pieceB.test(p); }), gap = Infinity, overlap = 0;
@@ -1205,6 +1212,8 @@
     install: install, update: update, report: function () { return built ? built.report : null; },
     setHousingMode: function (m) { return built ? built.setHousingMode(m) : m; }, setHousingHidden: function (b) { return built ? built.setHousingHidden(b) : b; }, housingMode: function () { return built ? built.housingMode() : 'assembled'; },
     setRemovalState: function (st) { if (built) built.setRemoval(st); },
+    setGhostOpacity: function (v) { if (built) built.setGhostOpacity(v); },
+    cartridgeOffset: function (c) { return built ? built.cartridgeOffset(c) : 0; },
     removalSettled: function () { return built ? built.removalSettled() : true; },
     printJobs: function () { return built ? built.printJobs() : []; },
     selectPrintJob: function (id) { return built ? built.selectPrintJob(id) : null; },

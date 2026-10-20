@@ -273,7 +273,7 @@
   function fallPillPosition(tongue,finish,progress){var p=Math.max(0,Math.min(1,progress)),q=p*p;return new THREE.Vector3(tongue.x+(finish.x-tongue.x)*q,tongue.y+(finish.y-tongue.y)*q,tongue.z+(finish.z-tongue.z)*q);}
   function transferPillPosition(start,tongue,progress){var p=Math.max(0,Math.min(1,progress));return start.clone().lerp(tongue,p*p*(3-2*p));}
   var CAP_OPEN_RAD=Math.PI*.95;
-  function containerTargetPosition(color){var cartridge=componentMap[color+'-cartridge'];if(!cartridge)return new THREE.Vector3(-29.5+SCAN_DX,29.9,16);root3d.updateMatrixWorld(true);var position=cartridge.getWorldPosition(new THREE.Vector3());position.y+=recipeMap.cartridge.parameters.size[2]/2;return position;}
+  function containerTargetPosition(color){var cartridge=componentMap[color+'-cartridge'];if(!cartridge)return new THREE.Vector3(-29.5+SCAN_DX,29.9,16);root3d.updateMatrixWorld(true);var position=cartridge.getWorldPosition(new THREE.Vector3());position.y+=recipeMap.cartridge.parameters.size[2]/2;var look=window.DispenserReferenceLook;if(look&&look.cartridgeOffset)position.y+=look.cartridgeOffset(color);return position;}
   function bladeTravelDirection(rotation){return new THREE.Vector3(0,0,-1).applyEuler(rotation).normalize();}
   function selectedBladeWorldDirection(color){var blade=componentMap[(color||'red')+'-upper-blade-tab'];root3d.updateMatrixWorld(true);var origin=blade.localToWorld(new THREE.Vector3(0,0,0)),end=blade.localToWorld(new THREE.Vector3(0,0,-1));return end.sub(origin).normalize();}
   function colorFor(component){if(component.category==='station')return 0x6d7d8d;if(component.category==='cartridge')return palette[component.color]||0x8294a5;if(component.category==='cap')return palette[component.color]||0x8294a5;if(component.category==='blade'||component.category==='spring')return 0xc5a354;if(component.category==='drum')return 0x3a6d76;if(component.category==='pin')return 0x3b5267;if(component.category==='tongue')return 0x91a5ae;if(component.category==='scanner')return 0x586679;if(component.category==='tray')return 0x788897;return 0xaab6c3;}
@@ -457,7 +457,7 @@
     capToggle.addEventListener('change',function(){DATA.components.forEach(function(c){if(c.category==='cap')componentMap[c.component_id].visible=capToggle.checked;});});
     labelToggle.addEventListener('change',function(){labels.forEach(function(label){label.visible=labelToggle.checked&&housingLabelsOk();});});
     document.getElementById('housingVisible').addEventListener('change',function(e){var look=window.DispenserReferenceLook;if(look&&look.setHousingHidden)look.setHousingHidden(!e.target.checked);});
-    document.querySelectorAll('input[name="housingModeOpt"]').forEach(function(radio){radio.addEventListener('change',function(){if(!radio.checked)return;var look=window.DispenserReferenceLook,mode=radio.value,wasExploded=look.housingMode()==='exploded';if(look&&look.setHousingMode)look.setHousingMode(mode);if(mode==='exploded'){cameraTarget.y=115;orbit.radius=Math.max(orbit.radius,470);}else if(wasExploded){cameraTarget.y=4;orbit.radius=Math.min(orbit.radius,330);}updateCamera();});});
+    document.querySelectorAll('input[name="housingModeOpt"]').forEach(function(radio){radio.addEventListener('change',function(){if(!radio.checked)return;var look=window.DispenserReferenceLook,mode=radio.value,wasExploded=look.housingMode()==='exploded';if(look&&look.setHousingMode)look.setHousingMode(mode);if(mode==='exploded'){flyTo({y:98,radius:Math.max(orbit.radius,610)});}else if(wasExploded){flyTo({y:4,radius:Math.min(orbit.radius,330)});}});});
     scannerToggle.addEventListener('change',function(){setScannerSubsystemVisibility(scannerToggle.checked);});
     mechanismToggle.addEventListener('change',function(){setDispensingMechanismVisibility(mechanismToggle.checked);});
     [mechanismToggle,scannerToggle].forEach(function(toggle){toggle.addEventListener('change',closePrintPlates,true);});
@@ -841,7 +841,9 @@
     if(window.DispenserStepHost&&window.DispenserStepHost.view()!=='main')window.DispenserStepHost.setView('main');
     wiringSaved={housing:housing.checked,electronic:box.checked,printed:printed.checked,scanner:scannerToggle.checked,target:cameraTarget.clone(),orbit:{theta:orbit.theta,phi:orbit.phi,radius:orbit.radius}};
     housing.checked=false;housing.dispatchEvent(new Event('change',{bubbles:true}));
+    var look3=window.DispenserReferenceLook;if(look3&&look3.setGhostOpacity)look3.setGhostOpacity(.03);
     printed.checked=false;box.checked=true;applyPartType();
+    api.setPartsLive(true);if(pinTableBuilt)applyWiringGroups();
     scannerToggle.checked=true;setScannerSubsystemVisibility(true);
     cameraTarget.set(-12,-14,-4);orbit.theta=.72;orbit.phi=.95;orbit.radius=235;updateCamera();setCamHome();
     wiringHud.hidden=false;document.getElementById('wiringHudNote').textContent='routing wires…';
@@ -852,7 +854,7 @@
     },40);
   }
   function leaveWiring3d(){
-    var api=wiringApi(),s=wiringSaved;if(api)api.setVisible(false);wiringHud.hidden=true;if(!s)return;wiringSaved=null;
+    var api=wiringApi(),s=wiringSaved,look3=window.DispenserReferenceLook;if(api){api.setVisible(false);api.setPartsLive(false);}if(look3&&look3.setGhostOpacity)look3.setGhostOpacity(.07);wiringHud.hidden=true;if(!s)return;wiringSaved=null;
     var housing=document.getElementById('housingVisible'),box=document.querySelector('input[name="partType"][value="electronic"]'),printed=document.querySelector('input[name="partType"][value="printed"]');
     housing.checked=s.housing;housing.dispatchEvent(new Event('change',{bubbles:true}));
     printed.checked=s.printed;box.checked=s.electronic;applyPartType();
