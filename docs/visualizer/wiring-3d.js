@@ -326,7 +326,7 @@
         if (!o.userData.wfOrig) {
           if (on && !hi) return;
           o.userData.wfOrig = o.material; o.userData.wfVis = o.visible;
-          var gh = o.material.clone(); gh.transparent = true; gh.depthWrite = false; gh.opacity = Math.min(0.16, o.material.opacity === undefined ? 1 : o.material.opacity); o.userData.wfGhost = gh;
+          var gh = o.material.clone(); gh.transparent = true; gh.depthWrite = false; gh.opacity = Math.min(0.1, o.material.opacity === undefined ? 1 : o.material.opacity); o.userData.wfGhost = gh;
           var lit = o.material.clone(); if (lit.emissive) { lit.emissive.setHex(0xffa000); lit.emissiveIntensity = 0.3; } o.userData.wfLit = lit;
         }
         o.material = !on ? o.userData.wfGhost : hi ? o.userData.wfLit : o.userData.wfOrig;
@@ -350,8 +350,8 @@
     function applyClasses() {
       applyParts();
       var wireHot = Boolean(groupsOn) && ctx.W.groups.some(function (x) { return !groupOn(x.id); });
-      wires.forEach(function (w) { if (w.mesh) { var on = groupOn(w.group); w.dim = !on; w.mesh.visible = Boolean(grp.visible && show[w.cls] && (on || !hideOthers)); fadeMat(w.mat, on, 1); w.pulses.forEach(function (p) { if (!w.mesh.visible || w.dim) p.mesh.visible = false; }); tl.glow(w, wireHot && on); } });
-      if (extCable) { var onx = groupOn('scanner'); extCable.visible = show.signal && (onx || !hideOthers); fadeMat(extCable.material, onx, 0.75); }
+      wires.forEach(function (w) { if (w.mesh) { var on = groupOn(w.group); w.dim = !on; w.mesh.visible = Boolean(grp.visible && show[w.cls] && on); fadeMat(w.mat, on, 1); w.pulses.forEach(function (p) { if (!w.mesh.visible || w.dim) p.mesh.visible = false; }); tl.glow(w, wireHot && on); } });
+      if (extCable) { var onx = groupOn('scanner'); extCable.visible = show.signal && onx; fadeMat(extCable.material, onx, 0.75); }
     }
     function update(m, nowSec) { if (routed && grp.visible) tl.live(wires, m, nowSec); }
     function setVisible(on) { if (on) ensure(); grp.visible = Boolean(on); applyClasses(); }

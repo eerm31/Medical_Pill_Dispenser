@@ -144,7 +144,7 @@
       if (o.isSprite) { o.material.opacity = on ? 1 : 0.15; return; }
       if (!o.isMesh) return;
       if (!o.userData.orig) {
-        o.userData.orig = o.material; o.userData.ghost = o.material.clone(); o.userData.ghost.transparent = true; o.userData.ghost.depthWrite = false; o.userData.ghost.opacity = Math.min(0.16, o.material.opacity);
+        o.userData.orig = o.material; o.userData.ghost = o.material.clone(); o.userData.ghost.transparent = true; o.userData.ghost.depthWrite = false; o.userData.ghost.opacity = Math.min(0.1, o.material.opacity);
         o.userData.lit = o.material.clone(); if (o.userData.lit.emissive) { o.userData.lit.emissive.setHex(0xffa000); o.userData.lit.emissiveIntensity = 0.55; }
       }
       o.material = !on ? o.userData.ghost : hi ? o.userData.lit : o.userData.orig;
@@ -153,7 +153,7 @@
     function applyClasses() {
       var hot = narrowed();
       Object.keys(parts).forEach(function (id) { var on = groupOn(comps[id].group); parts[id].forEach(function (o) { o.visible = true; fadePart(o, on, on && hot); }); });
-      wires.forEach(function (w) { var on = groupOn(w.group); w.dim = !on; w.mesh.visible = Boolean(grp.visible && show[w.cls] && (on || !hideOthers)); fadeMat(w.mat, on, 1); w.pulses.forEach(function (p) { if (!w.mesh.visible || w.dim) p.mesh.visible = false; }); tl.glow(w, hot && on); });
+      wires.forEach(function (w) { var on = groupOn(w.group); w.dim = !on; w.mesh.visible = Boolean(grp.visible && show[w.cls] && on); fadeMat(w.mat, on, 1); w.pulses.forEach(function (p) { if (!w.mesh.visible || w.dim) p.mesh.visible = false; }); tl.glow(w, hot && on); });
     }
     function bounds() {
       var b = new T.Box3(), any = false;

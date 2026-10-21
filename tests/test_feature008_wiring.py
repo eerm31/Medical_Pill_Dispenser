@@ -229,8 +229,8 @@ def test_wiring_filter_filters_wires_and_dims_other_parts_but_never_hides_them()
     lay = (VIS / "wiring-layout3d.js").read_text(encoding="utf-8")
     assert "o.visible = o.userData.wfVis;" in w3d  # parts of other systems stay in place
     assert "o.visible = true; fadePart(o, on, on && hot);" in lay
-    assert "(on || !hideOthers)" in w3d and "(on || !hideOthers)" in lay  # only wires disappear
-    assert "wiringGroups=checked.length?checked:null" in app  # nothing ticked is the normal view
+    assert "(on || !hideOthers)" not in w3d and "(on || !hideOthers)" not in lay  # an unticked system loses its wires outright
+    assert "wiringGroups=checked;" in app  # nothing ticked means no wires, parts hazed in place
     assert "focusWiring" not in app  # the filter never moves the camera
 
 

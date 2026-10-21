@@ -773,7 +773,7 @@
   function wiringGroupOn(g){return g==='core'||!wiringGroups||wiringGroups.indexOf(g)>=0;}
   function applyWiringGroups(){
     var checked=Array.prototype.map.call(document.querySelectorAll('#wiringSystems input:checked'),function(c){return c.value;}),shown=0;
-    wiringGroups=checked.length?checked:null; // nothing ticked is the normal, unfiltered view
+    wiringGroups=checked; // an unticked system loses its wires; its parts stay, hazed
     wiringHide=document.getElementById('wiringHide').checked;
     wiringApis().forEach(function(a){a.setGroups(wiringGroups,wiringHide);});
     pinRows.forEach(function(r){var on=wiringGroupOn(r.group);r.tr.hidden=!on&&wiringHide;r.tr.classList.toggle('faded',!on&&!wiringHide);if(on&&!r.header)shown+=1;});
