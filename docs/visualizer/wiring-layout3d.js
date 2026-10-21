@@ -145,7 +145,7 @@
       if (!o.isMesh) return;
       if (!o.userData.orig) {
         o.userData.orig = o.material; o.userData.ghost = o.material.clone(); o.userData.ghost.transparent = true; o.userData.ghost.depthWrite = false; o.userData.ghost.opacity = Math.min(0.16, o.material.opacity);
-        o.userData.lit = o.material.clone(); if (o.userData.lit.emissive) { o.userData.lit.emissive.setHex(0xffa000); o.userData.lit.emissiveIntensity = 0.3; }
+        o.userData.lit = o.material.clone(); if (o.userData.lit.emissive) { o.userData.lit.emissive.setHex(0xffa000); o.userData.lit.emissiveIntensity = 0.55; }
       }
       o.material = !on ? o.userData.ghost : hi ? o.userData.lit : o.userData.orig;
       outline(o, hi && o.visible);

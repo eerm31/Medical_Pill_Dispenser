@@ -907,7 +907,7 @@
     wiringBaseline();
     layoutHidden=[];root3d.children.forEach(function(ch){if(ch!==api.group&&ch.visible){layoutHidden.push(ch);ch.visible=false;}});
     api.setVisible(true);buildWiringHud();
-    cameraTarget.set(55,14,0);orbit.theta=.28;orbit.phi=.78;orbit.radius=Math.max(330,Math.min(600,335/(Math.tan(camera.fov*Math.PI/360)*Math.min(camera.aspect,1.7))));updateCamera();setCamHome();
+    cameraTarget.set(55,14,0);orbit.theta=.28;orbit.phi=.78;orbit.radius=Math.max(330,Math.min(640,440/(Math.tan(camera.fov*Math.PI/360)*Math.min(camera.aspect,1.7))));updateCamera();setCamHome();
     wiringHud.hidden=false;document.getElementById('wiringHudNote').textContent='organised layout, not to scale';
   }
   function leaveWiringLayout(){
