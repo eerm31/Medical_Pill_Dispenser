@@ -20,8 +20,8 @@
   function build(ctx) {
     var T = ctx.THREE, W = ctx.W, root = ctx.root3d, WM = window.DispenserWiringModel, tl = window.DispenserWiring3D.tools(T, WM);
     var grp = new T.Group(); grp.name = 'wiring layout · 3D'; grp.visible = false; root.add(grp);
-    function M(hex, o) { o = o || {}; return new T.MeshStandardMaterial({ color: hex, roughness: o.r === undefined ? 0.55 : o.r, metalness: o.m || 0, transparent: o.a !== undefined, opacity: o.a === undefined ? 1 : o.a, emissive: o.e || 0x000000 }); }
-    var PCB_K = M(0x1b1f24), PCB_B = M(0x1b4f9c), PCB_G = M(0x1d7a4a), STEEL = M(0xb4bcc6, { m: 0.6, r: 0.35 }), DSTEEL = M(0x59616b, { m: 0.5, r: 0.4 }), BLACK = M(0x1b1f24), WHITE = M(0xeeeeee), GOLD = M(0xd4af37, { m: 0.7, r: 0.3 }), BLUE = M(0x2f5ea8), RED = M(0xff4040), PLATE = M(0x131a26, { r: 0.9 });
+    function M(hex, o) { o = o || {}; return new T.MeshStandardMaterial({ color: hex, roughness: o.r === undefined ? 0.55 : o.r, metalness: o.m || 0, transparent: o.a !== undefined, opacity: o.a === undefined ? 1 : o.a, emissive: o.e === undefined ? hex : o.e, emissiveIntensity: o.e === undefined ? 0.35 : 1 }); } // parts glow a little in their own colour so they read on the dark plate
+    var PCB_K = M(0x3a424d), PCB_B = M(0x1b4f9c), PCB_G = M(0x1d7a4a), STEEL = M(0xb4bcc6, { m: 0.6, r: 0.35 }), DSTEEL = M(0x59616b, { m: 0.5, r: 0.4 }), BLACK = M(0x3a424d), WHITE = M(0xeeeeee), GOLD = M(0xd4af37, { m: 0.7, r: 0.3 }), BLUE = M(0x2f5ea8), RED = M(0xff4040), PLATE = M(0x131a26, { r: 0.9, e: 0x000000 });
     function bx(cx, cy, cz, sx, sy, sz, m, name) { var o = new T.Mesh(new T.BoxGeometry(sx, sz, sy), m); o.position.set(cx, cz, -cy); if (name) o.name = name; grp.add(o); return o; }
     function cyl(cx, cy, cz, r, h, m) { var o = new T.Mesh(new T.CylinderGeometry(r, r, h, 36), m); o.position.set(cx, cz, -cy); grp.add(o); return o; }
 
@@ -71,7 +71,7 @@
       } else if (id === 'usbc') {
         bx(x, y, 5.5, w, d, 11, BLACK); bx(x - w / 2 - 3, y, 5.5, 8, 12, 6, STEEL);
       } else if (id === 'reader') {
-        var g = M(0x23282f); bx(x, y, 15, w, d, 30, g); bx(x - w / 2 - 0.4, y, 18, 1, 20, 10, M(0xc0392b, { e: 0x4a0f10 }));
+        var g = M(0x46505c); bx(x, y, 15, w, d, 30, g); bx(x - w / 2 - 0.4, y, 18, 1, 20, 10, M(0xc0392b, { e: 0x4a0f10 }));
         top = 30;
       }
       pinLabels(id);
@@ -153,7 +153,7 @@
     function applyClasses() {
       var hot = narrowed();
       Object.keys(parts).forEach(function (id) { var on = groupOn(comps[id].group); parts[id].forEach(function (o) { o.visible = true; fadePart(o, on, on && hot); }); });
-      wires.forEach(function (w) { var on = groupOn(w.group); w.dim = !on; w.mesh.visible = Boolean(grp.visible && show[w.cls] && (on || !hideOthers)); fadeMat(w.mat, on, 1); w.pulses.forEach(function (p) { if (!w.mesh.visible || w.dim) p.mesh.visible = false; }); });
+      wires.forEach(function (w) { var on = groupOn(w.group); w.dim = !on; w.mesh.visible = Boolean(grp.visible && show[w.cls] && (on || !hideOthers)); fadeMat(w.mat, on, 1); w.pulses.forEach(function (p) { if (!w.mesh.visible || w.dim) p.mesh.visible = false; }); tl.glow(w, hot && on); });
     }
     function bounds() {
       var b = new T.Box3(), any = false;

@@ -232,3 +232,12 @@ def test_wiring_filter_filters_wires_and_dims_other_parts_but_never_hides_them()
     assert "(on || !hideOthers)" in w3d and "(on || !hideOthers)" in lay  # only wires disappear
     assert "wiringGroups=checked.length?checked:null" in app  # nothing ticked is the normal view
     assert "focusWiring" not in app  # the filter never moves the camera
+
+
+def test_layout_3d_is_exempt_from_the_part_type_ghosting_and_picked_wires_glow():
+    look = (VIS / "reference-look.js").read_text(encoding="utf-8")
+    w3d = (VIS / "wiring-3d.js").read_text(encoding="utf-8")
+    lay = (VIS / "wiring-layout3d.js").read_text(encoding="utf-8")
+    assert "wiringLayout.group.userData.partType = 'electronic'" in look
+    assert "function glow(w, on)" in w3d and "tl.glow(w, hot && on)" in lay and "tl.glow(w, wireHot && on)" in w3d
+    assert "w.hot ? 0.9 : 0" in w3d  # the per-frame live update keeps picked wires bright

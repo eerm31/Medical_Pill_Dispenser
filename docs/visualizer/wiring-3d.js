@@ -50,7 +50,7 @@
         if (w.cls === 'signal') { hi = WM.isHigh(w.fn, m); active = WM.isActive(w.fn, m); on = active; }
         else if (w.cls === 'motor') { hi = w.fn === 'common' || Boolean(m.coils[Number(w.fn.slice(4)) - 1]); active = w.fn === 'common' ? m.moving : hi; on = active; }
         else { active = powerActive(w, m); hi = true; on = active; }
-        w.mat.emissiveIntensity = w.dim ? 0.03 : w.cls === 'power' ? (active ? 0.7 : 0.15) : (hi && (active || w.cls === 'signal') ? (active ? 1.0 : 0.45) : 0.1);
+        w.mat.emissiveIntensity = Math.max(w.hot ? 0.9 : 0, w.dim ? 0.03 : w.cls === 'power' ? (active ? 0.7 : 0.15) : (hi && (active || w.cls === 'signal') ? (active ? 1.0 : 0.45) : 0.1));
         w.pulses.forEach(function (p) {
           p.mesh.visible = Boolean(w.mesh.visible && on && !w.dim);
           if (!p.mesh.visible) return;
@@ -59,7 +59,17 @@
         });
       });
     }
-    return { toThree: toThree, filleted: filleted, textSprite: textSprite, makeTube: makeTube, live: live };
+    // picked wires burn brighter and get a soft halo of the same colour
+    function glow(w, on) {
+      if (!w.mesh) return;
+      w.hot = Boolean(on); w.mat.emissiveIntensity = on ? 0.95 : 0.12;
+      if (on && !w.halo) {
+        var pr = w.mesh.geometry.parameters, hm = new T.MeshBasicMaterial({ color: w.color, transparent: true, opacity: 0.3, depthWrite: false });
+        w.halo = new T.Mesh(new T.TubeGeometry(w.curve, pr.tubularSegments, pr.radius * 2.6, 6, false), hm); w.halo.renderOrder = 4; w.mesh.parent.add(w.halo);
+      }
+      if (w.halo) w.halo.visible = Boolean(on && w.mesh.visible);
+    }
+    return { toThree: toThree, filleted: filleted, textSprite: textSprite, makeTube: makeTube, glow: glow, live: live };
   }
 
   function build(ctx) {
@@ -339,7 +349,8 @@
     }
     function applyClasses() {
       applyParts();
-      wires.forEach(function (w) { if (w.mesh) { var on = groupOn(w.group); w.dim = !on; w.mesh.visible = Boolean(grp.visible && show[w.cls] && (on || !hideOthers)); fadeMat(w.mat, on, 1); w.pulses.forEach(function (p) { if (!w.mesh.visible || w.dim) p.mesh.visible = false; }); } });
+      var wireHot = Boolean(groupsOn) && ctx.W.groups.some(function (x) { return !groupOn(x.id); });
+      wires.forEach(function (w) { if (w.mesh) { var on = groupOn(w.group); w.dim = !on; w.mesh.visible = Boolean(grp.visible && show[w.cls] && (on || !hideOthers)); fadeMat(w.mat, on, 1); w.pulses.forEach(function (p) { if (!w.mesh.visible || w.dim) p.mesh.visible = false; }); tl.glow(w, wireHot && on); } });
       if (extCable) { var onx = groupOn('scanner'); extCable.visible = show.signal && (onx || !hideOthers); fadeMat(extCable.material, onx, 0.75); }
     }
     function update(m, nowSec) { if (routed && grp.visible) tl.live(wires, m, nowSec); }
