@@ -776,7 +776,14 @@
     wiringGroups=checked; // an unticked system loses its wires; its parts stay, hazed
     wiringHide=document.getElementById('wiringHide').checked;
     wiringApis().forEach(function(a){a.setGroups(wiringGroups,wiringHide);});
-    pinRows.forEach(function(r){var on=wiringGroupOn(r.group);r.tr.hidden=!on&&wiringHide;r.tr.classList.toggle('faded',!on&&!wiringHide);if(on&&!r.header)shown+=1;});
+    // the pin table lists only the ticked systems; a part's header row stays only while one of its pin rows does
+    var head=null,headRows=0;
+    function closeHead(){if(head)head.tr.hidden=!headRows;}
+    pinRows.forEach(function(r){
+      if(r.header){closeHead();head=r;headRows=0;return;}
+      var on=!wiringGroups||wiringGroups.indexOf(r.group)>=0;r.tr.hidden=!on;r.tr.classList.remove('faded');if(on){shown+=1;headRows+=1;}
+    });
+    closeHead();
     Object.keys(hudRows).forEach(function(id){var on=wiringGroupOn(hudRows[id].group);hudRows[id].li.hidden=!on&&wiringHide;hudRows[id].li.classList.toggle('faded',!on&&!wiringHide);});
     document.getElementById('wiringTableCount').textContent=shown+' of '+pinRows.filter(function(r){return !r.header;}).length+' pins';
     if(wiringFrame.contentWindow)wiringFrame.contentWindow.postMessage({source:'dispenser-viewer-filter',groups:wiringGroups||[],hide:wiringHide&&Boolean(wiringGroups)},'*');
@@ -818,7 +825,7 @@
       else if(p.net)conn=(NET[p.net]||p.net)+' rail';
       else conn=p.note||'not connected';
       cell(tr,'',p.id);cell(tr,sigCls,sig);cell(tr,'',conn);var live=cell(tr,'live','');
-      body.appendChild(tr);pinRows.push({tr:tr,live:live,group:(c.id==='esp32'&&e&&sigGroup[e.id])||c.group,fn:e?e.fn:null,net:p.net||null}); // an ESP32 pin follows the system it feeds
+      body.appendChild(tr);pinRows.push({tr:tr,live:live,group:c.id==='esp32'?((e&&sigGroup[e.id])||'power'):c.group,fn:e?e.fn:null,net:p.net||null}); // an ESP32 pin follows the system it feeds
     });});
     applyWiringGroups();
   }

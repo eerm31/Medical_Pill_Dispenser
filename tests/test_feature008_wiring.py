@@ -245,4 +245,5 @@ def test_layout_3d_is_exempt_from_the_part_type_ghosting_and_picked_wires_glow()
 
 def test_pin_table_rows_of_the_esp32_follow_the_system_each_pin_feeds():
     app = (VIS / "app.js").read_text(encoding="utf-8")
-    assert "var sigGroup={}" in app and "(c.id==='esp32'&&e&&sigGroup[e.id])||c.group" in app
+    assert "var sigGroup={}" in app and "c.id==='esp32'?((e&&sigGroup[e.id])||'power'):c.group" in app
+    assert "r.tr.hidden=!on;" in app and "head.tr.hidden=!headRows" in app  # only ticked systems are listed
