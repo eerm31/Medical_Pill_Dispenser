@@ -241,3 +241,8 @@ def test_layout_3d_is_exempt_from_the_part_type_ghosting_and_picked_wires_glow()
     assert "wiringLayout.group.userData.partType = 'electronic'" in look
     assert "function glow(w, on)" in w3d and "tl.glow(w, hot && on)" in lay and "tl.glow(w, wireHot && on)" in w3d
     assert "w.hot ? 0.9 : 0" in w3d  # the per-frame live update keeps picked wires bright
+
+
+def test_pin_table_rows_of_the_esp32_follow_the_system_each_pin_feeds():
+    app = (VIS / "app.js").read_text(encoding="utf-8")
+    assert "var sigGroup={}" in app and "(c.id==='esp32'&&e&&sigGroup[e.id])||c.group" in app

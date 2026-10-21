@@ -805,6 +805,7 @@
     W.components.forEach(function(c){c.pins.forEach(function(p){pinOf[c.id+'.'+p.id]={c:c,p:p};});});
     W.signals.concat(W.links).forEach(function(s){(ends[s.from]=ends[s.from]||[]).push({o:s.to,fn:s.fn,id:s.id});(ends[s.to]=ends[s.to]||[]).push({o:s.from,fn:s.fn,id:s.id});});
     function cell(tr,cls,text){var td=document.createElement('td');if(cls)td.className=cls;td.textContent=text;tr.appendChild(td);return td;}
+    var sigGroup={};W.signals.concat(W.links).forEach(function(s){sigGroup[s.id]=s.group;});
     var order=W.components.filter(function(c){return c.id==='esp32';}).concat(W.components.filter(function(c){return c.id!=='esp32';}));
     order.forEach(function(c){
       var head=document.createElement('tr'),hd=document.createElement('td');head.className='grp';hd.colSpan=4;hd.textContent=c.label+(c.external?' (external)':'');head.appendChild(hd);body.appendChild(head);pinRows.push({tr:head,group:c.group,header:true});
@@ -817,7 +818,7 @@
       else if(p.net)conn=(NET[p.net]||p.net)+' rail';
       else conn=p.note||'not connected';
       cell(tr,'',p.id);cell(tr,sigCls,sig);cell(tr,'',conn);var live=cell(tr,'live','');
-      body.appendChild(tr);pinRows.push({tr:tr,live:live,group:c.group,fn:e?e.fn:null,net:p.net||null});
+      body.appendChild(tr);pinRows.push({tr:tr,live:live,group:(c.id==='esp32'&&e&&sigGroup[e.id])||c.group,fn:e?e.fn:null,net:p.net||null}); // an ESP32 pin follows the system it feeds
     });});
     applyWiringGroups();
   }
