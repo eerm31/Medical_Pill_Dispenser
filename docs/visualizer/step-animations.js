@@ -10,6 +10,7 @@
   var nextBtn = $('stepAnimNext'), playBtn = $('stepAnimPlay'), restartBtn = $('stepAnimRestart'), backBtn = $('stepAnimBack');
   var listEl = $('stepAnimSteps'), statusEl = $('stepAnimStatus'), countEl = $('stepAnimCount'), barEl = $('stepAnimBar');
 
+  function phx(n) { var look = window.DispenserReferenceLook, r = look && look.ringLabel && look.ringLabel(n); return r || PH[n]; }
   var PH = {
     DRUM_ROTATE: ['Turn the drum', 'The drum turns until the selected compartment is over the outlet.'],
     CARRIAGE_APPROACH: ['Pin carriage lines up', 'The pin carriage moves so the engagement pin sits under the selected blade tab.'],
@@ -33,7 +34,7 @@
     CARTRIDGE_INSERT: ['Cartridge lowers back in', 'The compartment cartridge is lowered back into its socket.']
   };
   function phaseSteps(names) {
-    return names.map(function (n) { return { label: PH[n][0], text: PH[n][1], kind: 'gate' }; });
+    return names.map(function (n) { return { label: phx(n)[0], text: phx(n)[1], kind: 'gate' }; });
   }
   function cap(c) { return c.charAt(0).toUpperCase() + c.slice(1); }
   function anyCapOpen(s) { return COLORS.some(function (c) { return s.cartridges[c].capOpen; }); }
@@ -242,7 +243,7 @@
       li.appendChild(el('span', 'step-num', done ? '\u2713' : String(idx + 1)));
       var body = el('div', 'step-body');
       body.appendChild(el('strong', '', st.label));
-      var text = a.dynamic ? (run.i > 0 && PH[s.phase] ? PH[s.phase][1] : '') : st.text;
+      var text = a.dynamic ? (run.i > 0 && PH[s.phase] ? phx(s.phase)[1] : '') : st.text;
       if ((playing || next) && text) body.appendChild(el('small', '', text));
       li.appendChild(body);
       if (playing) li.setAttribute('aria-current', 'step');

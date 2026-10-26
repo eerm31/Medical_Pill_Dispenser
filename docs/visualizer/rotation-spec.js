@@ -158,6 +158,13 @@ window.DispenserRotationSpec = {
     ],
     "shell_windows": [
       {
+        "id": "cup",
+        "a": -1.85,
+        "half": 7.6,
+        "z0": -24.0,
+        "z1": -14.0
+      },
+      {
         "id": "jack",
         "a": 90.0,
         "half": 5.0,
@@ -191,6 +198,12 @@ window.DispenserRotationSpec = {
         "z1": 3.7,
         "holes": [
           [
+            10.5,
+            45.6,
+            7.0,
+            19.8
+          ],
+          [
             -5.4,
             5.4,
             -4.2,
@@ -204,7 +217,7 @@ window.DispenserRotationSpec = {
           ],
           [
             -38.0,
-            -30.0,
+            -26.0,
             -9.4,
             -1.4
           ]
@@ -214,6 +227,12 @@ window.DispenserRotationSpec = {
         "z0": -1.65,
         "z1": 0.15,
         "holes": [
+          [
+            10.5,
+            45.6,
+            7.0,
+            19.8
+          ],
           [
             -7.25,
             7.25,
@@ -228,7 +247,7 @@ window.DispenserRotationSpec = {
           ],
           [
             -38.0,
-            -30.0,
+            -26.0,
             -9.4,
             -1.4
           ]
@@ -238,6 +257,12 @@ window.DispenserRotationSpec = {
         "z0": -3.0,
         "z1": -1.65,
         "holes": [
+          [
+            10.5,
+            45.6,
+            7.0,
+            19.8
+          ],
           [
             -5.9,
             5.9,
@@ -258,7 +283,7 @@ window.DispenserRotationSpec = {
           ],
           [
             -38.0,
-            -30.0,
+            -26.0,
             -9.4,
             -1.4
           ]
@@ -465,10 +490,23 @@ window.DispenserRotationSpec = {
     "seat_r_low": 8.8,
     "s1_cable_hole": [
       -38.0,
-      -30.0,
+      -26.0,
       -9.4,
       -1.4
     ],
+    "ring": {
+      "n": 12,
+      "tracks": [[11.0, 19.2], [20.0, 28.2], [29.0, 37.2], [38.0, 46.2]],
+      "floor_z": 3.7,
+      "wheel_h": 7.5,
+      "rim_t": 0.8,
+      "vane_t": 1.0,
+      "arm_z": [12.3, 13.7],
+      "park_deg": 288,
+      "slot": {"x": [10.5, 45.6], "v": [-8.0, 4.8]},
+      "funnel": {"x0": 10.5, "x1": 48.0, "z0": -4.0, "z1": -19.0, "t": 1.0},
+      "cap": 5
+    },
     "platform_posts": {
       "angles": [
         -50,

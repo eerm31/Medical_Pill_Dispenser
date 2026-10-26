@@ -139,11 +139,11 @@
         41.7
       ],
       "fits_bed_mm": 100,
-      "volume_mm3": 46988.1,
-      "solid_mass_g": 59.7,
-      "triangles": 2542,
+      "volume_mm3": 43763.5,
+      "solid_mass_g": 55.6,
+      "triangles": 2578,
       "bodies": 1,
-      "sha256": "01fb2b564c75db16e0eb43f2e863e2eb672dd61c908268e102da5a46cd649a2a",
+      "sha256": "6a32842fdea89985ece0611c3ca7a03fb1fc138a12bed11fc3a8e40b28949cf5",
       "features": [
         {
           "feature": "Bearing seat diameter",
@@ -429,13 +429,17 @@
       "material": "PETG or PLA+",
       "orientation": "Upright, the lower rim (z = -38) on the bed",
       "settings": "0.4 mm nozzle, 0.2 mm layer, 3 walls, 20 % infill, 5 mm brim, slow outer walls",
-      "supports": "needed, or tune bridging: 5.3 mm2 of downward faces off the bed at z = 6.0 mm",
+      "supports": "needed, or tune bridging: 44.7 mm2 of downward faces off the bed at z = 6.0, 24.0 mm",
       "overhangs": {
-        "area_mm2": 5.3,
+        "area_mm2": 44.7,
         "levels": [
           {
             "z_mm": 6.0,
             "area_mm2": 5.3
+          },
+          {
+            "z_mm": 24.0,
+            "area_mm2": 39.4
           }
         ]
       },
@@ -445,11 +449,11 @@
         92.0
       ],
       "fits_bed_mm": 100,
-      "volume_mm3": 28959.4,
-      "solid_mass_g": 36.8,
-      "triangles": 16278,
+      "volume_mm3": 28565.4,
+      "solid_mass_g": 36.3,
+      "triangles": 16498,
       "bodies": 1,
-      "sha256": "1dd866b8b87d805b6715ea00aa92335527b81871df6e3c5864d8b39fe0951842",
+      "sha256": "9607603d8e39ae308cfe28fbd7f121322b84d25ca305d97cd100dbcc33c75664",
       "features": [],
       "thin_features": {
         "min_feature_mm": 0.72,
@@ -1189,8 +1193,8 @@
     {
       "parts": "tongue gate / deck channel",
       "feature": "width (total play, 14.5 vs 14.0)",
-      "modelled_mm": 0.5,
-      "as_printed_mm": 0.35,
+      "modelled_mm": 21.1,
+      "as_printed_mm": 20.95,
       "needed_min_mm": 0.1,
       "ok": true
     },

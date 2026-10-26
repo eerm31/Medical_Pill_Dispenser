@@ -146,7 +146,7 @@
       var C = S.chute, th = C.t;
       [[C.x[0] - th, C.x[1] + th, C.y[0] - th, C.y[0]], [C.x[0] - th, C.x[1] + th, C.y[1], C.y[1] + th],
        [C.x[0] - th, C.x[0], C.y[0], C.y[1]], [C.x[1], C.x[1] + th, C.y[0], C.y[1]]].forEach(function (b) {
-        ex('platform', rtag(box(b[0], b[1], b[2], b[3], C.z0, C.z1, H, fixedRoot), 'Station housing platform', 'printed', 'platform')); });
+        ex('platform', rtag(box(b[0], b[1], b[2], b[3], C.z0, C.z1, H, fixedRoot), 'Station housing platform', 'printed', 'platform')).userData.legacy = true; });
     }());
     // printed stepper mount: plate with the boss hole on the drum axle, carried by two columns up to the housing floor
     (function () {
@@ -364,7 +364,7 @@
       var P = A2.pivot, th = Math.atan2(A2.body_dir[1], A2.body_dir[0]), c = Math.cos(th), s = Math.sin(th), ztop = A2.body_z0 + SV.h;
       [-SV.shaft_off - SV.ear / 2, SV.len - SV.shaft_off + SV.ear / 2].forEach(function (xl) {
         var wx = P[0] + xl * c, wy = P[1] + xl * s;
-        ex('platform', rtag(cylA(fixedRoot, 'z', wx, wy + CY, (ztop + -3.0) / 2, A2.post_r, -3.0 - ztop, H, 14), 'Station housing platform', 'printed', 'platform'));
+        ex('platform', rtag(cylA(fixedRoot, 'z', wx, wy + CY, (ztop + -3.0) / 2, A2.post_r, -3.0 - ztop, H, 14), 'Station housing platform', 'printed', 'platform')).userData.legacy = true;
       });
     }());
     var pl2 = leverGroup(A2, 'Tongue lever', 'tlever', A2.lever_z[1] - A2.lever_z[0]);
@@ -450,7 +450,7 @@
     // one D-flat rod, coupler and bearing inner race turn with the drum (drumRoot origin = canonical (0, 15, 0))
     var rodGeo = new T.ExtrudeGeometry(dPath(new T.Shape(), S.rod_r, S.rod_flat_x), { depth: S.rod_z1 - S.rod_z0, bevelEnabled: false, curveSegments: 32 }), rodMesh = new T.Mesh(rodGeo, M_STEEL);
     rodMesh.rotation.x = -Math.PI / 2; rodMesh.position.y = S.rod_z0; drumRoot.add(rodMesh); rtag(rodMesh, 'D-flat rod 5 mm', 'bought', 'rod');
-    rtag(box(S.rod_flat_x, S.rod_flat_x + .08, -1.5, 1.5, S.rod_z0 + 1, S.rod_z1 - 1, M_FLAT, drumRoot), 'D-flat rod 5 mm', 'bought', 'rod');
+    var rodFlat = rtag(box(S.rod_flat_x, S.rod_flat_x + .08, -1.5, 1.5, S.rod_z0 + 1, S.rod_z1 - 1, M_FLAT, drumRoot), 'D-flat rod 5 mm', 'bought', 'rod');
     rtag(cylA(drumRoot, 'z', 0, 0, (S.coupler_z0 + S.coupler_z1) / 2, S.coupler_r, S.coupler_z1 - S.coupler_z0, M_BLUE, 28), 'Flexible coupler', 'bought', 'coupler');
     // two grub screws per end, 90 degrees apart (+x and +y); they seat flush with the OD
     (function () {
@@ -862,6 +862,7 @@
     function update(s) {
       explodeTick();
       removalTick();
+      if (ringMag) ringMag.update(s, Date.now());
       var e = s.tongueEdge, tongueClosed = s.tongueMotion === 'closed' && Math.abs(e - 5.7) < 1e-9;
       actuate(s.carriage, s.tongueEdge, s.pinZ);
       // the upper blade slides straight along its rails by the controller's blade state (open = +z, 10.4 mm); the return spring stretches with it
@@ -1160,11 +1161,36 @@
       while (o) { var p = o.userData && o.userData.rotationPart; if (p && !p.callout) return p.label; o = o.parent; }
       return null;
     }
+    // ---- ring magazine (selectable alternative mechanism; see ring-magazine.js) ----
+    var LEGACY_LABELS = ['Pin lever', 'Tongue lever', 'Pin cam', 'Pin return spring', 'Station bracket', 'Micro servo S1 (pin)', 'Micro servo S2 (tongue)', 'Tongue gate', 'Compartment cartridges', 'Slide blades', 'Blade return springs', 'Catch ledges', 'Drum hub + socket decks', 'Home magnet 3x1 mm'];
+    var legacySaved = [], ringMag = null;
+    function setLegacyHidden(on) {
+      if (!on) { legacySaved.forEach(function (r) { r.o.visible = r.v; }); legacySaved = []; if (rodMesh) rodMesh.scale.z = 1; return; }
+      if (legacySaved.length) return;
+      var list = [];
+      rotParts.forEach(function (o) { var p = o.userData.rotationPart; if (o.userData.legacy || (p && LEGACY_LABELS.indexOf(p.label) >= 0 && !(o.userData.ring))) list.push(o); });
+      towerFrames.forEach(function (f) { list.push(f.frame); });
+      list.push(carRoot, tongueRoot, rodFlat);
+      [ctx.carriageGroup, ctx.tongueGroup].forEach(function (g) { if (g) list.push(g); });
+      COLORS.forEach(function (c) { if (ctx.stationGroups[c]) list.push(ctx.stationGroups[c]); if (ctx.cartridgeLiftGroups[c]) list.push(ctx.cartridgeLiftGroups[c]); });
+      list.forEach(function (o) { if (o && !legacySaved.some(function (r) { return r.o === o; })) { legacySaved.push({ o: o, v: o.visible }); o.visible = false; } });
+      // the rod only needs to reach the actuator arm hub
+      rodMesh.scale.z = (17.6 - S.rod_z0) / (S.rod_z1 - S.rod_z0);
+    }
+    function ringChanged() {
+      if (wiring3d && wiring3d.invalidate) { wiring3d.invalidate(); if (wiring3d.group.visible && wiring3d.setVisible) wiring3d.setVisible(true); }
+      if (rotActive) { refreshCallouts(); applyFade(); } else applyMainFilter();
+    }
+    var accentMap = {}; COLORS.forEach(function (c) { accentMap[c] = palette[c] ? palette[c].three : 0x8294a5; });
+    try {
+      if (window.DispenserRingMagazine && S.ring) ringMag = window.DispenserRingMagazine.build({ THREE: T, S: S, COLORS: COLORS, parent: fixedRoot, std: std, EL: EL, rtag: rtag, ptype: ptype, accent: accentMap, mats: { blue: M_BLUE, steel: M_STEEL, white: M_WHITE, dark: DK }, lid: lidG, legacy: setLegacyHidden, changed: ringChanged });
+    } catch (error) { ringMag = null; if (window.console) console.error('Ring magazine not built.', error); }
+
     // 3D wiring harness: built here so it shares the scene; routed on first use (see wiring-3d.js)
     var wiring3d = null;
     function skipForWiring(o) {
       for (var n = o; n; n = n.parent) {
-        if (n === ctx.drumGroup || (n.userData && n.userData.identity)) return true;
+        if (n === ctx.drumGroup || (n.userData && (n.userData.identity || n.userData.noWire))) return true;
         if (ctx.cartridgeLiftGroups && Object.keys(ctx.cartridgeLiftGroups).some(function (k) { return ctx.cartridgeLiftGroups[k] === n; })) return true;
       }
       return false;
@@ -1183,12 +1209,12 @@
       }
       return null;
     }
-    try { if (window.DispenserWiring3D && window.DispenserWiringSpec && window.DispenserWiringModel) { wiring3d = window.DispenserWiring3D.build({ THREE: T, root3d: root3d, W: window.DispenserWiringSpec, S: S, skip: skipForWiring, partGroup: wiringPartGroup }); wiring3d.group.userData.partType = 'electronic'; } }
+    try { if (window.DispenserWiring3D && window.DispenserWiringSpec && window.DispenserWiringModel) { wiring3d = window.DispenserWiring3D.build({ THREE: T, root3d: root3d, W: window.DispenserWiringSpec, S: S, skip: skipForWiring, partGroup: wiringPartGroup, ringAct: function () { return ringMag ? ringMag.ringAct() : null; } }); wiring3d.group.userData.partType = 'electronic'; } }
     catch (error) { wiring3d = null; if (window.console) console.error('Wiring harness not built.', error); }
     var wiringLayout = null;
     try { if (window.DispenserWiringLayout3D && window.DispenserWiring3D && window.DispenserWiringSpec) { wiringLayout = window.DispenserWiringLayout3D.build({ THREE: T, root3d: root3d, W: window.DispenserWiringSpec }); wiringLayout.group.userData.partType = 'electronic'; } }
     catch (error) { wiringLayout = null; if (window.console) console.error('Wiring layout not built.', error); }
-    return { wiring: wiring3d, wiringLayout: wiringLayout, setGhostOpacity: setGhostOpacity, cartridgeOffset: function (c) { return cgByColor[c] ? cgByColor[c].position.y - cgBase[c].y : 0; }, setHousingMode: setHousingMode, setHousingHidden: setHousingHidden, housingMode: function () { return housingMode; }, update: update, report: report, removalSettled: removalSettled, printJobs: printJobsList, selectPrintJob: selectPrintJob, setPartFilter: setPartFilter, partFilter: function () { return typeFilter.slice(); }, electronicList: electronicList, setPrintLayout: setPrintLayout, printLayoutOn: function () { return layoutOn; }, selectedPrintJob: function () { return printSel; }, printLayoutInfo: function () { return printLayout ? printLayout.info : null; }, setRotationView: setRotationView, parts: partsList, active: function () { return rotActive; }, select: selectPart, selected: function () { return rotSelected; }, setLabels: setRotationLabels, setFade: setRotationFade, setDimensions: setRotationDimensions, declutter: declutterLabels, highlightDim: highlightDimensionFull, selectDim: selectDimension, selectedDim: function () { return rotSelectedDim; }, highlightLabel: highlightPartLabel, partLabelOf: partLabelOf, view: function () { return activeView; }, viewHas: viewHas, setRemoval: setRemovalState,
+    return { ringMag: ringMag, wiring: wiring3d, wiringLayout: wiringLayout, setGhostOpacity: setGhostOpacity, cartridgeOffset: function (c) { return cgByColor[c] ? cgByColor[c].position.y - cgBase[c].y : 0; }, setHousingMode: setHousingMode, setHousingHidden: setHousingHidden, housingMode: function () { return housingMode; }, update: update, report: report, removalSettled: removalSettled, printJobs: printJobsList, selectPrintJob: selectPrintJob, setPartFilter: setPartFilter, partFilter: function () { return typeFilter.slice(); }, electronicList: electronicList, setPrintLayout: setPrintLayout, printLayoutOn: function () { return layoutOn; }, selectedPrintJob: function () { return printSel; }, printLayoutInfo: function () { return printLayout ? printLayout.info : null; }, setRotationView: setRotationView, parts: partsList, active: function () { return rotActive; }, select: selectPart, selected: function () { return rotSelected; }, setLabels: setRotationLabels, setFade: setRotationFade, setDimensions: setRotationDimensions, declutter: declutterLabels, highlightDim: highlightDimensionFull, selectDim: selectDimension, selectedDim: function () { return rotSelectedDim; }, highlightLabel: highlightPartLabel, partLabelOf: partLabelOf, view: function () { return activeView; }, viewHas: viewHas, setRemoval: setRemovalState,
       clearance: function (pieceA, pieceB) {
         function boxes(match) { root3d.updateMatrixWorld(true); return rotParts.filter(function (o) { return match(o.userData.rotationPart.piece); }).map(function (o) { return new T.Box3().setFromObject(o); }); }
         var a = boxes(function (p) { return p === pieceA; }), b = boxes(function (p) { return pieceB.test(p); }), gap = Infinity, overlap = 0;
@@ -1229,6 +1255,9 @@
     partFilter: function () { return built ? built.partFilter() : []; },
     electronicList: function () { return built ? built.electronicList() : []; },
     get wiring() { return built ? built.wiring : null; },
+    get ringMagazine() { return built ? built.ringMag : null; },
+    ringActive: function () { return Boolean(built && built.ringMag && built.ringMag.active()); },
+    ringLabel: function (ph) { return built && built.ringMag ? built.ringMag.label(ph) : null; },
     get wiringLayout() { return built ? built.wiringLayout : null; },
     setPrintLayout: function (on) { if (built) built.setPrintLayout(on); },
     printLayoutOn: function () { return Boolean(built && built.printLayoutOn()); },

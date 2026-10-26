@@ -16,9 +16,11 @@
   <script defer src="wiring-model.js"></script>
   <script defer src="wiring-3d.js"></script>
   <script defer src="wiring-layout3d.js"></script>
+  <script defer src="ring-magazine.js"></script>
   <script defer src="reference-look.js"></script>
   <script defer src="app.js"></script>
   <script defer src="step-animations.js"></script>
+  <script defer src="ring-ui.js"></script>
 </head>
 <body>
   <header class="topbar">
@@ -101,6 +103,30 @@
         <div class="switch-list">
           <label class="switch-row"><span><strong>Show housing</strong><small>Turn off to see the systems inside</small></span><input id="housingVisible" class="switch" type="checkbox" checked autocomplete="off"></label>
           <label class="switch-row"><span><strong>Housing sub-view</strong><small>Parts list and dimensions</small></span><input id="housingOnlyToggle" class="switch" type="radio" name="subsystemView" autocomplete="off"></label>
+        </div>
+      </section>
+      <section class="control-section ring-section" id="ringSection">
+        <div class="section-title"><div><span class="eyebrow">MECHANICAL DESIGN</span><h2>Internal mechanism</h2></div></div>
+        <div class="seg-group" role="radiogroup" aria-label="Internal mechanism design">
+          <label class="seg"><input type="radio" name="designOpt" value="legacy" checked autocomplete="off"><span>Previous: stack + blades</span></label>
+          <label class="seg"><input type="radio" name="designOpt" value="ring" autocomplete="off"><span>Ring magazine</span></label>
+        </div>
+        <div id="ringTools" hidden>
+          <p class="small-note">Each pill sits between two dividers and is pushed by the divider behind it. One movable actuator arm serves all four rings; one exit slot, one funnel, one cup. ASSUMED / NOT VALIDATED.</p>
+          <label class="range-row" for="pocketSize"><span>Pocket Size (divider spacing)</span><output id="pocketOut">45%</output><input id="pocketSize" type="range" min="0" max="100" step="1" value="45" autocomplete="off"></label>
+          <p id="pocketInfo" class="small-note"></p>
+          <p class="sub-title">Refill (top loading)</p>
+          <div class="button-grid four-col" id="refillRings">
+            <button class="color-button red" data-ring="0" type="button">Red</button><button class="color-button blue" data-ring="1" type="button">Blue</button><button class="color-button green" data-ring="2" type="button">Green</button><button class="color-button orange" data-ring="3" type="button">Orange</button>
+          </div>
+          <div class="rotation-buttons">
+            <button id="ringOpenLid" class="secondary-button" type="button">Open lid</button>
+            <button id="ringLoad" class="primary-button" type="button">Load pill</button>
+            <button id="ringIndex" class="secondary-button" type="button">Index</button>
+            <button id="ringLift" class="secondary-button" type="button">Lift cartridge out</button>
+            <button id="ringCloseLid" class="secondary-button" type="button">Close lid</button>
+          </div>
+          <p id="ringRefillNote" class="small-note" aria-live="polite"></p>
         </div>
       </section>
       <section class="control-section systems-section">

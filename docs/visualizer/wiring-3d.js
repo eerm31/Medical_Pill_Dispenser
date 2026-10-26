@@ -85,6 +85,9 @@
       var P = [cfg.pivot[0], cfg.pivot[1] + CYa], d = cfg.body_dir, SV = A.servo, L = SV.len - SV.shaft_off + (along || 0), n = [-d[1], d[0]];
       return [P[0] + d[0] * L + n[0] * lat, P[1] + d[1] * L + n[1] * lat, z];
     }
+    // ring-magazine mode re-mounts both servos on the actuator arm; ctx.ringAct() returns their pivots then (null otherwise)
+    function ringAct() { return ctx.ringAct ? ctx.ringAct() : null; }
+    function actOf(id) { var r = ringAct(); return r ? r[id] : A[id]; }
     // position of a pin in canonical mm, and how far around it the search may ignore the part it sits on
     function anchor(pid) {
       var info = pinInfo[pid], id = info.comp.id, i = info.i, p;
@@ -95,8 +98,8 @@
       } else if (id === 'stepper') {
         var a = (-62 + 8 * i) * Math.PI / 180;
         p = [(S.motor_body_r + 0.2) * Math.cos(a), MYc + (S.motor_body_r + 0.2) * Math.sin(a), S.motor_body_z0 + 9];
-      } else if (id === 's1') p = servoTail(A.s1, (i - 1) * 2.0, A.s1.plate_z[1] + 11, 0);
-      else if (id === 's2') p = servoTail(A.s2, (i - 1) * 2.0, A.s2.body_z0 + 5, 0);
+      } else if (id === 's1') p = servoTail(actOf('s1'), (i - 1) * (ringAct() ? 3.4 : 2.0), actOf('s1').plate_z[1] + 11, ringAct() ? 1.5 : 0);
+      else if (id === 's2') p = servoTail(actOf('s2'), (i - 1) * (ringAct() ? 3.4 : 2.0), actOf('s2').body_z0 + 5, ringAct() ? 1.5 : 0);
       else if (id === 'hall') p = [(S.hall_x[0] + S.hall_x[1]) / 2 + (i - 1) * S.hall_lead_pitch, (S.hall_y[0] + S.hall_y[1]) / 2, S.hall_z0 - S.hall_lead_len + 0.2];
       else if (id === 'usbc') p = [(info.pin.id === 'GND' ? 2 : -2), S.jack.xy[1] - S.jack.d / 2 - 0.2, (S.jack.z0 + S.jack.z1) / 2];
       else if (id === 'reader') p = [-44.5, CYa - 4.5 + 3.0 * i, BZ + 1.5];
@@ -174,10 +177,12 @@
         for (var k = 0; k + 2 < cnt; k += 3) { var a = vert(k), b = vert(k + 1), c = vert(k + 2); rasterTri(a[0], a[1], a[2], b[0], b[1], b[2], c[0], c[1], c[2]); }
       });
       // regions the moving parts sweep, the pill path and the housing envelope
-      fillDisc(0, CYa, 24.8, 3.7, 58, 0); fillDisc(0, CYa, 7, -16.6, 3.7, 0);
-      fillBox(-7.6, 7.6, -6.6, 6.6, -37, 3.7);
-      fillDisc(A.s1.pivot[0], A.s1.pivot[1] + CYa, 19.5, 5.2, 31);
-      fillDisc(A.s2.pivot[0], A.s2.pivot[1] + CYa, 13.5, -7, 0.5);
+      var ringMode = Boolean(ringAct());
+      if (!ringMode) fillDisc(0, CYa, 24.8, 3.7, 58, 0);
+      fillDisc(0, CYa, 7, -16.6, 3.7, 0);
+      if (!ringMode) fillBox(-7.6, 7.6, -6.6, 6.6, -37, 3.7);
+      if (!ringMode) fillDisc(A.s1.pivot[0], A.s1.pivot[1] + CYa, 19.5, 5.2, 31);
+      if (!ringMode) fillDisc(A.s2.pivot[0], A.s2.pivot[1] + CYa, 13.5, -7, 0.5);
       fillDisc(0, CYa, 47, -37, 51, 47.0 + 3);
       fillDisc(0, CYa, 60, -37, -35.5, 0);
       fillDisc(0, CYa, 60, 49, 52, 0);
@@ -353,6 +358,12 @@
       wires.forEach(function (w) { if (w.mesh) { var on = groupOn(w.group); w.dim = !on; w.mesh.visible = Boolean(grp.visible && show[w.cls] && on); fadeMat(w.mat, on, 1); w.pulses.forEach(function (p) { if (!w.mesh.visible || w.dim) p.mesh.visible = false; }); tl.glow(w, wireHot && on); } });
       if (extCable) { var onx = groupOn('scanner'); extCable.visible = show.signal && onx; fadeMat(extCable.material, onx, 0.75); }
     }
+    // forget the routed harness so the next use routes it again (the servos moved when the design changed)
+    function invalidate() {
+      grp.children.slice().forEach(function (c) { grp.remove(c); if (c.geometry) c.geometry.dispose(); });
+      wires.forEach(function (w) { w.mesh = null; w.pulses = null; w.halo = null; w.curve = null; w.points = null; w.routed = false; w.hot = false; });
+      extCable = null; failed = []; routed = false;
+    }
     function update(m, nowSec) { if (routed && grp.visible) tl.live(wires, m, nowSec); }
     function setVisible(on) { if (on) ensure(); grp.visible = Boolean(on); applyClasses(); }
     function setClass(cls, on) { show[cls] = Boolean(on); applyClasses(); }
@@ -362,7 +373,7 @@
     function probe(a, b, grp, wr, clear) { ensure(); if (clear) occ.fill(0); var p0 = anchor(a), p1 = anchor(b), r = route(p0, p1, { hr: [hardR(a), hardR(b)], wr: wr || [2, 2], grp: grp || 250 }); return { from: p0, to: p1, startHard: hardAt(p0[0], p0[1], p0[2]), endHard: hardAt(p1[0], p1[1], p1[2]), pts: r && r.pts }; }
     function hardAt(x, y, z) { var i = idxOf(x, y, z); return i < 0 ? null : Boolean(hard && hard[i]); }
     return {
-      group: grp, ensure: ensure, setVisible: setVisible, setClass: setClass, setGroups: setGroups, setPartsLive: setPartsLive, reapply: applyParts, bounds: bounds, update: update,
+      group: grp, ensure: ensure, invalidate: invalidate, setVisible: setVisible, setClass: setClass, setGroups: setGroups, setPartsLive: setPartsLive, reapply: applyParts, bounds: bounds, update: update,
       colors: function () { return wires.map(function (w) { return { id: w.id, cls: w.cls, fn: w.fn, color: '#' + ('000000' + w.color.toString(16)).slice(-6) }; }); },
       report: function () { return { routed: routed, failed: failed.slice(), routeMs: grp.userData.routeMs, wires: wires.filter(function (w) { return w.mesh; }).map(function (w) { return { id: w.id, cls: w.cls, length: Math.round(w.length * 10) / 10, points: w.points.map(function (p) { return p.map(function (v) { return Math.round(v * 10) / 10; }); }) }; }) }; },
       samples: function () { return wires.filter(function (w) { return w.mesh; }).map(function (w) { var n = Math.ceil(w.length / 0.5), pts = []; for (var k = 0; k <= n; k++) { var v = w.curve.getPointAt(k / n); pts.push([v.x, -v.z, v.y]); } return { id: w.id, cls: w.cls, pts: pts }; }); },
