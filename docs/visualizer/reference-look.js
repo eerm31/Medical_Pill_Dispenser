@@ -55,7 +55,24 @@
       compartment: ['Compartment cartridges', 'Slide blades', 'Blade return springs', 'Catch ledges', 'Drum hub + socket decks']
     };
     var activeView = 'rotation', OWN_VIEW = ['Stepper mount', 'Station bracket', 'Pin cam', 'Pin return spring', 'Pin lever', 'Tongue lever', 'Tongue gate', 'Cylindrical shell', 'Service lid', 'Base tray', 'Tray foot', 'M3 screws', 'Housing socket collar', 'Station housing platform', 'Compartment cartridges', 'Slide blades', 'Blade return springs', 'Catch ledges'];
-    function viewHas(label) { return activeView === 'rotation' ? OWN_VIEW.indexOf(label) < 0 : VIEW_LABELS[activeView].indexOf(label) >= 0; }
+    // Prototype 2: parts hidden with the drum design leave every list; the ring parts below show only in Ring compartments (and the hatch in Housing)
+    var RING_COMP = ['Adjustable divider', 'Ball bearings', 'Ring support track', 'PTFE liner', 'Ring lock', 'Ring lock pad', 'Loading hatch', 'Fill funnel', 'Exit funnel', 'Collection cup'], ringGone = null;
+    function legacyGone(label) {
+      if (!ringGone) {
+        var shown = {}, seen = {}; ringGone = {};
+        rotParts.forEach(function (o) { var l = o.userData.rotationPart.label; seen[l] = true; if (!legacySaved.some(function (r) { return under(o, r.o); })) shown[l] = true; });
+        Object.keys(seen).forEach(function (l) { if (!shown[l]) ringGone[l] = true; });
+      }
+      return Boolean(ringGone[label]);
+    }
+    function viewHas(label) {
+      if (ringMag && ringMag.active()) {
+        if (legacyGone(label)) return false;
+        if (label === 'Ring magazine' || label === 'Pocket floor') return activeView === 'rotation' || activeView === 'compartment';
+        if (RING_COMP.indexOf(label) >= 0) return activeView === 'compartment' || (activeView === 'housing' && (label === 'Loading hatch' || label === 'Fill funnel'));
+      }
+      return activeView === 'rotation' ? OWN_VIEW.indexOf(label) < 0 : VIEW_LABELS[activeView].indexOf(label) >= 0;
+    }
     function inRotationSet(o) { while (o) { var p = o.userData && o.userData.rotationPart; if (p) return !p.label || viewHas(p.label); o = o.parent; } return false; }
     var calloutMap = {};
     function callout(par, label, kind, a, l) {
@@ -1170,6 +1187,7 @@
     var LEGACY_LABELS = ['Pin lever', 'Tongue lever', 'Pin cam', 'Pin return spring', 'Station bracket', 'Micro servo S1 (pin)', 'Micro servo S2 (tongue)', 'Tongue gate', 'Compartment cartridges', 'Slide blades', 'Blade return springs', 'Catch ledges', 'Drum hub + socket decks', 'Home magnet 3x1 mm'];
     var legacySaved = [], ringMag = null;
     function setLegacyHidden(on) {
+      ringGone = null;
       if (!on) { legacySaved.forEach(function (r) { r.o.visible = r.v; }); legacySaved = []; if (rodMesh) rodMesh.scale.z = 1; return; }
       if (legacySaved.length) return;
       var list = [];
@@ -1179,8 +1197,8 @@
       [ctx.carriageGroup, ctx.tongueGroup].forEach(function (g) { if (g) list.push(g); });
       COLORS.forEach(function (c) { if (ctx.stationGroups[c]) list.push(ctx.stationGroups[c]); if (ctx.cartridgeLiftGroups[c]) list.push(ctx.cartridgeLiftGroups[c]); });
       list.forEach(function (o) { if (o && !legacySaved.some(function (r) { return r.o === o; })) { legacySaved.push({ o: o, v: o.visible }); o.visible = false; } });
-      // ring mode: the rod only needs to reach the bearing; the arm sits under the deck
-      rodMesh.scale.z = (S.platform_top - S.rod_z0) / (S.rod_z1 - S.rod_z0);
+      // ring mode: the rod runs up through the bearing and the centre post bushing; the arm sits under the deck
+      rodMesh.scale.z = ((S.ring ? S.ring.floor_z + S.ring.wheel_h : S.platform_top) - S.rod_z0) / (S.rod_z1 - S.rod_z0);
     }
     function ringChanged() {
       if (wiring3d && wiring3d.invalidate) { wiring3d.invalidate(); if (wiring3d.group.visible && wiring3d.setVisible) wiring3d.setVisible(true); }
@@ -1188,7 +1206,7 @@
     }
     var accentMap = {}; COLORS.forEach(function (c) { accentMap[c] = palette[c] ? palette[c].three : 0x8294a5; });
     try {
-      if (window.DispenserRingMagazine && S.ring) ringMag = window.DispenserRingMagazine.build({ THREE: T, S: S, COLORS: COLORS, parent: fixedRoot, std: std, EL: EL, rtag: rtag, ptype: ptype, accent: accentMap, mats: { blue: M_BLUE, steel: M_STEEL, white: M_WHITE, dark: DK }, lid: lidG, legacy: setLegacyHidden, changed: ringChanged });
+      if (window.DispenserRingMagazine && S.ring) ringMag = window.DispenserRingMagazine.build({ THREE: T, S: S, COLORS: COLORS, parent: fixedRoot, std: std, EL: EL, rtag: rtag, ptype: ptype, accent: accentMap, mats: { blue: M_BLUE, steel: M_STEEL, white: M_WHITE, dark: DK }, lid: lidG, legacy: setLegacyHidden, changed: ringChanged, callout: callout });
     } catch (error) { ringMag = null; if (window.console) console.error('Ring magazine not built.', error); }
 
     // 3D wiring harness: built here so it shares the scene; routed on first use (see wiring-3d.js)

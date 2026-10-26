@@ -49,6 +49,40 @@
   var rfIdle = function () { var m = ringMag(); return !m || !m.refill.state().busy; };
   var removalDone = function () { var l = look(); return !l || !l.removalSettled || l.removalSettled(); };
 
+  // Prototype 2 system views: every call goes to the ring magazine's demo API and queues like a refill does
+  var rd = function () { return ringMag().demo; };
+  function ringDemoCheck(s) { var m = ringMag(); return busy(s) || (!m ? 'not available' : (m.demo.free() ? null : 'the mechanism is busy')); }
+  function ringDemo(id, view, label, steps) {
+    return { id: id, ring: true, label: label, color: true, view: view, check: ringDemoCheck, abort: function () { rd().reset(); }, steps: steps };
+  }
+  function acts(list) { return function () { list.forEach(function (f) { f(); }); return true; }; }
+  var lockedDone = function () { return rfIdle() && rd().allLocked(); };
+  var ringAnims = [
+    ringDemo('ringrotate', 'rotation', 'Single rod: unlock, engage, turn one pocket', function (s, c) {
+      var k = COLORS.indexOf(c), n = cap(c);
+      return [localStep('Rod slides to the ' + c + ' ring', 'Servo S1 pulls the carriage along the arm under the deck to the ' + c + ' ring. Its lock pad lifts; the other three stay clamped.', acts([function () { rd().unlock(k); }, function () { rd().rodTo(k, -1); }]), function () { return rfIdle() && rd().lockOpen(k); }),
+        localStep('Pin rises behind a tooth', 'Servo S2 pulls its cable and the pin rises through a slot in the floor into a sealed channel under the ring rim, behind a drive tooth. It never enters a pill pocket.', acts([function () { rd().pin(1); }]), rfIdle),
+        localStep('Rod swings the ring one pocket', 'The stepper turns the arm; the pin pushes the tooth and the ring rolls one pocket pitch on its balls.', acts([function () { rd().turn(k, -1); }]), rfIdle),
+        localStep('Pin lowers, rod swings back', 'The pin drops below the deck and the arm returns to the start of the stroke.', acts([function () { rd().pin(0); }, function () { rd().rodTo(k, 1); }]), rfIdle),
+        localStep('Rod brings the ring back', 'One stroke the other way: the ' + n + ' ring returns to its first pocket and the rod parks.', acts([function () { rd().pin(1); }, function () { rd().turn(k, 1); }, function () { rd().pin(0); }, function () { rd().park(k); }]), rfIdle),
+        localStep('Ring locked again', 'The lock pad clamps the rim. Only one ring was ever free.', acts([function () { rd().unlock(-1); }]), lockedDone)];
+    }),
+    ringDemo('ringsupport', 'compartment', 'Ring support: balls, PTFE walls and lock', function (s, c) {
+      var k = COLORS.indexOf(c);
+      return [{ label: 'All four rings clamped', text: 'Each ring rests on four balls in its track and is pressed by its lock pad. PTFE tape lines the walls on both sides of every ring.', kind: 'instant', act: function () { return true; } },
+        localStep(cap(c) + ' ring unlocks', 'Only the ' + c + ' lock pad lifts off the rim. The other rings cannot turn.', acts([function () { rd().unlock(k); }]), function () { return rd().lockOpen(k); }),
+        localStep('Ring rolls one pocket', 'The balls carry the weight and roll; the rim slides on the PTFE tape with 0.1 mm clearance, so the ring stays centred.', acts([function () { rd().rodTo(k, -1); }, function () { rd().pin(1); }, function () { rd().turn(k, -1); }]), rfIdle),
+        localStep('Ring rolls back', 'The same stroke in the other direction returns it.', acts([function () { rd().pin(0); }, function () { rd().rodTo(k, 1); }, function () { rd().pin(1); }, function () { rd().turn(k, 1); }, function () { rd().pin(0); }, function () { rd().park(k); }]), rfIdle),
+        localStep('Lock clamps again', 'The pad drops onto the rim and the ring is held.', acts([function () { rd().unlock(-1); }]), lockedDone)];
+    }),
+    ringDemo('ringhatch', 'compartment', 'Loading hatch: only the chosen ring opens', function (s, c) {
+      var k = COLORS.indexOf(c);
+      return [{ label: 'Hatches closed', text: 'Each ring has its own small hatch in the lid above its loading pocket. All are shut and all rings are clamped.', kind: 'instant', act: function () { return true; } },
+        localStep('Only the ' + c + ' hatch opens', 'The ' + c + ' ring is unlocked and its hatch flips open over the funnel. No ring is lifted out.', acts([function () { rd().unlock(k); }, function () { rd().hatch(k); }]), function () { return rd().lockOpen(k) && rd().hatchOpen(k); }),
+        localStep('Hatch closes, ring clamps', 'The hatch shuts and the lock pad drops back.', acts([function () { rd().unlock(-1); }, function () { rd().hatch(-1); }]), function () { return rd().allLocked() && rd().allHatchesShut(); })];
+    })
+  ];
+
   var ANIMS = [
     {
       id: 'load', legacy: true, label: 'Load a compartment (scan, place, fill)', color: true, view: 'main',
@@ -67,16 +101,16 @@
       }
     },
     {
-      id: 'ringrefill', ring: true, label: 'Refill a ring (open lid, pour, close)', color: true, view: 'main',
+      id: 'ringrefill', ring: true, label: 'Refill a ring (hatch, index, pour, lock)', color: true, view: 'main',
       check: function (s, c) { var m = ringMag(); return busy(s) || (!m ? 'not available' : null) || (s.cartridges[c].count >= 5 ? 'ring already full' : (m.refill.state().busy ? 'the mechanism is busy' : null)); },
       steps: function (s, c) {
         var m = ringMag(), k = COLORS.indexOf(c), have = s.cartridges[c].count, n = 5 - have, rf = m.refill, list = [];
-        list.push(localStep('Lid hinges open', 'The service lid swings up on its back hinge. Nothing sits above the rings, so every pocket is open from the top.', function () { return rf.openLid(); }, function () { return rfIdle() && rf.state().lidOpen; }));
-        list.push(localStep(cap(c) + ' ring selected', 'An amber ring marks the next empty pocket of the ' + c + ' ring. The ring and the arm stay where they are.', function () { return rf.select(k); }, rfIdle));
+        list.push(localStep('Loading hatch armed', 'Refill goes through a small hatch per ring in the lid. No ring is removed, and every ring is still clamped by its lock pad.', function () { return rf.openLid(); }, function () { return rfIdle() && rf.state().lidOpen; }));
+        list.push(localStep(cap(c) + ' ring selected', 'Only the ' + c + ' lock pad lifts and only the ' + c + ' hatch flips open. The amber mark is the loading pocket under it; the other rings stay locked.', function () { return rf.select(k); }, rfIdle));
         for (var i = 1; i <= n; i++) {
-          list.push(localStep('Pill ' + (have + i) + ' of 5: pour', 'A pill bottle tips over the amber pocket and one pill drops between two dividers. The next empty pocket is marked.', function () { return rf.drop(); }, rfIdle));
+          list.push(localStep('Pill ' + (have + i) + ' of 5: index and pour', 'The ring turns the next empty pocket under the hatch, a pill bottle tips over it and one pill drops down the funnel between two dividers.', function () { return rf.drop(); }, rfIdle));
         }
-        list.push(localStep('Lid hinges closed', 'The lid closes and the inventory is updated. The first pill sits right before the exit slot, ready to dispense.', function () { return rf.closeLid(); }, function () { return rfIdle() && rf.state().lidClosed; }));
+        list.push(localStep('Pills staged, hatch closed', 'The ring turns until its first pill sits right before the exit slot, the hatch closes and the ring is clamped again. The inventory is updated.', function () { return rf.closeLid(); }, function () { return rfIdle() && rf.state().lidClosed; }));
         return list;
       }
     },
@@ -124,7 +158,7 @@
       }
     },
     {
-      id: 'rotate', settled: function () { return host.rotationSettled(); }, restore: function (k) { host.rotationTo(k >= 4 ? 0 : k * Math.PI / 2); }, label: 'Drum rotation: index, then go home', view: 'rotation',
+      id: 'rotate', legacy: true, settled: function () { return host.rotationSettled(); }, restore: function (k) { host.rotationTo(k >= 4 ? 0 : k * Math.PI / 2); }, label: 'Drum rotation: index, then go home', view: 'rotation',
       check: function (s) { return s.operation !== null ? 'the mechanism is busy' : null; },
       steps: function () {
         var quarter = function (n) { return localStep('Index 90° (' + n + ' of 3)', 'The stepper turns the drum one quarter turn to the next compartment.', function () { host.spin(Math.PI / 2); return true; }, host.rotationSettled); };
@@ -133,7 +167,7 @@
       }
     },
     {
-      id: 'removal', settled: function () { return removalDone(); }, restore: function (k) { host.removalTo(k); }, label: 'Compartment removal (lift straight up)', color: true, view: 'compartment',
+      id: 'removal', legacy: true, settled: function () { return removalDone(); }, restore: function (k) { host.removalTo(k); }, label: 'Compartment removal (lift straight up)', color: true, view: 'compartment',
       check: function () { return null; },
       steps: function (s, c) {
         var adv = function () { host.removalAdvance(); return true; }, n = cap(c);
@@ -144,7 +178,7 @@
       }
     },
     {
-      id: 'blade', settled: function () { return removalDone(); }, restore: function (k) { host.bladeSet(k === 1 ? 1 : 0); }, label: 'Blade slide (closed, open, closed)', color: true, view: 'compartment',
+      id: 'blade', legacy: true, settled: function () { return removalDone(); }, restore: function (k) { host.bladeSet(k === 1 ? 1 : 0); }, label: 'Blade slide (closed, open, closed)', color: true, view: 'compartment',
       check: function () { return null; },
       steps: function () {
         return [localStep('Blade slides open', 'The pin pulls the slotted tab; the blade slides 10.4 mm along the rails and the bore opens.', function () { host.bladeSet(1); return true; }, removalDone),
@@ -153,6 +187,7 @@
     }
   ];
   var BY_ID = {};
+  ANIMS = ANIMS.concat(ringAnims);
   ANIMS.forEach(function (a) { BY_ID[a.id] = a; });
 
   var run = null, lastSig = '', lastCheck = 0, lastView = host.view();
@@ -226,7 +261,8 @@
   function abortRun() {
     if (!run) return;
     var anim = run.anim;
-    if (anim.view === 'compartment' && run.i > 0) host.removalReset();
+    if (anim.abort && run.i > 0) anim.abort();
+    else if (anim.view === 'compartment' && !anim.ring && run.i > 0) host.removalReset();
     run = null;
   }
 
@@ -309,7 +345,7 @@
     if (run.i === 0) {
       var reason = reasonFor(a);
       if (reason) { render(); return; }
-      if (a.view === 'compartment') host.setRemovalColor(run.color);
+      if (a.view === 'compartment' && !a.ring) host.setRemovalColor(run.color);
     }
     var step = a.dynamic && run.i > 0 ? { kind: 'gate' } : run.steps[run.i];
     if (step.act && !step.act()) { status('Refused: ' + (state().rejection || 'step not possible')); run.auto = false; render(); return; }

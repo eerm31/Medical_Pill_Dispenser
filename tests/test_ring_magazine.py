@@ -10,7 +10,8 @@ import pytest
 from feature005_spec import load_spec
 
 VIS = Path(__file__).resolve().parents[1] / "docs" / "visualizer"
-PILL_LEN = [4.2, 6.0, 9.5, 12.0]  # small round, large round, oval, capsule (ring-magazine.js PILLS)
+PILL_LEN = [2.0, 2.8, 3.4, 5.0]  # thickness along the track of the standing pills: small round, large round, oval, capsule (ring-magazine.js PILLS)
+PILL_HEIGHT = [4.2, 6.0, 9.5, 12.0]  # tallest side, vertical
 
 
 @pytest.fixture(scope="module")
@@ -28,15 +29,17 @@ def test_rings_fit_between_post_and_wall_with_distinct_tracks(g):
         assert b0 - a1 >= 0.5  # neighbouring rings do not touch
 
 
-def test_pockets_hold_every_pill_shape_with_a_printable_divider(g):
+def test_pockets_hold_every_pill_shape_in_every_ring_with_a_printable_divider(g):
     ring = g["ring"]
-    for (r0, r1), length in zip(ring["tracks"], PILL_LEN):
+    assert ring["wheel_h"] >= max(PILL_HEIGHT) + 0.5  # dividers are taller than the tallest standing pill
+    for r0, r1 in ring["tracks"]:
         rc = (r0 + r1) / 2
         pitch = 2 * math.pi * rc / ring["n"]
         width = r1 - r0 - 2 * ring["rim_t"]
-        assert width >= 6.0 or length <= 4.2  # pills are at most 6.2 across
-        assert pitch - length - 0.6 >= ring["vane_t"] + 0.5  # divider at least 1 mm even at the smallest clearance
-        assert length + 0.6 < pitch  # pocket wider than the pill
+        assert width >= 6.2 + 0.4 - 1e-9  # widest pill fits across the ring
+        for length in PILL_LEN:  # any pill in any ring, including the innermost
+            assert pitch - length - 0.6 >= ring["vane_t"] + 0.5  # divider at least 1 mm even at the smallest clearance
+            assert length + 0.6 < pitch  # pocket wider than the pill
 
 
 def test_one_exit_slot_runs_through_every_deck_layer_and_clears_the_columns(g):
@@ -117,11 +120,31 @@ def test_prototype_2_has_its_own_refill_animation():
     assert "bottle" in ring and "prepare: function" in ring and "advance: function" in ring
 
 
-def test_prototype_2_refill_pours_into_the_next_empty_pocket_and_has_a_one_click_option():
+def test_prototype_2_refill_indexes_the_next_empty_pocket_under_a_hatch_and_has_a_one_click_option():
     js = (VIS / "ring-magazine.js").read_text(encoding="utf-8")
     html = (VIS / "index.html").read_text(encoding="utf-8")
     steps = (VIS / "step-animations.js").read_text(encoding="utf-8")
     assert "fillAll: function" in js and "ringFillAll" in html and "ringGuide" in html
-    assert "u = r.pills.length + 1" in js  # no ring movement is needed to refill
+    assert "function stageLoad" in js and "function stageHome" in js and "newPillAt" in js  # the ring turns the empty pocket under the hatch
     assert 'value="flask"' not in html and "flask-magazine.js" not in html
     assert 'id="ringIndex"' not in html and "rf.advance()" not in steps
+
+
+def test_every_ring_takes_every_pill(g):
+    js = (VIS / "ring-magazine.js").read_text(encoding="utf-8")
+    assert "setPill: function" in js and "function fits" in js and "pillOf" in js and "STAND on edge" in js
+    ring = g["ring"]
+    for r0, r1 in ring["tracks"]:
+        pitch = 2 * math.pi * (r0 + r1) / 2 / ring["n"]
+        assert pitch - ring["vane_t"] - 0.6 >= max(PILL_LEN)  # even the innermost ring holds the 12 mm capsule standing
+
+
+def test_prototype_2_rings_ride_on_balls_in_a_track_with_one_lock_pad_each(g):
+    js = (VIS / "ring-magazine.js").read_text(encoding="utf-8")
+    for ident in ("Ball bearings", "Ring support track", "PTFE liner", "Shaft bushing", "Ring lock pad", "Loading hatch", "Fill funnel", "Adjustable divider"):
+        assert ident in js
+    assert "NB = 4" in js and "function applyLocks" in js and "hatches.forEach" in js
+    assert "lug" not in js  # rings are never lifted out for refilling
+    assert "function tagLabel" in js and "PCFSoft" not in js
+    ring = g["ring"]
+    assert 2 * 0.55 + 0.3 < ring["vane_t"] + 1.0  # balls and race lift the ring only a little above the deck
