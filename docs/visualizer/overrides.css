@@ -520,3 +520,7 @@ body.wiring-view #controlPanel .control-section:not(.wiring-panel) { display: no
 .cam-group button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .scene-host:focus-visible { outline: 2px solid rgba(113, 214, 198, .45); outline-offset: -2px; }
 @media (max-width: 520px) { .cam-group button { padding: 6px 7px; } }
+
+.proto-tabs { grid-template-columns: repeat(2, auto); width: auto; flex: 0 0 auto; }
+.proto-tabs .seg { padding: 7px 14px; white-space: nowrap; }
+.control-section[hidden] { display: none; }

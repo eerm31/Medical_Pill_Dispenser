@@ -77,3 +77,11 @@ def test_ring_module_has_no_network_and_a_single_exit_model():
         assert re.search(r"L: %s\b" % re.escape(str(length)), js)
     wiring = (VIS / "wiring-3d.js").read_text(encoding="utf-8")
     assert "function invalidate" in wiring and "ringAct" in wiring
+
+
+def test_stability_readout_and_ballast_are_wired():
+    js = (VIS / "ring-magazine.js").read_text(encoding="utf-8")
+    html = (VIS / "index.html").read_text(encoding="utf-8")
+    assert "function stability" in js and "BALLAST" in js
+    for ident in ("stabMass", "stabCom", "stabRot", "stabTip"):
+        assert ident in html

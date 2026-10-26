@@ -11,7 +11,10 @@
     var rb = { open: $('ringOpenLid'), load: $('ringLoad'), index: $('ringIndex'), lift: $('ringLift'), close: $('ringCloseLid') };
     var names = ['Red', 'Blue', 'Green', 'Orange'];
     Array.prototype.forEach.call(document.querySelectorAll('input[name="designOpt"]'), function (r) {
-      r.addEventListener('change', function () { if (!r.checked) return; rm.setActive(r.value === 'ring'); tools.hidden = r.value !== 'ring'; refresh(); });
+      r.addEventListener('change', function () {
+        if (!r.checked) return; var ring = r.value === 'ring'; rm.setActive(ring); $('ringSection').hidden = !ring; if (ring) $('ringSection').classList.remove('collapsed');
+        $('protoEyebrow').textContent = ring ? 'PROTOTYPE 2 · ASSEMBLY VIEW' : 'PROTOTYPE 1 · ASSEMBLY VIEW'; $('protoTitle').textContent = ring ? 'Ring magazine' : 'Four-cartridge drum'; refresh();
+      });
     });
     function pocketText() {
       var p = rm.pocket();
@@ -39,6 +42,9 @@
       else if (s.ring < 0) text = 'Lid open. Select the ring to refill.';
       else text = names[s.ring] + ' ring: ' + s.counts[s.ring] + '/5 pills. ' + (s.counts[s.ring] >= 5 ? 'Full. Close the lid.' : 'Drop a pill into the marked pocket (Load pill). Close the lid when done: the ring indexes so the first pill sits at the exit.');
       note.textContent = text;
+      var w = rm.stability(), g = window.DispenserRotationSpec.g;
+      $('stabMass').textContent = Math.round(w.mass) + ' g'; $('stabCom').textContent = w.comAboveTable.toFixed(0) + ' mm of ' + Math.round(g.lid.z1 - g.table_z) + ' mm';
+      $('stabRot').textContent = Math.round(w.rotating) + ' g'; $('stabTip').textContent = w.tip.toFixed(0) + '\u00b0 tilt';
     }
     pocketText(); setInterval(refresh, 250);
   }

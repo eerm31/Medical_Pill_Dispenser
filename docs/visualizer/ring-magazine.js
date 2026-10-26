@@ -74,6 +74,9 @@
     });
     tag(bx(fixedG, 50, 68, VL - 2, VT_ + 2, -32, -31, PR), 'Collection cup', 'printed', 'shelf');
     [[50, 56, VL - 2, VL - 0.6], [50, 56, VT_ + 0.6, VT_ + 2]].forEach(function (b) { tag(bx(fixedG, b[0], b[1], b[2], b[3], -37, -32, PR), 'Collection cup', 'printed', 'shelf'); });
+    // steel ballast between the feet, under the tray: lowers the centre of mass without using any room inside
+    var BALLAST = { r: 28, z0: S.base_z0 - 5, z1: S.base_z0 };
+    tag(cy(fixedG, 0, 0, BALLAST.z0, BALLAST.z1, BALLAST.r, M.steel, 48), 'Base ballast', 'bought', 'ballast');
     var cupG = new T.Group(); fixedG.add(cupG);
     tag(bx(cupG, CUP.x0, CUP.x1, VL - 0.6, VT_ + 0.6, -31, CUP.floor, PR), 'Collection cup', 'printed', 'cup');
     [[CUP.x0, CUP.x1, VL - 0.6, VL + 0.4], [CUP.x0, CUP.x1, VT_ - 0.4, VT_ + 0.6], [CUP.x1 - 1, CUP.x1, VL, VT_], [CUP.x0, CUP.x0 + 1, VL, VT_]].forEach(function (b) {
@@ -356,6 +359,41 @@
         s2: { pivot: pt(rc[0] + S2X, (S2L0 + S2L1) / 2), body_dir: [-c, -s], body_z0: S2Z - SV.w / 2 }
       };
     }
+    // Mass and tip-over estimate (ASSUMED densities and bought-part masses; the arm's servos and rings count as rotating mass).
+    function stability() {
+      var RHO = 0.6, RHO_R = 0.8, items = [], MYc = CYa + S.motor_offset_y, th = arm.theta, c = Math.cos(th), s = Math.sin(th);
+      function add(m, x, y, z, rot) { items.push({ m: m, x: x, y: y, z: z, rot: Boolean(rot) }); }
+      function cyl(r, z0, z1, rho) { return Math.PI * r * r * (z1 - z0) / 1000 * rho; }
+      function onArm(x, l) { return [S.axle[0] + x * c - l * s, CYa + x * s + l * c]; }
+      add(2 * Math.PI * S.shell_r1 * 3 * (S.lid.z0 - S.base_z1) / 1000 * RHO, S.axle[0], CYa, (S.lid.z0 + S.base_z1) / 2);
+      add(cyl(S.base_r, S.base_z0, S.base_z1, RHO), S.axle[0], CYa, (S.base_z0 + S.base_z1) / 2);
+      add(cyl(S.platform_r, -3, S.platform_top, RHO), S.axle[0], CYa, 0.35);
+      add(cyl(S.lid.r, S.lid.z0, S.lid.z1, RHO), S.axle[0], CYa, (S.lid.z0 + S.lid.z1) / 2);
+      add(30, S.axle[0], MYc, (S.motor_body_z0 + S.motor_body_z1) / 2);
+      add(10, S.bay_modules.esp[0] + 9, S.bay_modules.esp[2] + 11, S.bay_z0 + 2);
+      add(8, S.bay_modules.uln[0] + 12, S.bay_modules.uln[2] + 12, S.bay_z0 + 4);
+      add(6, S.axle[0] - 20, CYa - 20, S.bay_z0 + 2);
+      add(3, 20, CYa, -12); add(5, 59, CYa - 1.6, -27);
+      add(Math.PI * BALLAST.r * BALLAST.r * (BALLAST.z1 - BALLAST.z0) / 1000 * 7.85, S.axle[0], CYa, (BALLAST.z0 + BALLAST.z1) / 2);
+      var p1 = onArm(-18, 15.5), p2 = onArm(arm.carr - 12, -11.5), pa = onArm(-4, 4);
+      add(9, p1[0], p1[1], 28.7, true); add(9, p2[0], p2[1], 22, true); add(4, pa[0], pa[1], 14, true);
+      rings.forEach(function (r) {
+        var tr = R.tracks[r.k], vol = 0;
+        vol += 0.8 * WH * TAU * (tr[0] + 0.4) + 0.8 * WH * TAU * (tr[1] - 0.4);
+        vol += N * (tr[1] - tr[0] - 2 * RT) * WH * vaneT(r.k, st.q);
+        add(vol / 1000 * RHO_R + r.pills.length * 0.25, S.axle[0], CYa, ZF + WH / 2, true);
+      });
+      add(cup.length * 0.25, 57, CYa - 1.6, -29);
+      var M_ = 0, X = 0, Y = 0, Z = 0, rot = 0;
+      items.forEach(function (i) { M_ += i.m; X += i.m * i.x; Y += i.m * i.y; Z += i.m * i.z; if (i.rot) rot += i.m; });
+      X /= M_; Y /= M_; Z /= M_;
+      var F = S.feet, pts = F.angles.map(function (a) { return [S.axle[0] + F.r * Math.cos(a * Math.PI / 180), CYa + F.r * Math.sin(a * Math.PI / 180)]; }), tip = 90;
+      pts.forEach(function (p, i) {
+        var q = pts[(i + 1) % pts.length], dx = q[0] - p[0], dy = q[1] - p[1], d = (dx * (Y - p[1]) - dy * (X - p[0])) / Math.hypot(dx, dy);
+        tip = Math.min(tip, Math.atan2(d, Z - S.table_z) * 180 / Math.PI);
+      });
+      return { mass: M_, rotating: rot, com: [X, Y, Z], comAboveTable: Z - S.table_z, tip: tip };
+    }
     function setActive(on) {
       on = Boolean(on); if (on === st.active) return;
       st.active = on; root.visible = on; if (ctx.legacy) ctx.legacy(on);
@@ -364,7 +402,7 @@
       if (ctx.changed) ctx.changed();
     }
     return {
-      active: function () { return st.active; }, setActive: setActive, update: update, ringAct: ringAct, refill: refill,
+      active: function () { return st.active; }, setActive: setActive, update: update, ringAct: ringAct, refill: refill, stability: stability,
       setPocket: function (q) { st.q = Math.max(0, Math.min(1, Number(q))); applyPocket(); rings.forEach(function (r) { var sl = slack(r.k); r.pills.forEach(function (p) { p.off = Math.max(-sl, Math.min(sl, p.off)); }); }); return st.q; },
       pocket: function () { return { q: st.q, widths: rings.map(function (r) { return Math.round(pocketW(r.k, st.q) * 10) / 10; }), dividers: rings.map(function (r) { return Math.round(vaneT(r.k, st.q) * 10) / 10; }), pills: PILLS.map(function (p) { return p.name + ' ' + p.L + 'x' + p.W; }) }; },
       label: function (ph) { return st.active && LABELS[ph] ? LABELS[ph] : null; },
