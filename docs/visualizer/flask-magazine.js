@@ -1,9 +1,9 @@
 (function () {
   'use strict';
-  /* Stacked flask (Prototype 2, ASSUMED / NOT_VALIDATED, concept only): four ring magazines stacked like a wedding cake in a slim
-     flask-shaped housing. One vertical rod beside the stack rides on an arm at the bottom: servo S1 lifts the pin carrier to a ring,
-     servo S2 pushes the pin in behind a divider, the stepper swings the arm one pocket. Pills are pushed by the divider behind them,
-     slide down a ramp into ONE shared chute and drop into a cup at the base. The top is free: open the lid and pour. The demo
+  /* Prototype 2 (ASSUMED / NOT_VALIDATED, concept only): the concentric ring magazine inside a slim, tall flask.
+     Rings sit on one deck at the TOP, under a hinged lid, so a patient opens the lid and pours straight into the marked pocket of each
+     ring. Everything that moves or draws power is below the deck: stepper, arm, two servos, ESP32, driver, battery. The pin rises through
+     arc slots in the deck. One exit wedge in the deck leads to ONE funnel, ONE chute down the wall and a cup in the base. The demo
      controller is untouched; this file only maps its phase names to motion. */
   var TAU = Math.PI * 2;
   function wrap(a) { return Math.atan2(Math.sin(a), Math.cos(a)); }
@@ -15,32 +15,33 @@
     { kind: 'oval', name: 'oval', L: 9.5, W: 6.2, H: 3.4 },
     { kind: 'capsule', name: 'capsule', L: 12.0, W: 5.0, H: 5.0 }
   ];
-  var PIN_R = 0.9;
+  var PIN_R = 0.9, PIN_LEN = 11;
   var ORDER = ['PIN_ENGAGE', 'BLADE_PULL_RELEASE', 'STACK_SETTLE', 'BLADE_ISOLATE_CLOSE', 'BLADE_CLOSED_DWELL', 'PIN_LIFT', 'TONGUE_RELEASE', 'PILL_CLEAR', 'TONGUE_RETURN'];
   var DURS = [0.625, 1.01, 0.5, 1.01, 0.3, 0.625, 0.814, 0.5, 0.814];
   var LABELS = {
-    DRUM_ROTATE: ['Carrier lifts to the ring', 'Servo S1 lifts the pin carrier up the rod to the level of the selected ring.'],
-    CARRIAGE_APPROACH: ['Arm swings to the pin start', 'The stepper at the base turns the arm until the rod stands beside the divider to push.'],
-    PIN_ENGAGE: ['Pin pushes in behind a divider', 'Servo S2 pushes the pin in from the rod, into the pocket behind one divider of the selected ring.'],
-    BLADE_PULL_RELEASE: ['Divider pushes the pill', 'The arm swings one pocket pitch; each divider pushes the pill in front of it along its ring.'],
-    STACK_SETTLE: ['Pill reaches the exit', 'The front pill is pushed past the exit edge and starts down the ramp.'],
-    BLADE_ISOLATE_CLOSE: ['Pill slides to the chute', 'The pill slides down the ramp into the shared chute while the pin pulls back.'],
-    BLADE_CLOSED_DWELL: ['Pin clear (dwell)', 'Short pause with the pin withdrawn into the rod.'],
-    PIN_LIFT: ['Arm returns to park', 'The arm swings back to its home position at the bottom.'],
+    DRUM_ROTATE: ['Carriage slides to the ring', 'The pin carriage slides along the arm under the deck to the selected ring (servo S1, push-pull cable).'],
+    CARRIAGE_APPROACH: ['Arm swings to the pin start', 'The stepper under the deck turns the arm until the pin sits below the arc slot, behind a divider of the selected ring.'],
+    PIN_ENGAGE: ['Pin rises behind a divider', 'Servo S2 pulls its cable and the pin rises through the deck slot into the pocket behind one divider.'],
+    BLADE_PULL_RELEASE: ['Divider pushes the pill', 'The arm swings one pocket pitch; each divider pushes the pill in front of it along the deck.'],
+    STACK_SETTLE: ['Pill drops through the exit', 'The front pill passes the edge of the single exit wedge and falls onto the funnel.'],
+    BLADE_ISOLATE_CLOSE: ['Pill slides to the chute', 'The pill slides down the shared funnel while the pin lowers out of the pocket.'],
+    BLADE_CLOSED_DWELL: ['Pin clear (dwell)', 'Short pause with the pin lowered below the deck.'],
+    PIN_LIFT: ['Arm returns to park', 'The arm swings back to its home position under the deck.'],
     TONGUE_RELEASE: ['Pill falls down the chute', 'The pill drops down the single chute along the flask wall.'],
     PILL_CLEAR: ['Pill lands in the cup', 'The pill lands in the collection cup in the base.'],
-    TONGUE_RETURN: ['Carrier parks', 'The rod and carrier are at rest; nothing else moved.']
+    TONGUE_RETURN: ['Carriage parks', 'The arm and carriage are at rest; nothing else moved.']
   };
 
   function build(ctx) {
     var T = ctx.THREE, S = ctx.S, M = ctx.mats, COLORS = ctx.COLORS, std = ctx.std;
-    var CYa = S.axle[1], N = 12, P = TAU / N, CAP = 5, WH = 7.5, RT = 0.8, TAB = 2.5, VMIN = 1.4;
-    var RR = [14, 19, 24, 29], ZL = [69, 45, 21, -3], ZT = S.table_z, ZTOP = 84, SR = 42.5, RROD = 38.5, RCH = 38.5, TB = 4;
-    var thE = -20 * Math.PI / 180, PARK = thE + 170 * Math.PI / 180, SV = S.act.servo;
+    var CYa = S.axle[1], N = 12, P = TAU / N, CAP = 5, WH = 7.5, RT = 0.8, VMIN = 1.4, SV = S.act.servo;
+    var RR = [12.5, 20, 27.5, 35], TB = 3.5, ZT = S.table_z, ZD0 = 100, ZR = 103, ZLID = 120, SR = 45, RCH = 39.8, FOOT = 54;
+    var thE = -20 * Math.PI / 180, PARK = thE + 170 * Math.PI / 180;
     var st = { active: false, q: 0.45, sel: -1, lid: 0, lidT: 0, session: false };
-    var root = new T.Group(); root.name = 'stacked flask'; root.position.set(0, 0, -CYa); root.visible = false; ctx.parent.add(root);
+    var root = new T.Group(); root.name = 'slim flask'; root.position.set(0, 0, -CYa); root.visible = false; ctx.parent.add(root);
     var PR = std(0x9fc2e6, { transparent: true, opacity: 0.8, roughness: 0.45 }), SILVER = std(0xc9d1da, { metalness: 0.7, roughness: 0.3 }), WHITE = std(0xf1f3f5, { roughness: 0.4 });
     var GLASS = std(0xdfe8f0, { transparent: true, opacity: 0.14, roughness: 0.1, metalness: 0.2, side: T.DoubleSide, depthWrite: false });
+    var DARKPCB = std(0x1b1f24, { roughness: 0.6 }), BLUEPCB = std(0x1b4f9c, { roughness: 0.6 });
 
     function tag(o, label, kind, piece, type) { ctx.rtag(o, label, kind, piece); o.userData.ring = true; if (type) ctx.ptype(o, type); return o; }
     function edges(m) { m.add(new T.LineSegments(new T.EdgesGeometry(m.geometry, 30), ctx.EL)); return m; }
@@ -58,43 +59,63 @@
       var m = new T.Mesh(new T.ExtrudeGeometry(s, { depth: l1 - l0, bevelEnabled: false }), mat); m.position.z = -l1; par.add(m); return edges(m);
     }
 
-    // ---------- housing: slim glass flask, white base, steel spine, ledges ----------
-    var shell = new T.Mesh(new T.CylinderGeometry(SR, SR, ZTOP - ZT - 5, 72, 1, true), GLASS); shell.position.y = (ZTOP + ZT + 5) / 2; root.add(shell); tag(shell, 'Flask shell', 'printed', 'shell');
-    tag(cy(root, 0, 0, ZT, ZT + 5, SR + 0.4, WHITE, 72), 'Flask base', 'printed', 'base');
-    [ZT + 5, ZTOP - 3].forEach(function (z) { var b = new T.Mesh(ringGeo(SR + 0.6, SR - 1.2, 3), SILVER); b.position.y = z; root.add(b); });
-    tag(cy(root, 0, 0, -6, ZTOP, 6, SILVER, 40), 'Central spine', 'bought', 'spine');
-    var lidG = new T.Group(); root.add(lidG); tag(cy(lidG, 0, 0, ZTOP, ZTOP + 8, SR + 0.6, SILVER, 72), 'Flask lid', 'printed', 'lid'); tag(cy(lidG, 0, 0, ZTOP + 8, ZTOP + 11, 9, WHITE, 40), 'Flask lid', 'printed', 'lid');
-    RR.forEach(function (r, k) { var l = new T.Mesh(ringGeo(r + TB + 1.5, 6, 1.5), PR); l.position.y = ZL[k] - 1.5; root.add(l); tag(edges(l), 'Ring ledge', 'printed', 'ledge' + k); });
-    tag(cy(root, 0, 0, -4.5, -3, SR - 1, PR, 72), 'Flask base', 'printed', 'base');
-
-    // ---------- one exit ramp per ring, ONE shared chute, one cup ----------
-    var exitG = new T.Group(); exitG.rotation.y = thE; root.add(exitG);
-    RR.forEach(function (r, k) { tag(profile(exitG, [[r + TB, ZL[k] - 1], [RCH - 3, ZL[k] - 11], [RCH - 3, ZL[k] - 10], [r + TB, ZL[k]]], -3.2, 3.2, PR), 'Exit ramp', 'printed', 'ramp' + k); });
-    tag(cy(exitG, RCH, 0, -44, ZL[0] - 6, 3.6, GLASS, 28, true), 'Shared chute', 'printed', 'chute');
-    tag(cy(exitG, RCH, 0, -47, -38, 8.5, GLASS, 32, true), 'Collection cup', 'printed', 'cup');
-    tag(cy(exitG, RCH, 0, -47, -46, 8.5, PR, 32), 'Collection cup', 'printed', 'cup');
-
-    // ---------- rings ----------
-    var rings = [], pillMats = [], rimMats = [];
+    // ---------- ring geometry helpers ----------
     function pitchMm(k) { return P * RR[k]; }
-    function pocketW(k, q) { var cmax = Math.max(0.6, Math.min(3.0, pitchMm(k) - VMIN - PILLS[k].L)); return PILLS[k].L + 0.6 + (cmax - 0.6) * q; }
+    function cmaxOf(k) { return Math.max(0.6, Math.min(3.0, pitchMm(k) - VMIN - PILLS[k].L)); }
+    function pocketW(k, q) { return PILLS[k].L + 0.6 + (cmaxOf(k) - 0.6) * q; }
     function vaneT(k, q) { return pitchMm(k) - pocketW(k, q); }
     function slack(k) { return Math.max(0, (pocketW(k, st.q) - PILLS[k].L) / 2) / RR[k]; }
+    function arcOf(k) {
+      var d = (vaneT(k, 1) / 2 + PIN_R + 0.05 + 1.2) / RR[k];
+      return [thE + 3 * P + d, thE + 5 * P - d];
+    }
+
+    // ---------- housing: slim flask, white base, silver lid ----------
+    var shell = new T.Mesh(new T.CylinderGeometry(SR, SR, ZLID - ZT - 5, 72, 1, true), GLASS); shell.position.y = (ZLID + ZT + 5) / 2; root.add(shell); tag(shell, 'Flask shell', 'printed', 'shell');
+    // wide foot: the base flares out to FOOT so the tall flask does not tip easily
+    var foot = new T.Mesh(new T.CylinderGeometry(SR + 0.4, FOOT, 5, 72), WHITE); foot.position.y = ZT + 2.5; root.add(foot); tag(foot, 'Flask base', 'printed', 'base');
+    [ZT + 5, ZLID - 3].forEach(function (z) { var b = new T.Mesh(ringGeo(SR + 0.6, SR - 1.2, 3), SILVER); b.position.y = z; root.add(b); });
+    var lidG = new T.Group(); root.add(lidG);
+    tag(cy(lidG, 0, 0, ZLID, ZLID + 8, SR + 0.6, SILVER, 72), 'Flask lid', 'printed', 'lid'); tag(cy(lidG, 0, 0, ZLID + 8, ZLID + 11, 9, WHITE, 40), 'Flask lid', 'printed', 'lid');
+    // deck: exit wedge and one pin arc slot per ring cut through it
+    (function () {
+      var sh = new T.Shape(); sh.absarc(0, 0, SR - 1.5, 0, TAU, false);
+      var a0 = thE, a1 = thE + 34 * Math.PI / 180, w = new T.Path();
+      w.moveTo(8 * Math.cos(a0), 8 * Math.sin(a0)); w.lineTo(40 * Math.cos(a0), 40 * Math.sin(a0)); w.absarc(0, 0, 40, a0, a1, false); w.lineTo(8 * Math.cos(a1), 8 * Math.sin(a1)); w.absarc(0, 0, 8, a1, a0, true); w.closePath(); sh.holes.push(w);
+      RR.forEach(function (r, k) {
+        var q = new T.Path(), b0 = arcOf(k)[0], b1 = arcOf(k)[1], ro = r + 1.2, ri = r - 1.2;
+        q.moveTo(ro * Math.cos(b0), ro * Math.sin(b0)); q.absarc(0, 0, ro, b0, b1, false); q.lineTo(ri * Math.cos(b1), ri * Math.sin(b1)); q.absarc(0, 0, ri, b1, b0, true); q.closePath(); sh.holes.push(q);
+      });
+      var g = new T.ExtrudeGeometry(sh, { depth: ZR - ZD0, bevelEnabled: false, curveSegments: 72 }); g.rotateX(-Math.PI / 2);
+      var deck = new T.Mesh(g, PR); deck.position.y = ZD0; root.add(deck); tag(edges(deck), 'Flask deck', 'printed', 'deck');
+    }());
+    tag(cy(root, 0, 0, ZR, ZR + WH, 7, SILVER, 40), 'Central post', 'bought', 'post');
+
+    // ---------- one funnel, ONE chute down the wall, one cup in the base ----------
+    var exitG = new T.Group(); exitG.rotation.y = thE; root.add(exitG);
+    function zfun(x) { return (ZD0 - 1) + (88 - (ZD0 - 1)) * (x - 8) / (RCH - 3 - 8); }
+    tag(profile(exitG, [[8, ZD0 - 2], [RCH - 3, 87], [RCH - 3, 88], [8, ZD0 - 1]], -13, 13, PR), 'Exit funnel', 'printed', 'funnel');
+    [[-14, -13], [13, 14]].forEach(function (l) { tag(profile(exitG, [[8, ZD0 - 1], [RCH - 3, 88], [RCH - 3, ZD0], [8, ZD0]], l[0], l[1], PR), 'Exit funnel', 'printed', 'funnel'); });
+    tag(cy(exitG, RCH, 0, -30, 90, 3.6, GLASS, 28, true), 'Shared chute', 'printed', 'chute');
+    var CUPX = 34;
+    tag(cy(exitG, CUPX, 0, -46, -28, 8.5, GLASS, 32, true), 'Collection cup', 'printed', 'cup'); tag(cy(exitG, CUPX, 0, -46, -45, 8.5, PR, 32), 'Collection cup', 'printed', 'cup');
+
+    // ---------- rings (open on top, directly under the lid) ----------
+    var rings = [], pillMats = [], rimMats = [];
     COLORS.forEach(function (color, k) {
       var r0 = RR[k] - TB, r1 = RR[k] + TB, accent = ctx.accent[color] || 0x8294a5, g = new T.Group(), rim = std(accent, { transparent: true, opacity: 0.5, roughness: 0.5, side: T.DoubleSide, depthWrite: false }), solid = std(accent, { roughness: 0.55 });
-      rimMats.push(rim); g.position.y = ZL[k] + 0.2; root.add(g);
+      rimMats.push(rim); g.position.y = ZR + 0.2; root.add(g);
       var parts = [new T.Mesh(ringGeo(r0 + RT, r0, WH), rim), new T.Mesh(ringGeo(r1, r1 - RT, WH), rim), new T.Mesh(ringGeo(r1, r1 - RT - 0.2, 0.9), solid)];
       parts[2].position.y = WH - 0.9; parts.forEach(function (m) { g.add(m); tag(m, 'Ring magazine', 'printed', 'ring' + k); });
-      var vanes = [], tabs = [], width = (r1 - RT) - (r0 + RT) + 0.2;
+      var vanes = [], width = (r1 - RT) - (r0 + RT) + 0.2;
       for (var j = 0; j < N; j++) {
         var vg = new T.Group(); vg.rotation.y = thE - j * P; g.add(vg);
         var v = new T.Mesh(new T.BoxGeometry(width, WH, 1), solid); v.position.set(RR[k], WH / 2, 0); vg.add(v); tag(v, 'Ring magazine', 'printed', 'ring' + k); vanes.push(v);
-        var tb = new T.Mesh(new T.BoxGeometry(TAB + RT, 3, 1), solid); tb.position.set(r1 + (TAB - RT) / 2, WH - 2.2, 0); vg.add(tb); tag(tb, 'Ring magazine', 'printed', 'ring' + k); tabs.push(tb);
       }
-      rings.push({ k: k, g: g, vanes: vanes, tabs: tabs, K: 0, A: 0, pills: [], sess: false, canon: true });
+      rings.push({ k: k, g: g, vanes: vanes, K: 0, A: 0, pills: [], sess: false, canon: true });
       pillMats.push({ main: std(accent, { roughness: 0.35 }), white: std(0xf4f4f0, { roughness: 0.4 }) });
     });
-    function applyPocket() { rings.forEach(function (r) { var t = vaneT(r.k, st.q); r.vanes.forEach(function (v) { v.scale.z = t; }); r.tabs.forEach(function (v) { v.scale.z = t; }); }); }
+    function applyPocket() { rings.forEach(function (r) { var t = vaneT(r.k, st.q); r.vanes.forEach(function (v) { v.scale.z = t; }); }); }
     applyPocket();
 
     // ---------- pills ----------
@@ -117,7 +138,7 @@
     function pocketCenter(r, m) { return r.A + thE - (m + 0.5) * P; }
     function placePill(p, r) {
       var phi = pocketCenter(r, p.m) + p.off;
-      p.mesh.position.set(RR[p.k] * Math.cos(phi), ZL[p.k] + p.drop * 9, -RR[p.k] * Math.sin(phi)); p.mesh.rotation.set(0, phi + Math.PI / 2, 0); p.mesh.visible = true;
+      p.mesh.position.set(RR[p.k] * Math.cos(phi), ZR + p.drop * 9, -RR[p.k] * Math.sin(phi)); p.mesh.rotation.set(0, phi + Math.PI / 2, 0); p.mesh.visible = true;
     }
     function movePills(r, dA) { var sl = slack(r.k); r.A += dA; r.pills.forEach(function (p) { p.off = Math.max(-sl, Math.min(sl, p.off - dA)); }); }
     function crossed(r) {
@@ -128,31 +149,38 @@
       return null;
     }
 
-    // ---------- the actuator at the bottom: stepper, arm, two servos; rod with carrier and pin beside the stack ----------
-    var Z_ARM0 = -9, Z_ARM1 = -7.6, ZTAB = function (k) { return ZL[k] + 0.2 + WH - 2.2; };
+    // ---------- under the deck: stepper, arm with carriage and pin, two servos ----------
+    var ZA0 = 96, ZA1 = 97.4, ZRET = ZD0 + 1.5, ZENG = ZR + 5;
+    tag(bx(root, -21, 21, -6, 6, 74, 75.5, PR), 'Stepper mount', 'printed', 'plate');
+    [-17.5, 17.5].forEach(function (x) { tag(cy(root, x, 0, 75.5, ZD0, 2, PR, 14), 'Stepper mount', 'printed', 'columns'); });
+    tag(cy(root, 0, 0, 76, 95, 14, SILVER, 40), '28BYJ-48 stepper', 'bought', 'motor-body');
+    tag(cy(root, 0, 0, 95, 99.5, 2.5, M.steel, 14), '28BYJ-48 stepper', 'bought', 'motor-shaft');
     var armG = new T.Group(); root.add(armG);
-    tag(cy(root, 0, 0, -48, -29, 14, SILVER, 40), '28BYJ-48 stepper', 'bought', 'motor-body');
-    tag(cy(root, 0, 0, -29, -7.6, 2.5, M.steel, 14), '28BYJ-48 stepper', 'bought', 'motor-shaft');
-    tag(cy(armG, 0, 0, -10, -5.5, 7, PR, 32), 'Actuator arm', 'printed', 'arm');
-    tag(bx(armG, 7, RROD + 1.5, -3, 3, Z_ARM0, Z_ARM1, PR), 'Actuator arm', 'printed', 'arm');
-    tag(cy(armG, RROD, 0, Z_ARM0, ZTOP - 6, 1.6, M.steel, 14), 'Actuator arm', 'bought', 'rod');
+    tag(cy(armG, 0, 0, 94, 99, 7, PR, 32), 'Actuator arm', 'printed', 'arm');
+    tag(bx(armG, 7, 10, -3, 3, ZA0, ZA1, PR), 'Actuator arm', 'printed', 'arm');
+    tag(bx(armG, 7, 38.5, -3, -1.5, ZA0, ZA1, PR), 'Actuator arm', 'printed', 'arm');
+    tag(bx(armG, 7, 38.5, 1.5, 3, ZA0, ZA1, PR), 'Actuator arm', 'printed', 'arm');
     function servoLabel(list, label) { list.forEach(function (m) { tag(m, label, 'bought', 'servo', 'electronic'); }); }
-    servoLabel([bx(armG, 4, 27, 1, 23, -21.2, Z_ARM0, M.blue, false)], 'Micro servo S1 (pin)');
-    servoLabel([bx(armG, 4, 27, -23, -1, -21.2, Z_ARM0, M.blue, false)], 'Micro servo S2 (tongue)');
-    var carG = new T.Group(); armG.add(carG); carG.position.x = RROD;
-    tag(bx(carG, -3.2, 3.2, -3.2, 3.2, -2.2, 2.2, PR), 'Actuator arm', 'printed', 'carriage');
-    var pinGeo = new T.CylinderGeometry(PIN_R, PIN_R, 1, 14); pinGeo.rotateZ(Math.PI / 2);
-    var pinM = new T.Mesh(pinGeo, M.dark); carG.add(pinM); tag(pinM, 'Engagement pin', 'bought', 'pin');
-    function wire(l) { var g = new T.CylinderGeometry(0.35, 0.35, 1, 8), m = new T.Mesh(g, M.steel); m.position.set(RROD - 1.8, 0, -l); armG.add(m); tag(m, 'Push-pull cable', 'bought', 'cable'); return m; }
-    var wireA = wire(2.2), wireB = wire(-2.2);
-    // electronics in the base: ESP32 with the ULN2003 board stacked above it
-    var espG = [bx(root, -34, -15, -10, 10, -47, -45.4, new T.MeshStandardMaterial({ color: 0x1b1f24 }), false), bx(root, -32, -17, -5, 5, -45.4, -42, M.steel, false)];
-    espG.forEach(function (m) { tag(m, 'ESP32 controller', 'bought', 'esp'); });
-    var ulnG = [bx(root, -34, -15, -12, 12, -38, -36.4, new T.MeshStandardMaterial({ color: 0x1b4f9c }), false), bx(root, -31, -19, -6, 6, -36.4, -30, M.white, false)];
-    ulnG.forEach(function (m) { tag(m, 'ULN2003 driver board', 'bought', 'uln'); });
-    [[-33, -9], [-16, -9], [-33, 9], [-16, 9]].forEach(function (c) { var s = cy(root, c[0], c[1], -47, -38, 1.4, M.steel, 10); tag(s, 'Base standoff', 'printed', 'standoff'); });
-    // steel ballast ring in the base
-    var BALLAST = { r0: 30, r1: 40, z0: -50.4, z1: -46.4 };
+    servoLabel([bx(armG, 17, 40, 1.6, 13.8, ZA0 - SV.h, ZA0, M.blue, false)], 'Micro servo S1 (pin)');
+    servoLabel([bx(armG, 17, 40, -13.8, -1.6, ZA0 - SV.h, ZA0, M.blue, false)], 'Micro servo S2 (tongue)');
+    var carG = new T.Group(); armG.add(carG);
+    tag(bx(carG, -4.5, 4.5, -4.5, 4.5, ZA1, ZD0, PR), 'Actuator arm', 'printed', 'carriage');
+    var pinG = new T.Group(); carG.add(pinG);
+    var pr = new T.Mesh(new T.CylinderGeometry(PIN_R, PIN_R, PIN_LEN, 14), M.dark); pr.position.y = PIN_LEN / 2; pinG.add(pr);
+    var pc = new T.Mesh(new T.CylinderGeometry(0.3, PIN_R, 1.6, 14), M.dark); pc.position.y = PIN_LEN - 0.8; pinG.add(pc);
+    [pr, pc].forEach(function (m) { tag(m, 'Engagement pin', 'bought', 'pin'); });
+    function wire(l) { var g = new T.CylinderGeometry(0.35, 0.35, 1, 8); g.rotateZ(Math.PI / 2); var m = new T.Mesh(g, M.steel); m.position.set(0, ZA1 + 1.3, -l); armG.add(m); tag(m, 'Push-pull cable', 'bought', 'cable'); return m; }
+    var wireA = wire(-3.5), wireB = wire(3.5);
+
+    // ---------- electronics, battery and cup at the bottom ----------
+    var BZ = ZT + 5;
+    [[-34, -9], [-16, -9], [-34, 9], [-16, 9]].forEach(function (c) { tag(cy(root, c[0], c[1], 30, 36, 1.4, M.steel, 10), 'Base standoff', 'printed', 'standoff'); });
+    tag(bx(root, -37, -12, -14, 14, 28.5, 30, PR), 'Electronics shelf', 'printed', 'shelf');
+    [bx(root, -34, -15, -10, 10, 36, 37.6, DARKPCB, false), bx(root, -32, -17, -5, 5, 37.6, 41, M.steel, false)].forEach(function (m) { tag(m, 'ESP32 controller', 'bought', 'esp'); });
+    [bx(root, -34, -15, -12, 12, 46, 47.6, BLUEPCB, false), bx(root, -31, -19, -6, 6, 47.6, 54, M.white, false)].forEach(function (m) { tag(m, 'ULN2003 driver board', 'bought', 'uln'); });
+    [[-20, 12], [-2, 12]].forEach(function (c) { tag(cy(root, c[0], c[1], BZ, BZ + 65, 9.2, std(0x2f7fd1, { roughness: 0.4 }), 28), 'Battery 18650', 'bought', 'battery', 'electronic'); });
+    tag(bx(root, -45, -41, -6, 6, BZ + 6, BZ + 14, M.dark, false), 'USB-C inlet 5 V', 'bought', 'jack', 'electronic');
+    var BALLAST = { r0: 22, r1: 40, z0: ZT + 5, z1: ZT + 11 };
     tag(new T.Mesh(ringGeo(BALLAST.r1, BALLAST.r0, BALLAST.z1 - BALLAST.z0), M.steel), 'Base ballast', 'bought', 'ballast').position.y = BALLAST.z0;
 
     // loading-window marker and the pill bottle
@@ -165,16 +193,15 @@
      [new T.CylinderGeometry(5.65, 5.65, 7, 28), bandMat, 12]].forEach(function (e) { var m = new T.Mesh(e[0], e[1]); m.rotation.z = Math.PI / 2; m.position.x = e[2]; bTilt.add(m); });
 
     // ---------- shared state ----------
-    var arm = { theta: PARK, zc: ZTAB(3), ext: 0, k: 3 }, rec = null, cup = [], tasks = [], task = null, last = 0;
-    function tipR(k) { return RR[k] + TB + TAB * 0.6; }
-    function delta(k) { return (vaneT(k, st.q) / 2 + PIN_R + 0.05) / tipR(k); }
+    var arm = { theta: PARK, carr: RR[0], pin: 0 }, rec = null, cup = [], tasks = [], task = null, last = 0;
+    function delta(k) { return (vaneT(k, st.q) / 2 + PIN_R + 0.05) / RR[k]; }
     function norm(a) { while (a < 0) a += TAU; while (a >= TAU) a -= TAU; return a; }
     function thetaFwd(k) { return norm(thE - 8 * P - delta(k)); }
     function thetaRev(k) { return norm(thE - 8 * P + delta(k)); }
     function applyArm() {
-      armG.rotation.y = arm.theta; carG.position.y = arm.zc;
-      var len = Math.max(1, RROD - lerp(RROD - 1.5, tipR(arm.k), arm.ext)); pinM.scale.x = len; pinM.position.x = -len / 2;
-      var h = Math.max(1, arm.zc - Z_ARM0); [wireA, wireB].forEach(function (w) { w.scale.y = h; w.position.y = Z_ARM0 + h / 2; });
+      armG.rotation.y = arm.theta; carG.position.x = arm.carr;
+      pinG.position.y = lerp(ZRET, ZENG, arm.pin) - PIN_LEN;
+      var L = Math.max(1, arm.carr - 4.5 - 10.5); [wireA, wireB].forEach(function (w) { w.scale.x = L; w.position.x = 10.5 + L / 2; });
     }
     function applyRings(selColor) {
       rings.forEach(function (r) {
@@ -183,14 +210,14 @@
         r.pills.forEach(function (p) { if (p.drop > 0 && !p.hold) p.drop = Math.max(0, p.drop - 0.06); placePill(p, r); });
       });
     }
-    function cupSpot(n) { var dx = ((n % 3) - 1) * 3, dy = (Math.floor(n / 3) % 2 - 0.5) * 3.5, c = Math.cos(thE), s = Math.sin(thE); return [(RCH + dx) * c - dy * s, (RCH + dx) * s + dy * c, -46 + Math.floor(n / 6) * 3]; }
+    function cupSpot(n) { var dx = ((n % 3) - 1) * 3, dy = (Math.floor(n / 3) % 2 - 0.5) * 3.5, c = Math.cos(thE), s = Math.sin(thE); return [(CUPX + dx) * c - dy * s, (CUPX + dx) * s + dy * c, -45 + Math.floor(n / 6) * 3]; }
     function landPill(p) { var sp = cupSpot(cup.length); p.mesh.position.set(sp[0], sp[2], -sp[1]); p.mesh.rotation.set(0, 0.6 * cup.length, 0); cup.push(p); }
     function fallPose(f, tau) {
-      var k = f.p.k, c = Math.cos(thE), s = Math.sin(thE), sp = cupSpot(cup.length), pos, yaw;
-      var rampEnd = [RCH - 3, ZL[k] - 11], tubeBot = -39;
-      if (tau < 0.22) { var u = ease(tau / 0.22), r = lerp(f.r0, rampEnd[0], u), a = lerp(f.a0, thE, u); pos = [r * Math.cos(a), r * Math.sin(a), lerp(ZL[k], rampEnd[1], u)]; yaw = lerp(f.yaw0, thE, u); }
-      else if (tau < 0.82) { var d = (tau - 0.22) / 0.6, x = lerp(rampEnd[0], RCH, Math.min(1, d * 3)); pos = [x * c, x * s, lerp(rampEnd[1], tubeBot, d * d)]; yaw = thE + d * 3; }
-      else { var l = (tau - 0.82) / 0.18; pos = [lerp(RCH * c, sp[0], l), lerp(RCH * s, sp[1], l), lerp(tubeBot, sp[2], l * l)]; yaw = thE + 3; }
+      var k = f.p.k, c = Math.cos(thE), s = Math.sin(thE), sp = cupSpot(cup.length), pos, yaw, xe = RCH - 3;
+      if (tau < 0.07) { var u = ease(tau / 0.07); pos = [f.r0 * Math.cos(f.a0), f.r0 * Math.sin(f.a0), lerp(ZR, zfun(f.r0) + 0.1, u)]; yaw = f.yaw0; }
+      else if (tau < 0.35) { var d = ease((tau - 0.07) / 0.28), x = lerp(f.r0, xe, d), a = lerp(f.a0, thE, d); pos = [x * Math.cos(a), x * Math.sin(a), zfun(x) + 0.1]; yaw = lerp(f.yaw0, thE, d); }
+      else if (tau < 0.9) { var e = (tau - 0.35) / 0.55, x2 = lerp(xe, RCH, Math.min(1, e * 4)); pos = [x2 * c, x2 * s, lerp(88, -38, e * e)]; yaw = thE + e * 4; }
+      else { var l = (tau - 0.9) / 0.1; pos = [lerp(RCH * c, sp[0], l), lerp(RCH * s, sp[1], l), lerp(-38, sp[2], l)]; yaw = thE + 4; }
       f.p.mesh.position.set(pos[0], pos[2], -pos[1]); f.p.mesh.rotation.set(0, yaw, 0); f.p.mesh.visible = true;
     }
     function cum(ph, q) { var i = ORDER.indexOf(ph); if (i < 0) return 0; var c = 0; for (var j = 0; j < i; j++) c += DURS[j]; return c + q * DURS[i]; }
@@ -200,30 +227,29 @@
     function startDispense(s, k) {
       var r = rings[k], n = s.cartridges[s.selected].count;
       if (!r.canon || r.pills.length !== n) { rebuild(r, n); r.sess = false; }
-      rec = { k: k, sawDrum: false, z0: arm.zc, K0: r.K, A0: r.A, fall: null, adv: 0 };
+      rec = { k: k, sawDrum: false, c0: arm.carr, K0: r.K, A0: r.A, fall: null, adv: 0 };
     }
     function finishDispense() {
       if (!rec) return;
       var r = rings[rec.k];
       if (rec.fall) { landPill(rec.fall.p); rec.fall = null; }
       if (rec.adv >= 0.999) { r.K = rec.K0 + 1; r.A = r.K * P; } else { r.A = rec.A0 + rec.adv * P; }
-      arm.theta = PARK; arm.zc = ZTAB(rec.k); arm.ext = 0; rec = null;
+      arm.theta = PARK; arm.carr = RR[rec.k]; arm.pin = 0; rec = null;
     }
     function dispenseDrive(s) {
       var k = ringOf(s); if (k < 0) return;
       if (!rec) startDispense(s, k);
-      var r = rings[rec.k], ph = s.phase, q = s.phaseProgress || 0, e = ease(q), thF = thetaFwd(rec.k), zc = ZTAB(rec.k), th = PARK, ext = 0, adv = 0;
-      arm.k = rec.k;
-      if (ph === 'DRUM_ROTATE') { rec.sawDrum = true; zc = lerp(rec.z0, zc, e); }
-      else if (ph === 'CARRIAGE_APPROACH') { zc = rec.sawDrum ? zc : lerp(rec.z0, zc, e); th = lerp(PARK, thF, e); }
-      else if (ph === 'PIN_ENGAGE') { th = thF; ext = e; }
-      else if (ph === 'BLADE_PULL_RELEASE') { th = thF + e * P; ext = 1; adv = e; }
-      else if (ph === 'STACK_SETTLE') { th = thF + P; ext = 1; adv = 1; }
-      else if (ph === 'BLADE_ISOLATE_CLOSE') { th = thF + P; ext = 1 - e; adv = 1; }
+      var r = rings[rec.k], ph = s.phase, q = s.phaseProgress || 0, e = ease(q), thF = thetaFwd(rec.k), carr = RR[rec.k], th = PARK, pin = 0, adv = 0;
+      if (ph === 'DRUM_ROTATE') { rec.sawDrum = true; carr = lerp(rec.c0, carr, e); }
+      else if (ph === 'CARRIAGE_APPROACH') { carr = rec.sawDrum ? carr : lerp(rec.c0, carr, e); th = lerp(PARK, thF, e); }
+      else if (ph === 'PIN_ENGAGE') { th = thF; pin = e; }
+      else if (ph === 'BLADE_PULL_RELEASE') { th = thF + e * P; pin = 1; adv = e; }
+      else if (ph === 'STACK_SETTLE') { th = thF + P; pin = 1; adv = 1; }
+      else if (ph === 'BLADE_ISOLATE_CLOSE') { th = thF + P; pin = 1 - e; adv = 1; }
       else if (ph === 'BLADE_CLOSED_DWELL') { th = thF + P; adv = 1; }
       else if (ph === 'PIN_LIFT') { th = lerp(thF + P, PARK, e); adv = 1; }
       else if (ORDER.indexOf(ph) >= 0) adv = 1;
-      arm.theta = th; arm.zc = zc; arm.ext = ext; rec.adv = Math.max(rec.adv, adv);
+      arm.theta = th; arm.carr = carr; arm.pin = pin; rec.adv = Math.max(rec.adv, adv);
       var A = (rec.K0 + adv) * P, dA = A - r.A;
       if (Math.abs(dA) > 1e-9) movePills(r, dA);
       if (!rec.fall) { var c = crossed(r); if (c) { r.pills.splice(r.pills.indexOf(c), 1); var phi = pocketCenter(r, c.m) + c.off; rec.fall = { p: c, r0: RR[r.k], a0: phi, yaw0: phi + Math.PI / 2, tau0: cum(ph, q) }; } }
@@ -232,21 +258,21 @@
 
     // ---------- timed tasks (refill) ----------
     function enqueue(t) { tasks.push(t); }
-    function armTo(theta, k, dur, ext) {
+    function armTo(theta, k, dur, pin) {
       var f;
-      enqueue({ dur: dur, start: function () { f = { th: arm.theta, z: arm.zc, e: arm.ext }; arm.k = k; }, run: function (q) { var e = ease(q); arm.theta = lerp(f.th, theta, e); arm.zc = lerp(f.z, ZTAB(k), e); if (ext !== undefined) arm.ext = lerp(f.e, ext, e); } });
+      enqueue({ dur: dur, start: function () { f = { th: arm.theta, c: arm.carr, p: arm.pin }; }, run: function (q) { var e = ease(q); arm.theta = lerp(f.th, theta, e); arm.carr = lerp(f.c, RR[k], e); if (pin !== undefined) arm.pin = lerp(f.p, pin, e); } });
     }
-    function extTo(v, dur) { var f; enqueue({ dur: dur, start: function () { f = arm.ext; }, run: function (q) { arm.ext = lerp(f, v, ease(q)); } }); }
+    function pinTo(v, dur) { var f; enqueue({ dur: dur, start: function () { f = arm.pin; }, run: function (q) { arm.pin = lerp(f, v, ease(q)); } }); }
     function stroke(k, dir) {
       var r = rings[k], th0 = dir > 0 ? thetaFwd(k) : thetaRev(k);
-      armTo(th0, k, 0.55, 0); extTo(1, 0.22);
+      armTo(th0, k, 0.55, 0); pinTo(1, 0.22);
       var A0;
       enqueue({ dur: 0.75, start: function () { A0 = r.A; }, run: function (q) { var e = ease(q); arm.theta = th0 + dir * e * P; movePills(r, A0 + dir * e * P - r.A); }, end: function () { r.K += dir; r.A = r.K * P; } });
-      extTo(0, 0.22);
+      pinTo(0, 0.22);
     }
-    // a bottle comes down over the marked pocket from above, tips, one pill drops, the bottle lifts away
+    // a bottle comes down over the marked pocket, tips, one pill drops, the bottle lifts away
     function loadDrop(k) {
-      var r = rings[k], p = null, ZB0 = ZL[k] + 15;
+      var r = rings[k], p = null, ZB0 = ZR + 15;
       enqueue({ dur: 2.0, start: function () { bandMat.color.setHex(ctx.accent[COLORS[k]] || 0x888888); bottle.visible = true; p = null; },
         run: function (q) {
           var phi = r.A + thE - 5.5 * P, up = q < 0.3 ? 1 - ease(q / 0.3) : q < 0.78 ? 0 : ease((q - 0.78) / 0.22);
@@ -270,7 +296,7 @@
     function busy() { return Boolean(task || tasks.length); }
     function frontU(r) { var u = N + 1; r.pills.forEach(function (p) { u = Math.min(u, uOf(r, p)); }); return u; }
 
-    // ---------- refill API (same shape as the concentric prototype) ----------
+    // ---------- refill API ----------
     function idle(s) { return !s || s.operation === null; }
     function host() { return window.DispenserStepHost && window.DispenserStepHost.controller.state; }
     var refill = {
@@ -281,7 +307,7 @@
           canLoad: free && st.lidT > 0 && r && r.pills.length < CAP, canIndex: free && st.lidT > 0 && r && r.sess && frontU(r) > 1, canLift: false, canFill: free && st.lidT > 0 && r && r.pills.length < CAP };
       },
       openLid: function () { if (!refill.state().canOpen) return false; st.lidT = 1; st.session = true; return true; },
-      select: function (k) { if (!refill.state().canSelect || k < 0 || k >= rings.length) return false; st.sel = k; armTo(PARK, k, 0.7, 0); return true; },
+      select: function (k) { if (!refill.state().canSelect || k < 0 || k >= rings.length) return false; st.sel = k; armTo(PARK, k, 0.6, 0); return true; },
       prepare: function () {
         if (!refill.state().canLoad) return false;
         var k = st.sel, r = rings[k];
@@ -310,7 +336,7 @@
     };
 
     // ---------- lid and per-frame update ----------
-    var lidHinge = new T.Vector3(0, ZTOP, -SR);
+    var lidHinge = new T.Vector3(0, ZLID, -SR);
     function applyLid() {
       st.lid += (st.lidT - st.lid) * 0.12; if (Math.abs(st.lidT - st.lid) < 0.002) st.lid = st.lidT;
       var a = -1.75 * ease(st.lid), c = Math.cos(a), s = Math.sin(a);
@@ -329,7 +355,7 @@
       sync(s); applyArm(); applyRings(s && s.operation === 'dispense' ? s.selected : null); applyLid();
       var sel = st.sel >= 0 ? rings[st.sel] : null;
       marker.visible = Boolean(sel && st.lidT > 0);
-      if (marker.visible) { var phi = sel.A + thE - 5.5 * P; marker.position.set(RR[sel.k] * Math.cos(phi), ZL[sel.k] + 0.4, -RR[sel.k] * Math.sin(phi)); }
+      if (marker.visible) { var phi = sel.A + thE - 5.5 * P; marker.position.set(RR[sel.k] * Math.cos(phi), ZR + 0.4, -RR[sel.k] * Math.sin(phi)); }
     }
 
     // Mass and tip-over estimate (ASSUMED densities and bought-part masses).
@@ -337,22 +363,22 @@
       var RHO = 0.6, items = [], c = Math.cos(arm.theta), s = Math.sin(arm.theta);
       function add(m, x, y, z, rot) { items.push({ m: m, x: x, y: y, z: z, rot: Boolean(rot) }); }
       function cyl(r, z0, z1, rho) { return Math.PI * r * r * (z1 - z0) / 1000 * rho; }
-      add(2 * Math.PI * SR * 1.5 * (ZTOP - ZT) / 1000 * 1.2, 0, 0, (ZTOP + ZT) / 2);
-      add(cyl(SR, ZT, ZT + 5, RHO), 0, 0, ZT + 2.5); add(cyl(SR, ZTOP, ZTOP + 8, RHO), 0, 0, ZTOP + 4); add(cyl(6, -6, ZTOP, 2.7), 0, 0, ZTOP / 2);
-      RR.forEach(function (r, k) { add(Math.PI * ((r + 5.5) * (r + 5.5) - 36) * 1.5 / 1000 * RHO, 0, 0, ZL[k] - 0.7); });
-      add(30, 0, 0, -38.5); add(10, -24, 0, -45); add(8, -24, 0, -34);
-      add(18, 12 * c, 12 * s, -15, true); add(5, RROD * c, RROD * s, 30, true); add(5, 18 * c, 18 * s, -8, true);
+      add(2 * Math.PI * SR * 1.5 * (ZLID - ZT) / 1000 * 1.2, 0, 0, (ZLID + ZT) / 2);
+      add(cyl(SR, ZT, ZT + 5, RHO), 0, 0, ZT + 2.5); add(cyl(SR, ZLID, ZLID + 8, RHO), 0, 0, ZLID + 4); add(cyl(SR - 1.5, ZD0, ZR, RHO), 0, 0, (ZD0 + ZR) / 2);
+      add(30, 0, 0, 85.5); add(12, 0, 0, 74.7); add(10, -24, 0, 38); add(8, -24, 0, 50);
+      add(94, -11, 12, BZ + 32.5); add(10, 0, 0, ZT + 20);
+      add(18, 28 * c, 28 * s, 85, true); add(5, 22 * c, 22 * s, 96.7, true);
       var ballast = Math.PI * (BALLAST.r1 * BALLAST.r1 - BALLAST.r0 * BALLAST.r0) * (BALLAST.z1 - BALLAST.z0) / 1000 * 7.85; add(ballast, 0, 0, (BALLAST.z0 + BALLAST.z1) / 2);
       rings.forEach(function (r) {
         var vol = 0.8 * WH * TAU * (RR[r.k] - TB + 0.4) + 0.8 * WH * TAU * (RR[r.k] + TB - 0.4) + N * (2 * TB - 2 * RT) * WH * vaneT(r.k, st.q);
-        add(vol / 1000 * 0.8 + r.pills.length * 0.25, 0, 0, ZL[r.k] + WH / 2, true);
+        add(vol / 1000 * 0.8 + r.pills.length * 0.25, 0, 0, ZR + WH / 2, true);
       });
-      add(cup.length * 0.25, RCH * Math.cos(thE), RCH * Math.sin(thE), -45);
+      add(cup.length * 0.25, CUPX * Math.cos(thE), CUPX * Math.sin(thE), -44);
       var M_ = 0, X = 0, Y = 0, Z = 0, rot = 0;
       items.forEach(function (i) { M_ += i.m; X += i.m * i.x; Y += i.m * i.y; Z += i.m * i.z; if (i.rot) rot += i.m; });
       X /= M_; Y /= M_; Z /= M_;
       var h = Z - ZT, off = Math.hypot(X, Y);
-      return { mass: M_, rotating: rot, com: [X, Y, Z], comAboveTable: h, tip: Math.atan2(SR - off, h) * 180 / Math.PI, height: ZTOP + 11 - ZT, diameter: 2 * SR };
+      return { mass: M_, rotating: rot, com: [X, Y, Z], comAboveTable: h, tip: Math.atan2(FOOT - off, h) * 180 / Math.PI, height: ZLID + 11 - ZT, diameter: 2 * SR };
     }
 
     var hidden = [];
@@ -372,7 +398,7 @@
       setPocket: function (q) { st.q = Math.max(0, Math.min(1, Number(q))); applyPocket(); rings.forEach(function (r) { var sl = slack(r.k); r.pills.forEach(function (p) { p.off = Math.max(-sl, Math.min(sl, p.off)); }); }); return st.q; },
       pocket: function () { return { q: st.q, widths: rings.map(function (r) { return Math.round(pocketW(r.k, st.q) * 10) / 10; }), dividers: rings.map(function (r) { return Math.round(vaneT(r.k, st.q) * 10) / 10; }), pills: PILLS.map(function (p) { return p.name + ' ' + p.L + 'x' + p.W; }) }; },
       label: function (ph) { return st.active && LABELS[ph] ? LABELS[ph] : null; },
-      report: function () { return { active: st.active, pockets: N, rings: rings.map(function (r) { return { k: r.k, K: r.K, pills: r.pills.length, front: frontU(r) }; }), arm: { theta: arm.theta, zc: arm.zc, ext: arm.ext }, cup: cup.length, lid: st.lid, busy: busy() }; },
+      report: function () { return { active: st.active, pockets: N, rings: rings.map(function (r) { return { k: r.k, K: r.K, pills: r.pills.length, front: frontU(r) }; }), arm: { theta: arm.theta, carr: arm.carr, pin: arm.pin }, cup: cup.length, lid: st.lid, busy: busy() }; },
       root: root, wiring: false
     };
   }

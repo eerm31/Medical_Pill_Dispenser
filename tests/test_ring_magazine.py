@@ -117,7 +117,7 @@ def test_prototype_2_has_its_own_refill_animation():
     assert "bottle" in ring and "prepare: function" in ring and "advance: function" in ring
 
 
-def test_prototype_2_is_a_slim_stacked_flask_with_electronics_at_the_bottom():
+def test_prototype_2_is_a_slim_tall_flask_with_everything_that_moves_below_the_deck():
     js = (VIS / "flask-magazine.js").read_text(encoding="utf-8")
     html = (VIS / "index.html").read_text(encoding="utf-8")
     assert "http://" not in js and "https://" not in js
@@ -125,8 +125,10 @@ def test_prototype_2_is_a_slim_stacked_flask_with_electronics_at_the_bottom():
     for value in ('value="legacy"', 'value="flask"', 'value="ring"'):
         assert value in html
     radii = [float(x) for x in re.search(r"RR = \[([\d., ]+)\]", js).group(1).split(",")]
-    heights = [float(x) for x in re.search(r"ZL = \[([-\d., ]+)\]", js).group(1).split(",")]
-    shell = float(re.search(r"SR = ([\d.]+)", js).group(1))
-    assert radii == sorted(radii) and heights == sorted(heights, reverse=True)  # wedge shape: widest ring lowest
-    assert 2 * shell <= 90.0 and max(heights) + 20 > 2 * shell  # slim: Ø <= 90 mm and taller than wide
-    assert min(heights) - 12 > -50  # all rings sit above the electronics bay
+    deck, lid, shell = (float(re.search(name + r" = ([\d.]+)", js).group(1)) for name in ("ZR", "ZLID", "SR"))
+    table = load_spec()["g"]["table_z"]
+    assert radii == sorted(radii) and radii[-1] + 4 < shell - 1.5  # concentric rings sit inside the wall
+    assert 2 * shell <= 92.0 and (lid + 11 - table) / (2 * shell) >= 1.9  # slim and tall like a flask
+    assert lid - deck >= 12.0  # room under the lid to pour
+    for name in ("stepper", "ESP32 controller", "Battery 18650", "Micro servo S1"):
+        assert name in js  # electronics and drive live in the same housing, below the rings
