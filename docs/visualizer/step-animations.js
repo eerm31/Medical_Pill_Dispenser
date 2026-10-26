@@ -67,18 +67,16 @@
       }
     },
     {
-      id: 'ringrefill', ring: true, label: 'Refill a ring (open lid, pour, index)', color: true, view: 'main',
+      id: 'ringrefill', ring: true, label: 'Refill a ring (open lid, pour, close)', color: true, view: 'main',
       check: function (s, c) { var m = ringMag(); return busy(s) || (!m ? 'not available' : null) || (s.cartridges[c].count >= 5 ? 'ring already full' : (m.refill.state().busy ? 'the mechanism is busy' : null)); },
       steps: function (s, c) {
         var m = ringMag(), k = COLORS.indexOf(c), have = s.cartridges[c].count, n = 5 - have, rf = m.refill, list = [];
-        list.push(localStep('Lid hinges open', 'The service lid swings up on its back hinge. The ring tops are completely free: nothing sits above them.', function () { return rf.openLid(); }, function () { return rfIdle() && rf.state().lidOpen; }));
-        list.push(localStep(cap(c) + ' ring selected', 'The ' + c + ' ring is lit and the marked loading pocket shows where to pour. The arm stays parked under the deck.', function () { return rf.select(k); }, rfIdle));
-        list.push(localStep(have ? 'Ring backs up to the last pill' : 'Arm engages from below', have ? 'The pin rises through the deck slot and turns the ring back so the next empty pocket reaches the marked spot.' : 'The pin is ready under the deck slot; the first empty pocket is already at the marked spot.', function () { return rf.prepare(); }, rfIdle));
+        list.push(localStep('Lid hinges open', 'The service lid swings up on its back hinge. Nothing sits above the rings, so every pocket is open from the top.', function () { return rf.openLid(); }, function () { return rfIdle() && rf.state().lidOpen; }));
+        list.push(localStep(cap(c) + ' ring selected', 'An amber ring marks the next empty pocket of the ' + c + ' ring. The ring and the arm stay where they are.', function () { return rf.select(k); }, rfIdle));
         for (var i = 1; i <= n; i++) {
-          list.push(localStep('Pill ' + (have + i) + ' of 5: pour', 'A pill bottle tips over the marked pocket and one pill drops between two dividers.', function () { return rf.drop(); }, rfIdle));
-          list.push(localStep('Ring indexes one pocket', 'The pin rises behind a divider and the arm moves the ring one pocket, so the next empty pocket reaches the marked spot.', function () { return rf.advance(); }, rfIdle));
+          list.push(localStep('Pill ' + (have + i) + ' of 5: pour', 'A pill bottle tips over the amber pocket and one pill drops between two dividers. The next empty pocket is marked.', function () { return rf.drop(); }, rfIdle));
         }
-        list.push(localStep('Lid hinges closed', 'The lid closes and the inventory is updated. The first pill now sits right before the exit slot.', function () { return rf.closeLid(); }, function () { return rfIdle() && rf.state().lidClosed; }));
+        list.push(localStep('Lid hinges closed', 'The lid closes and the inventory is updated. The first pill sits right before the exit slot, ready to dispense.', function () { return rf.closeLid(); }, function () { return rfIdle() && rf.state().lidClosed; }));
         return list;
       }
     },

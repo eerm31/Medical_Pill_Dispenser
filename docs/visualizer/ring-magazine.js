@@ -179,9 +179,11 @@
       });
     }
 
-    // loading-window marker (amber) shown while refilling
-    var marker = new T.Mesh(new T.RingGeometry(2.6, 3.6, 28), new T.MeshBasicMaterial({ color: 0xffb300, transparent: true, opacity: 0.9, depthTest: false, side: T.DoubleSide }));
-    marker.rotation.x = -Math.PI / 2; marker.renderOrder = 30; marker.visible = false; root.add(marker);
+    // amber marker on the next empty pocket of every ring that is not full (shown while the lid is open)
+    var markers = rings.map(function () {
+      var m = new T.Mesh(new T.RingGeometry(2.6, 3.6, 28), new T.MeshBasicMaterial({ color: 0xffb300, transparent: true, opacity: 0.9, side: T.DoubleSide }));
+      m.rotation.x = -Math.PI / 2; m.renderOrder = 30; m.visible = false; root.add(m); return m;
+    });
     // pill bottle held over the marked pocket while refilling (visual only)
     var bottle = new T.Group(), bTilt = new T.Group(); bottle.add(bTilt); bottle.visible = false; bottle.userData.noWire = true; root.add(bottle);
     var bandMat = std(0x888888, { roughness: 0.5 });
@@ -276,16 +278,16 @@
       enqueue({ dur: 0.75, start: function () { A0 = r.A; }, run: function (q) { var e = ease(q); arm.theta = th0 + dir * e * P; var dA = A0 + dir * e * P - r.A; movePills(r, dA); }, end: function () { r.K += dir; r.A = r.K * P; } });
       pinTo(0, 0.22);
     }
-    // a bottle comes down over the marked pocket, tips, one pill drops, the bottle lifts away
-    function loadDrop(k) {
-      var r = rings[k], p = null, ZB0 = ZF + 15;
-      enqueue({ dur: 2.0, start: function () { bandMat.color.setHex(ctx.accent[COLORS[k]] || 0x888888); bottle.visible = true; p = null; },
+    // pills go straight into the next empty pocket (u = count + 1): a bottle comes down over it, tips, one pill drops, the bottle lifts away
+    function loadDrop(k, quick) {
+      var r = rings[k], p = null, u = 1, ZB0 = ZF + 15;
+      enqueue({ dur: quick ? 0.9 : 1.5, start: function () { u = r.pills.length + 1; bandMat.color.setHex(ctx.accent[COLORS[k]] || 0x888888); bottle.visible = true; p = null; },
         run: function (q) {
-          var phi = r.A + thL[k] - 5.5 * P, up = q < 0.3 ? 1 - ease(q / 0.3) : q < 0.78 ? 0 : ease((q - 0.78) / 0.22);
-          var tilt = q < 0.3 ? 0 : q < 0.5 ? ease((q - 0.3) / 0.2) : q < 0.78 ? 1 : 1 - ease((q - 0.78) / 0.22);
+          var phi = r.A + thL[k] - (u - 0.5) * P, up = q < 0.25 ? 1 - ease(q / 0.25) : q < 0.8 ? 0 : ease((q - 0.8) / 0.2);
+          var tilt = q < 0.25 ? 0 : q < 0.45 ? ease((q - 0.25) / 0.2) : q < 0.8 ? 1 : 1 - ease((q - 0.8) / 0.2);
           bottle.position.set(rc[k] * Math.cos(phi), ZB0 + 28 * up, -rc[k] * Math.sin(phi)); bottle.rotation.y = phi + Math.PI / 2; bTilt.rotation.z = tilt * 0.62;
-          if (!p && q >= 0.5) { p = newPill(r, 6, 0); p.off = 0; p.hold = true; p.drop = 1.7; r.loading = p; }
-          if (p && q >= 0.5) { var f = Math.min(1, (q - 0.5) / 0.28); p.drop = 1.7 * (1 - f * f); }
+          if (!p && q >= 0.45) { p = newPill(r, u, 0); p.off = 0; p.hold = true; p.drop = 1.7; r.loading = p; }
+          if (p && q >= 0.45) { var f = Math.min(1, (q - 0.45) / 0.3); p.drop = 1.7 * (1 - f * f); }
         },
         end: function () { bottle.visible = false; if (p) { p.hold = false; p.drop = 0; } r.loading = null; pushCounts(); } });
     }
@@ -305,50 +307,45 @@
     // ---------- refill API ----------
     function idle(s) { return !s || s.operation === null; }
     function host() { return window.DispenserStepHost && window.DispenserStepHost.controller.state; }
+    function wait(dur, start, end) { enqueue({ dur: dur, start: start, run: function () {}, end: end }); }
+    function finishSession() { pushCounts(); st.session = false; st.sel = -1; }
     var refill = {
       state: function () {
-        var s = host(), k = st.sel, r = k >= 0 ? rings[k] : null, free = idle(s) && !busy();
-        return { lid: st.lidT > 0, ring: k, counts: rings.map(function (x) { return x.pills.length; }), busy: !free, lifted: Boolean(r && r.liftT > 0), lidOpen: st.lid > 0.98, lidClosed: st.lidT === 0 && st.lid < 0.02,
-          canOpen: free && st.lidT === 0, canClose: free && st.lidT > 0, canSelect: free && st.lidT > 0 && !rings.some(function (x) { return x.liftT > 0; }),
-          canLoad: free && st.lidT > 0 && r && r.liftT === 0 && r.pills.length < CAP, canIndex: free && st.lidT > 0 && r && r.liftT === 0 && r.sess && frontU(r) > 1,
-          canLift: free && st.lidT > 0 && Boolean(r), canFill: free && st.lidT > 0 && r && r.liftT === 0 && r.pills.length < CAP };
+        var s = host(), k = st.sel, r = k >= 0 ? rings[k] : null, free = idle(s) && !busy(), open = st.lidT > 0;
+        return { lid: open, ring: k, counts: rings.map(function (x) { return x.pills.length; }), busy: !free, lifted: false, lidOpen: st.lid > 0.98, lidClosed: st.lidT === 0 && st.lid < 0.02,
+          canOpen: free && !open, canClose: free && open, canSelect: free && open,
+          canLoad: free && open && Boolean(r) && r.pills.length < CAP, canFill: free && open && Boolean(r) && r.pills.length < CAP, canIndex: false, canLift: false,
+          canFillAll: free && rings.some(function (x) { return x.pills.length < CAP; }) };
       },
       openLid: function () { if (!refill.state().canOpen) return false; st.lidT = 1; st.session = true; return true; },
-      select: function (k) {
-        if (!refill.state().canSelect || k < 0 || k >= rings.length) return false;
-        st.sel = k; armTo(PARK, rc[k], 0.5, 0); return true;
-      },
-      load: function () {
-        if (!refill.state().canLoad) return false;
-        var k = st.sel, r = rings[k];
-        if (!r.sess) { r.sess = true; r.canon = false; var nrev = CAP - r.pills.length; for (var i = 0; i < nrev; i++) stroke(k, -1); armTo(PARK, rc[k], 0.5, 0); }
-        else armTo(PARK, rc[k], 0.45, 0);
-        loadDrop(k); stroke(k, 1); armTo(PARK, rc[k], 0.5, 0); return true;
-      },
-      // step-wise refill, one movement per call (used by the step-by-step player)
-      prepare: function () {
-        if (!refill.state().canLoad) return false;
-        var k = st.sel, r = rings[k];
-        if (!r.sess) { r.sess = true; r.canon = false; var n = CAP - r.pills.length; for (var i = 0; i < n; i++) stroke(k, -1); }
-        armTo(PARK, rc[k], 0.4, 0); return true;
-      },
-      drop: function () { if (!refill.state().canLoad || !rings[st.sel].sess) return false; loadDrop(st.sel); return true; },
-      advance: function () { if (!refill.state().canIndex) return false; var k = st.sel; stroke(k, 1); armTo(PARK, rc[k], 0.5, 0); return true; },
+      select: function (k) { if (!refill.state().canSelect || k < 0 || k >= rings.length) return false; st.sel = k; return true; },
+      prepare: function () { return refill.state().canLoad; },
+      load: function () { if (!refill.state().canLoad) return false; loadDrop(st.sel); return true; },
+      drop: function () { return refill.load(); },
+      advance: function () { return false; },
+      index: function () { return false; },
+      lift: function () { return false; },
       fill: function () {
         if (!refill.state().canFill) return false;
-        var k = st.sel, r = rings[k], n = CAP - r.pills.length;
-        if (!r.sess) { r.sess = true; r.canon = false; for (var i = 0; i < n; i++) stroke(k, -1); }
-        for (var j = 0; j < n; j++) { armTo(PARK, rc[k], 0.4, 0); loadDrop(k); stroke(k, 1); }
-        armTo(PARK, rc[k], 0.5, 0); return true;
+        var k = st.sel, n = CAP - rings[k].pills.length;
+        for (var j = 0; j < n; j++) loadDrop(k, true);
+        return true;
       },
-      index: function () { if (!refill.state().canIndex) return false; var k = st.sel; stroke(k, 1); armTo(PARK, rc[k], 0.5, 0); return true; },
-      lift: function () { if (!refill.state().canLift) return false; var r = rings[st.sel]; r.liftT = r.liftT > 0 ? 0 : 1; return true; },
+      // one click: open the lid if needed, pour into every ring that is not full, close the lid
+      fillAll: function () {
+        if (!refill.state().canFillAll) return false;
+        if (st.lidT === 0) { st.session = true; wait(1.3, function () { st.lidT = 1; }); }
+        rings.forEach(function (r) {
+          var n = CAP - r.pills.length; if (n <= 0) return;
+          wait(0.2, function () { st.sel = r.k; });
+          for (var j = 0; j < n; j++) loadDrop(r.k, true);
+        });
+        wait(1.3, function () { st.lidT = 0; }, finishSession);
+        return true;
+      },
       closeLid: function () {
-        var s = refill.state(); if (!s.canClose) return false;
-        rings.forEach(function (r) { r.liftT = 0; });
-        rings.forEach(function (r) { if (!r.sess) return; var n = frontU(r) - 1; for (var i = 0; i < n; i++) stroke(r.k, 1); });
-        armTo(PARK, rc[Math.max(0, st.sel)], 0.5, 0);
-        enqueue({ dur: 0.01, run: function () {}, end: function () { rings.forEach(function (r) { if (r.sess) { r.sess = false; r.canon = true; } }); pushCounts(); st.lidT = 0; st.session = false; st.sel = -1; } });
+        if (!refill.state().canClose) return false;
+        wait(1.3, function () { st.lidT = 0; }, finishSession);
         return true;
       }
     };
@@ -374,9 +371,12 @@
       if (s && s.operation === 'dispense') dispenseDrive(s);
       else { if (rec) finishDispense(s); runTasks(dt); }
       sync(s); applyArm(); applyRings(s && s.operation === 'dispense' ? s.selected : null); applyLid();
-      var sel = st.sel >= 0 ? rings[st.sel] : null;
-      marker.visible = Boolean(sel && st.lidT > 0 && sel.liftT === 0);
-      if (marker.visible) { var phi = sel.A + thL[sel.k] - 5.5 * P; marker.position.set(rc[sel.k] * Math.cos(phi), ZF + 0.4, -rc[sel.k] * Math.sin(phi)); }
+      var now2 = Date.now() / 400;
+      rings.forEach(function (r, k) {
+        var show = st.lidT > 0 && r.pills.length < CAP, m = markers[k], u = r.pills.length + 1, phi = r.A + thL[k] - (u - 0.5) * P;
+        m.visible = show; if (!show) return;
+        m.position.set(rc[k] * Math.cos(phi), ZF + 0.4, -rc[k] * Math.sin(phi)); m.scale.setScalar(k === st.sel ? 1.25 + 0.15 * Math.sin(now2) : 1); m.material.opacity = k === st.sel ? 1 : 0.55;
+      });
     }
 
     // ---------- servo mounts for the wiring harness (pivot = axle-relative shaft position at the parked arm) ----------
