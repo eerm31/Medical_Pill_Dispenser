@@ -182,6 +182,12 @@
     // loading-window marker (amber) shown while refilling
     var marker = new T.Mesh(new T.RingGeometry(2.6, 3.6, 28), new T.MeshBasicMaterial({ color: 0xffb300, transparent: true, opacity: 0.9, depthTest: false, side: T.DoubleSide }));
     marker.rotation.x = -Math.PI / 2; marker.renderOrder = 30; marker.visible = false; root.add(marker);
+    // pill bottle held over the marked pocket while refilling (visual only)
+    var bottle = new T.Group(), bTilt = new T.Group(); bottle.add(bTilt); bottle.visible = false; bottle.userData.noWire = true; root.add(bottle);
+    var bandMat = std(0x888888, { roughness: 0.5 });
+    [[new T.CylinderGeometry(5.5, 5.5, 18, 28), std(0xf3f6fa, { transparent: true, opacity: 0.5, roughness: 0.3, depthWrite: false }), 11],
+     [new T.CylinderGeometry(3.7, 3.7, 3, 20), std(0xe0a43a, { roughness: 0.5 }), 0.5],
+     [new T.CylinderGeometry(5.65, 5.65, 7, 28), bandMat, 12]].forEach(function (e) { var m = new T.Mesh(e[0], e[1]); m.rotation.z = Math.PI / 2; m.position.x = e[2]; bTilt.add(m); });
 
     // ---------- state shared by the dispense mapping and the refill tasks ----------
     var arm = { theta: PARK, carr: rc[0], pin: 0 }, rec = null, cup = [], tasks = [], task = null, last = 0;
@@ -202,7 +208,7 @@
         r.g.rotation.y = r.A; r.g.position.y = ZF + 0.2 + r.lift * 30;
         rimMats[r.k].emissive = rimMats[r.k].emissive || new T.Color(0); var on = COLORS[r.k] === selColor || r.k === st.sel;
         rimMats[r.k].emissive.setHex(on ? 0x333333 : 0x000000);
-        r.pills.forEach(function (p) { if (p.drop > 0) p.drop = Math.max(0, p.drop - 0.06); placePill(p, r); });
+        r.pills.forEach(function (p) { if (p.drop > 0 && !p.hold) p.drop = Math.max(0, p.drop - 0.06); placePill(p, r); });
       });
     }
     // pill meshes have their origin on the underside, so every z below is the underside height
@@ -270,9 +276,18 @@
       enqueue({ dur: 0.75, start: function () { A0 = r.A; }, run: function (q) { var e = ease(q); arm.theta = th0 + dir * e * P; var dA = A0 + dir * e * P - r.A; movePills(r, dA); }, end: function () { r.K += dir; r.A = r.K * P; } });
       pinTo(0, 0.22);
     }
+    // a bottle comes down over the marked pocket, tips, one pill drops, the bottle lifts away
     function loadDrop(k) {
-      var r = rings[k];
-      enqueue({ dur: 0.45, start: function () { var p = newPill(r, 6, 1); p.off = 0; r.loading = p; }, run: function (q) { r.loading.drop = 1 - ease(q); }, end: function () { r.loading = null; pushCounts(); } });
+      var r = rings[k], p = null, ZB0 = ZF + 15;
+      enqueue({ dur: 2.0, start: function () { bandMat.color.setHex(ctx.accent[COLORS[k]] || 0x888888); bottle.visible = true; p = null; },
+        run: function (q) {
+          var phi = r.A + thL[k] - 5.5 * P, up = q < 0.3 ? 1 - ease(q / 0.3) : q < 0.78 ? 0 : ease((q - 0.78) / 0.22);
+          var tilt = q < 0.3 ? 0 : q < 0.5 ? ease((q - 0.3) / 0.2) : q < 0.78 ? 1 : 1 - ease((q - 0.78) / 0.22);
+          bottle.position.set(rc[k] * Math.cos(phi), ZB0 + 28 * up, -rc[k] * Math.sin(phi)); bottle.rotation.y = phi + Math.PI / 2; bTilt.rotation.z = tilt * 0.62;
+          if (!p && q >= 0.5) { p = newPill(r, 6, 0); p.off = 0; p.hold = true; p.drop = 1.7; r.loading = p; }
+          if (p && q >= 0.5) { var f = Math.min(1, (q - 0.5) / 0.28); p.drop = 1.7 * (1 - f * f); }
+        },
+        end: function () { bottle.visible = false; if (p) { p.hold = false; p.drop = 0; } r.loading = null; pushCounts(); } });
     }
     function pushCounts() {
       var host = window.DispenserStepHost; if (!host || !host.controller) return;
@@ -293,7 +308,7 @@
     var refill = {
       state: function () {
         var s = host(), k = st.sel, r = k >= 0 ? rings[k] : null, free = idle(s) && !busy();
-        return { lid: st.lidT > 0, ring: k, counts: rings.map(function (x) { return x.pills.length; }), busy: !free, lifted: Boolean(r && r.liftT > 0),
+        return { lid: st.lidT > 0, ring: k, counts: rings.map(function (x) { return x.pills.length; }), busy: !free, lifted: Boolean(r && r.liftT > 0), lidOpen: st.lid > 0.98, lidClosed: st.lidT === 0 && st.lid < 0.02,
           canOpen: free && st.lidT === 0, canClose: free && st.lidT > 0, canSelect: free && st.lidT > 0 && !rings.some(function (x) { return x.liftT > 0; }),
           canLoad: free && st.lidT > 0 && r && r.liftT === 0 && r.pills.length < CAP, canIndex: free && st.lidT > 0 && r && r.liftT === 0 && r.sess && frontU(r) > 1,
           canLift: free && st.lidT > 0 && Boolean(r), canFill: free && st.lidT > 0 && r && r.liftT === 0 && r.pills.length < CAP };
@@ -310,6 +325,15 @@
         else armTo(PARK, rc[k], 0.45, 0);
         loadDrop(k); stroke(k, 1); armTo(PARK, rc[k], 0.5, 0); return true;
       },
+      // step-wise refill, one movement per call (used by the step-by-step player)
+      prepare: function () {
+        if (!refill.state().canLoad) return false;
+        var k = st.sel, r = rings[k];
+        if (!r.sess) { r.sess = true; r.canon = false; var n = CAP - r.pills.length; for (var i = 0; i < n; i++) stroke(k, -1); }
+        armTo(PARK, rc[k], 0.4, 0); return true;
+      },
+      drop: function () { if (!refill.state().canLoad || !rings[st.sel].sess) return false; loadDrop(st.sel); return true; },
+      advance: function () { if (!refill.state().canIndex) return false; var k = st.sel; stroke(k, 1); armTo(PARK, rc[k], 0.5, 0); return true; },
       fill: function () {
         if (!refill.state().canFill) return false;
         var k = st.sel, r = rings[k], n = CAP - r.pills.length;

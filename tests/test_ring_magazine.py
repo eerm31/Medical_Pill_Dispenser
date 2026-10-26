@@ -108,3 +108,10 @@ def test_servos_stand_on_the_tray_not_above_the_rings(g):
     assert "var ZB = " in js or "ZB = S.bay_z0" in js
     assert "S1Z0" not in js and "arm_z" in js
     assert g["ring"]["arm_z"][1] < g["platform_top"]
+
+
+def test_prototype_2_has_its_own_refill_animation():
+    steps = (VIS / "step-animations.js").read_text(encoding="utf-8")
+    ring = (VIS / "ring-magazine.js").read_text(encoding="utf-8")
+    assert "id: 'ringrefill'" in steps and "legacy: true" in steps and "rf.drop()" in steps
+    assert "bottle" in ring and "prepare: function" in ring and "advance: function" in ring
