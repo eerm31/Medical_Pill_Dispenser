@@ -17,6 +17,7 @@
   <script defer src="wiring-3d.js"></script>
   <script defer src="wiring-layout3d.js"></script>
   <script defer src="ring-magazine.js"></script>
+  <script defer src="flask-magazine.js"></script>
   <script defer src="reference-look.js"></script>
   <script defer src="app.js"></script>
   <script defer src="step-animations.js"></script>
@@ -31,7 +32,8 @@
     <section class="viewer card" aria-label="Interactive 3D dispenser scene">
       <div class="scene-heading"><div><span class="eyebrow" id="protoEyebrow">PROTOTYPE 1 · ASSEMBLY VIEW</span><h2 id="protoTitle">Four-cartridge drum</h2></div><div class="seg-group proto-tabs" role="radiogroup" aria-label="Prototype">
           <label class="seg"><input type="radio" name="designOpt" value="legacy" checked autocomplete="off"><span>Prototype 1</span></label>
-          <label class="seg"><input type="radio" name="designOpt" value="ring" autocomplete="off"><span>Prototype 2</span></label>
+          <label class="seg"><input type="radio" name="designOpt" value="flask" autocomplete="off"><span>Prototype 2</span></label>
+          <label class="seg"><input type="radio" name="designOpt" value="ring" autocomplete="off"><span>Prototype 3</span></label>
         </div><div class="seg-group view-modes" role="radiogroup" aria-label="Viewer mode">
           <label class="seg"><input type="radio" name="viewMode" value="mechanism" checked autocomplete="off"><span>Mechanism</span></label>
           <label class="seg"><input type="radio" name="viewMode" value="wiring" autocomplete="off"><span>Wiring</span></label>
@@ -109,9 +111,9 @@
         </div>
       </section>
       <section class="control-section ring-section" id="ringSection" hidden>
-        <div class="section-title"><div><span class="eyebrow">PROTOTYPE 2</span><h2>Ring magazine</h2></div></div>
+        <div class="section-title"><div><span class="eyebrow" id="ringSectionEyebrow">PROTOTYPE 3</span><h2 id="ringSectionTitle">Concentric ring magazine</h2></div></div>
         <div id="ringTools">
-          <p class="small-note">Each pill sits between two dividers and is pushed by the divider behind it. Everything that moves sits under the deck (arm, pin, servos), so the top of the rings is free for refilling. One exit slot, one funnel, one cup. ASSUMED / NOT VALIDATED.</p>
+          <p class="small-note">Each pill sits between two dividers and is pushed by the divider behind it. Everything that moves sits at the bottom, so the top of the rings is free for refilling. One exit, one chute, one cup. ASSUMED / NOT VALIDATED.</p>
           <label class="range-row" for="pocketSize"><span>Pocket Size (divider spacing)</span><output id="pocketOut">45%</output><input id="pocketSize" type="range" min="0" max="100" step="1" value="45" autocomplete="off"></label>
           <p id="pocketInfo" class="small-note"></p>
           <p class="sub-title">Weight and stability (assumed masses)</p>

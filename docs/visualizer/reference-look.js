@@ -868,6 +868,7 @@
       explodeTick();
       removalTick();
       if (ringMag) ringMag.update(s, Date.now());
+      if (flaskMag) flaskMag.update(s, Date.now());
       var e = s.tongueEdge, tongueClosed = s.tongueMotion === 'closed' && Math.abs(e - 5.7) < 1e-9;
       actuate(s.carriage, s.tongueEdge, s.pinZ);
       // the upper blade slides straight along its rails by the controller's blade state (open = +z, 10.4 mm); the return spring stretches with it
@@ -1168,7 +1169,7 @@
     }
     // ---- ring magazine (selectable alternative mechanism; see ring-magazine.js) ----
     var LEGACY_LABELS = ['Pin lever', 'Tongue lever', 'Pin cam', 'Pin return spring', 'Station bracket', 'Micro servo S1 (pin)', 'Micro servo S2 (tongue)', 'Tongue gate', 'Compartment cartridges', 'Slide blades', 'Blade return springs', 'Catch ledges', 'Drum hub + socket decks', 'Home magnet 3x1 mm'];
-    var legacySaved = [], ringMag = null;
+    var legacySaved = [], ringMag = null, flaskMag = null;
     function setLegacyHidden(on) {
       if (!on) { legacySaved.forEach(function (r) { r.o.visible = r.v; }); legacySaved = []; if (rodMesh) rodMesh.scale.z = 1; return; }
       if (legacySaved.length) return;
@@ -1190,6 +1191,10 @@
     try {
       if (window.DispenserRingMagazine && S.ring) ringMag = window.DispenserRingMagazine.build({ THREE: T, S: S, COLORS: COLORS, parent: fixedRoot, std: std, EL: EL, rtag: rtag, ptype: ptype, accent: accentMap, mats: { blue: M_BLUE, steel: M_STEEL, white: M_WHITE, dark: DK }, lid: lidG, legacy: setLegacyHidden, changed: ringChanged });
     } catch (error) { ringMag = null; if (window.console) console.error('Ring magazine not built.', error); }
+    try {
+      if (window.DispenserFlaskMagazine && S.ring) flaskMag = window.DispenserFlaskMagazine.build({ THREE: T, S: S, COLORS: COLORS, parent: root3d, root3d: root3d, std: std, EL: EL, rtag: rtag, ptype: ptype, accent: accentMap, mats: { blue: M_BLUE, steel: M_STEEL, white: M_WHITE, dark: DK }, changed: function () { if (rotActive) { refreshCallouts(); applyFade(); } else applyMainFilter(); } });
+    } catch (error) { flaskMag = null; if (window.console) console.error('Stacked flask not built.', error); }
+    function activeMag() { return flaskMag && flaskMag.active() ? flaskMag : ringMag; }
 
     // 3D wiring harness: built here so it shares the scene; routed on first use (see wiring-3d.js)
     var wiring3d = null;
@@ -1219,7 +1224,7 @@
     var wiringLayout = null;
     try { if (window.DispenserWiringLayout3D && window.DispenserWiring3D && window.DispenserWiringSpec) { wiringLayout = window.DispenserWiringLayout3D.build({ THREE: T, root3d: root3d, W: window.DispenserWiringSpec }); wiringLayout.group.userData.partType = 'electronic'; } }
     catch (error) { wiringLayout = null; if (window.console) console.error('Wiring layout not built.', error); }
-    return { ringMag: ringMag, wiring: wiring3d, wiringLayout: wiringLayout, setGhostOpacity: setGhostOpacity, cartridgeOffset: function (c) { return cgByColor[c] ? cgByColor[c].position.y - cgBase[c].y : 0; }, setHousingMode: setHousingMode, setHousingHidden: setHousingHidden, housingMode: function () { return housingMode; }, update: update, report: report, removalSettled: removalSettled, printJobs: printJobsList, selectPrintJob: selectPrintJob, setPartFilter: setPartFilter, partFilter: function () { return typeFilter.slice(); }, electronicList: electronicList, setPrintLayout: setPrintLayout, printLayoutOn: function () { return layoutOn; }, selectedPrintJob: function () { return printSel; }, printLayoutInfo: function () { return printLayout ? printLayout.info : null; }, setRotationView: setRotationView, parts: partsList, active: function () { return rotActive; }, select: selectPart, selected: function () { return rotSelected; }, setLabels: setRotationLabels, setFade: setRotationFade, setDimensions: setRotationDimensions, declutter: declutterLabels, highlightDim: highlightDimensionFull, selectDim: selectDimension, selectedDim: function () { return rotSelectedDim; }, highlightLabel: highlightPartLabel, partLabelOf: partLabelOf, view: function () { return activeView; }, viewHas: viewHas, setRemoval: setRemovalState,
+    return { ringMag: ringMag, flaskMag: flaskMag, activeMag: activeMag, wiring: wiring3d, wiringLayout: wiringLayout, setGhostOpacity: setGhostOpacity, cartridgeOffset: function (c) { return cgByColor[c] ? cgByColor[c].position.y - cgBase[c].y : 0; }, setHousingMode: setHousingMode, setHousingHidden: setHousingHidden, housingMode: function () { return housingMode; }, update: update, report: report, removalSettled: removalSettled, printJobs: printJobsList, selectPrintJob: selectPrintJob, setPartFilter: setPartFilter, partFilter: function () { return typeFilter.slice(); }, electronicList: electronicList, setPrintLayout: setPrintLayout, printLayoutOn: function () { return layoutOn; }, selectedPrintJob: function () { return printSel; }, printLayoutInfo: function () { return printLayout ? printLayout.info : null; }, setRotationView: setRotationView, parts: partsList, active: function () { return rotActive; }, select: selectPart, selected: function () { return rotSelected; }, setLabels: setRotationLabels, setFade: setRotationFade, setDimensions: setRotationDimensions, declutter: declutterLabels, highlightDim: highlightDimensionFull, selectDim: selectDimension, selectedDim: function () { return rotSelectedDim; }, highlightLabel: highlightPartLabel, partLabelOf: partLabelOf, view: function () { return activeView; }, viewHas: viewHas, setRemoval: setRemovalState,
       clearance: function (pieceA, pieceB) {
         function boxes(match) { root3d.updateMatrixWorld(true); return rotParts.filter(function (o) { return match(o.userData.rotationPart.piece); }).map(function (o) { return new T.Box3().setFromObject(o); }); }
         var a = boxes(function (p) { return p === pieceA; }), b = boxes(function (p) { return pieceB.test(p); }), gap = Infinity, overlap = 0;
@@ -1260,9 +1265,10 @@
     partFilter: function () { return built ? built.partFilter() : []; },
     electronicList: function () { return built ? built.electronicList() : []; },
     get wiring() { return built ? built.wiring : null; },
-    get ringMagazine() { return built ? built.ringMag : null; },
-    ringActive: function () { return Boolean(built && built.ringMag && built.ringMag.active()); },
-    ringLabel: function (ph) { return built && built.ringMag ? built.ringMag.label(ph) : null; },
+    get ringMagazine() { return built ? built.activeMag() : null; },
+    get designs() { return built ? { ring: built.ringMag, flask: built.flaskMag } : {}; },
+    ringActive: function () { return Boolean(built && built.activeMag() && built.activeMag().active()); },
+    ringLabel: function (ph) { var m = built && built.activeMag(); return m ? m.label(ph) : null; },
     get wiringLayout() { return built ? built.wiringLayout : null; },
     setPrintLayout: function (on) { if (built) built.setPrintLayout(on); },
     printLayoutOn: function () { return Boolean(built && built.printLayoutOn()); },

@@ -115,3 +115,18 @@ def test_prototype_2_has_its_own_refill_animation():
     ring = (VIS / "ring-magazine.js").read_text(encoding="utf-8")
     assert "id: 'ringrefill'" in steps and "legacy: true" in steps and "rf.drop()" in steps
     assert "bottle" in ring and "prepare: function" in ring and "advance: function" in ring
+
+
+def test_prototype_2_is_a_slim_stacked_flask_with_electronics_at_the_bottom():
+    js = (VIS / "flask-magazine.js").read_text(encoding="utf-8")
+    html = (VIS / "index.html").read_text(encoding="utf-8")
+    assert "http://" not in js and "https://" not in js
+    assert html.index("flask-magazine.js") < html.index("reference-look.js")
+    for value in ('value="legacy"', 'value="flask"', 'value="ring"'):
+        assert value in html
+    radii = [float(x) for x in re.search(r"RR = \[([\d., ]+)\]", js).group(1).split(",")]
+    heights = [float(x) for x in re.search(r"ZL = \[([-\d., ]+)\]", js).group(1).split(",")]
+    shell = float(re.search(r"SR = ([\d.]+)", js).group(1))
+    assert radii == sorted(radii) and heights == sorted(heights, reverse=True)  # wedge shape: widest ring lowest
+    assert 2 * shell <= 90.0 and max(heights) + 20 > 2 * shell  # slim: Ø <= 90 mm and taller than wide
+    assert min(heights) - 12 > -50  # all rings sit above the electronics bay
