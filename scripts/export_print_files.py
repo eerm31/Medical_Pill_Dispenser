@@ -171,6 +171,12 @@ def build_platform(g, P):
         layer = cyl(0, cy, ly["z0"], ly["z1"], g["platform_r"])
         for h in ly["holes"]:
             layer = layer - box(h[0], h[1], h[2], h[3], ly["z0"] - 1, ly["z1"] + 1)
+        for a in g.get("ring", {}).get("arc_slots", []):
+            ro, ri, a0, a1 = a["r"] + a["w"] / 2, a["r"] - a["w"] / 2, math.radians(a["a0"]), math.radians(a["a1"])
+            steps = max(4, int((a1 - a0) / math.radians(2)))
+            outer = [(ro * math.cos(a0 + (a1 - a0) * k / steps), cy + ro * math.sin(a0 + (a1 - a0) * k / steps)) for k in range(steps + 1)]
+            inner = [(ri * math.cos(a1 + (a0 - a1) * k / steps), cy + ri * math.sin(a1 + (a0 - a1) * k / steps)) for k in range(steps + 1)]
+            layer = layer - prism([outer + inner], ly["z0"] - 1, ly["z1"] + 1)
         layers.append(layer)
     body = union(layers)
     body = body - cyl(0, cy, g["bearing_z0"], g["platform_top"] + 1, P["seat_model_mm"] / 2)      # bearing seat (reamed to 16.00 later)

@@ -18,18 +18,18 @@
     { kind: 'oval', name: 'oval', L: 9.5, W: 6.2, H: 3.4 },
     { kind: 'capsule', name: 'capsule', L: 12.0, W: 5.0, H: 5.0 }
   ];
-  var PIN_R = 0.9, PIN_UP = 12.3, PIN_DOWN = 4.6, COLLAR = 10.7;
+  var PIN_R = 0.9, PIN_LEN = 11;
   var ORDER = ['PIN_ENGAGE', 'BLADE_PULL_RELEASE', 'STACK_SETTLE', 'BLADE_ISOLATE_CLOSE', 'BLADE_CLOSED_DWELL', 'PIN_LIFT', 'TONGUE_RELEASE', 'PILL_CLEAR', 'TONGUE_RETURN'];
   var DURS = [0.625, 1.01, 0.5, 1.01, 0.3, 0.625, 0.814, 0.5, 0.814];
   var LABELS = {
-    DRUM_ROTATE: ['Carriage slides to the selected ring', 'The pin carriage slides along the actuator arm to the selected ring (rack and pinion).'],
-    CARRIAGE_APPROACH: ['Arm swings to the pin start', 'The stepper turns the actuator arm until the pin sits behind a divider of the selected ring.'],
-    PIN_ENGAGE: ['Pin drops behind a divider', 'The pin lowers into the pocket behind one divider of the selected ring.'],
+    DRUM_ROTATE: ['Carriage slides to the selected ring', 'The pin carriage slides along the arm under the deck to the selected ring (push-pull cable from servo S1 on the tray).'],
+    CARRIAGE_APPROACH: ['Arm swings to the pin start', 'The stepper turns the arm under the deck until the pin sits below the arc slot, behind a divider of the selected ring.'],
+    PIN_ENGAGE: ['Pin rises behind a divider', 'Servo S2 pulls its cable and the pin rises through the deck slot into the pocket behind one divider.'],
     BLADE_PULL_RELEASE: ['Divider pushes the pill', 'The arm swings one pocket pitch; each divider pushes the pill in front of it along the deck.'],
     STACK_SETTLE: ['Pill drops through the exit', 'The front pill passes the leading edge of the single exit slot and falls into the funnel.'],
-    BLADE_ISOLATE_CLOSE: ['Pill slides down the funnel', 'The pill slides down the shared funnel while the pin lifts out.'],
-    BLADE_CLOSED_DWELL: ['Pin clear (dwell)', 'Short pause with the pin clear of the ring.'],
-    PIN_LIFT: ['Arm returns to park', 'The arm swings back to its home position.'],
+    BLADE_ISOLATE_CLOSE: ['Pill slides down the funnel', 'The pill slides down the shared funnel while the pin lowers out of the pocket.'],
+    BLADE_CLOSED_DWELL: ['Pin clear (dwell)', 'Short pause with the pin lowered below the deck.'],
+    PIN_LIFT: ['Arm returns to park', 'The arm swings back to its home position under the deck.'],
     TONGUE_RELEASE: ['Pill leaves the housing', 'The pill slides out of the wall window.'],
     PILL_CLEAR: ['Pill drops into the cup', 'The pill drops from the funnel lip into the collection cup.'],
     TONGUE_RETURN: ['Carriage parks', 'Single movable actuator at rest; nothing else moved.']
@@ -142,46 +142,42 @@
       return null;
     }
 
-    // ---------- the actuator: one arm on the stepper rod, rack-driven pin carriage ----------
+    // ---------- the actuator: one arm UNDER the deck; its pin rises through arc slots. Both servos stand on the tray and pull push-pull cables ----------
     var armG = new T.Group(); root.add(armG);
-    var ZA = R.arm_z, ZA0 = ZA[0], ZA1 = ZA[1], TAILX = -46;
-    tag(bx(armG, TAILX, -9, -4, 23, ZA0, ZA1, PR), 'Actuator arm', 'printed', 'arm');
-    tag(bx(armG, -9, 9, -4, 10, ZA0, ZA1, PR), 'Actuator arm', 'printed', 'arm');
-    tag(bx(armG, 9, 45.5, -4, -2.2, ZA0, ZA1, PR), 'Actuator arm', 'printed', 'arm');
-    tag(bx(armG, 9, 45.5, 2.2, 10, ZA0, ZA1, PR), 'Actuator arm', 'printed', 'arm');
-    var hubC = tag(cy(armG, 0, 0, 11.8, 17.5, 5.5, PR, 32), 'Actuator arm', 'printed', 'arm');
-    tag(cy(armG, 0, 0, 14.2, 16.4, 1.2, M.steel, 12), 'Actuator arm', 'printed', 'arm');
-    // S1 (carriage drive): hangs from a bracket on the tail, shaft down to a pinion beside the rack
-    var S1X = -18, S1L = 15.5, S1Z0 = 17.7;
-    [[-37, 9], [-11, 9], [-37, 22], [-11, 22]].forEach(function (c) { tag(bx(armG, c[0] - 1.5, c[0] + 1.5, c[1] - 1.5, c[1] + 1.5, ZA1, S1Z0 - 1, PR), 'Actuator arm', 'printed', 'arm'); });
-    tag(bx(armG, -38, -10, 8, 23, S1Z0 - 1, S1Z0, PR), 'Actuator arm', 'printed', 'arm');
-    var s1G = new T.Group(); s1G.position.set(S1X, 0, -S1L); armG.add(s1G);
-    function servoTag(list, label) { list.forEach(function (m) { tag(m, label, 'bought', 'servo', 'electronic'); }); }
-    // S1: shaft down, body standing on its ears; local frame = shaft at the origin, body toward -x
-    servoTag([bx(s1G, -(SV.len - SV.shaft_off), SV.shaft_off, -SV.w / 2, SV.w / 2, S1Z0, S1Z0 + SV.h, M.blue, false),
-      bx(s1G, -(SV.len - SV.shaft_off) - SV.ear, SV.shaft_off + SV.ear, -SV.w / 2, SV.w / 2, S1Z0, S1Z0 + 1.5, M.blue, false)], 'Micro servo S1 (pin)');
-    tag(cy(s1G, 0, 0, 16.2, S1Z0, 1.2, M.steel, 12), 'Micro servo S1 (pin)', 'bought', 'servo', 'electronic');
-    var pinion = new T.Group(); pinion.position.set(S1X, 0, -S1L); armG.add(pinion);
-    tag(cy(pinion, 0, 0, 14.2, 16.2, 6, M.white, 28), 'Actuator arm', 'printed', 'arm');
-    for (var ti = 0; ti < 12; ti++) { var tg = new T.Group(); tg.rotation.y = ti * TAU / 12; pinion.add(tg); var th = new T.Mesh(new T.BoxGeometry(1.4, 2, 1.4), M.white); th.position.set(6.4, 15.2, 0); tg.add(th); tag(th, 'Actuator arm', 'printed', 'arm'); }
-    // carriage: slides along the arm (rack bar behind it), carries the pin and S2 (pin lift)
+    var ZA0 = R.arm_z[0], ZA1 = R.arm_z[1], PINZ = R.pin, ZB = S.bay_z0;
+    var hubSleeve = new T.Mesh(ringGeo(9, 7.1, 7), PR); hubSleeve.position.y = -12.5; armG.add(hubSleeve); tag(edges(hubSleeve), 'Actuator arm', 'printed', 'arm');
+    tag(bx(armG, 7, 10, -3, 3, ZA0, ZA1, PR), 'Actuator arm', 'printed', 'arm');
+    tag(bx(armG, 7, 45.5, -3, -1.5, ZA0, ZA1, PR), 'Actuator arm', 'printed', 'arm');
+    tag(bx(armG, 7, 45.5, 1.5, 3, ZA0, ZA1, PR), 'Actuator arm', 'printed', 'arm');
     var carG = new T.Group(); armG.add(carG);
-    tag(bx(carG, -30, 3, -5.5, 9.5, ZA1, 15.2, PR), 'Actuator arm', 'printed', 'carriage');
-    tag(bx(carG, -62, -30, 4, 9.5, ZA1, 16.7, PR), 'Actuator arm', 'printed', 'carriage');
-    for (var ri = 0; ri < 20; ri++) tag(bx(carG, -61 + ri * 1.5, -60.2 + ri * 1.5, 9.5, 10.3, 14.2, 16.2, M.white, false), 'Actuator arm', 'printed', 'carriage');
-    var S2X = -12, S2Z = 22, S2L0 = -22.5, S2L1 = -0.5;
-    var s2G = new T.Group(); carG.add(s2G);
-    // S2: lies on its side on the carriage, shaft across the arm; its horn is a lever that lifts the pin
-    servoTag([bx(s2G, S2X - (SV.len - SV.shaft_off), S2X + SV.shaft_off, S2L0, S2L1, S2Z - SV.w / 2, S2Z + SV.w / 2, M.blue, false),
-      bx(s2G, S2X - (SV.len - SV.shaft_off) - SV.ear, S2X + SV.shaft_off + SV.ear, S2L0 + 9, S2L0 + 10.5, S2Z - SV.w / 2, S2Z + SV.w / 2, M.blue, false)], 'Micro servo S2 (tongue)');
-    var horn = new T.Group(); horn.position.set(S2X, S2Z, 0); carG.add(horn);
-    var hornBar = new T.Mesh(new T.BoxGeometry(12, 1.6, 1.6), M.white); hornBar.position.set(6, 0, 0); horn.add(hornBar); tag(hornBar, 'Actuator arm', 'printed', 'horn');
-    var boss = new T.Mesh(new T.CylinderGeometry(2.8, 2.8, 1.8, 16), M.white); boss.rotation.x = Math.PI / 2; horn.add(boss); tag(boss, 'Actuator arm', 'printed', 'horn');
+    tag(bx(carG, -4.5, 4.5, -4.5, 4.5, ZA1, ZA1 + 3.3, PR), 'Actuator arm', 'printed', 'carriage');
+    function wire(l, z) { var g = new T.CylinderGeometry(0.35, 0.35, 1, 8); g.rotateZ(Math.PI / 2); var m = new T.Mesh(g, M.steel); m.position.set(0, z, -l); armG.add(m); tag(m, 'Push-pull cable', 'bought', 'cable'); return m; }
+    var wireA = wire(-3.5, ZA1 + 1.6), wireB = wire(3.5, ZA1 + 1.6);
     var pinG = new T.Group(); carG.add(pinG);
-    var pc = new T.Mesh(new T.CylinderGeometry(0.3, PIN_R, 1.6, 14), M.dark); pc.position.y = 0.8; pinG.add(pc);
-    var pr = new T.Mesh(new T.CylinderGeometry(PIN_R, PIN_R, 14, 14), M.dark); pr.position.y = 8.6; pinG.add(pr);
-    var col = new T.Mesh(new T.CylinderGeometry(1.9, 1.9, 1.2, 18), M.steel); col.position.y = COLLAR + 0.6; pinG.add(col);
-    [pc, pr, col].forEach(function (m) { tag(m, 'Engagement pin', 'bought', 'pin'); });
+    var pr = new T.Mesh(new T.CylinderGeometry(PIN_R, PIN_R, PIN_LEN, 14), M.dark); pr.position.y = PIN_LEN / 2 - 0.4; pinG.add(pr);
+    var pc = new T.Mesh(new T.CylinderGeometry(0.3, PIN_R, 1.6, 14), M.dark); pc.position.y = PIN_LEN - 0.8; pinG.add(pc);
+    [pc, pr].forEach(function (m) { tag(m, 'Engagement pin', 'bought', 'pin'); });
+    function servoAt(label, cx, vc) {
+      var g = new T.Group(); g.position.set(cx, 0, -vc); root.add(g);
+      var x0 = -(SV.len - SV.shaft_off), x1 = SV.shaft_off, hw = SV.w / 2, list = [bx(g, x0, x1, -hw, hw, ZB, ZB + SV.h, M.blue, false), bx(g, x0 - SV.ear, x1 + SV.ear, -hw, hw, ZB, ZB + 1.5, M.blue, false)];
+      list.forEach(function (m) { tag(m, label, 'bought', 'servo', 'electronic'); });
+      [[x0 - SV.ear + 1, 0], [x1 + SV.ear - 1, 0]].forEach(function (q) { tag(bx(g, q[0] - 1.5, q[0] + 1.5, -hw, hw, ZB - 3, ZB, PR), 'Tray standoff', 'printed', 'standoff'); });
+      var horn = new T.Group(); horn.position.set(0, ZB + SV.h + 0.4, 0); g.add(horn);
+      var bar = new T.Mesh(new T.BoxGeometry(10, 1.4, 2.4), M.white); bar.position.x = 5; horn.add(bar); tag(bar, 'Actuator arm', 'printed', 'horn');
+      return { g: g, horn: horn, top: [cx, vc, ZB + SV.h + 1.6] };
+    }
+    var S1X = -12, S1V = 29, S2X = 20, S2V = 29;
+    var sv1 = servoAt('Micro servo S1 (pin)', S1X, S1V), sv2 = servoAt('Micro servo S2 (tongue)', S2X, S2V);
+    var sheaths = [0, 1].map(function (i) { var m = new T.Mesh(new T.BufferGeometry(), M.dark); root.add(m); tag(m, 'Push-pull cable', 'bought', 'cable'); return m; }), sheathAt = { th: NaN, c: NaN };
+    function updateSheaths() {
+      if (Math.abs(arm.theta - sheathAt.th) < 0.004) return; sheathAt.th = arm.theta;
+      var c = Math.cos(arm.theta), s = Math.sin(arm.theta);
+      [[sv1, -2.2], [sv2, 2.2]].forEach(function (e, i) {
+        var a = e[0].top, h = [11 * c - e[1] * s, 11 * s + e[1] * c, -11.5], q = function (u, v, z) { return new T.Vector3(u, z, -v); };
+        var pts = [q(a[0], a[1], a[2]), q(a[0] + (h[0] - a[0]) * 0.1, a[1] + (h[1] - a[1]) * 0.1, a[2] + 2.5), q(a[0] + (h[0] - a[0]) * 0.55, a[1] + (h[1] - a[1]) * 0.55, -13.6), q(h[0], h[1], h[2])];
+        sheaths[i].geometry.dispose(); sheaths[i].geometry = new T.TubeGeometry(new T.CatmullRomCurve3(pts), 24, 0.9, 8, false);
+      });
+    }
 
     // loading-window marker (amber) shown while refilling
     var marker = new T.Mesh(new T.RingGeometry(2.6, 3.6, 28), new T.MeshBasicMaterial({ color: 0xffb300, transparent: true, opacity: 0.9, depthTest: false, side: T.DoubleSide }));
@@ -191,12 +187,14 @@
     var arm = { theta: PARK, carr: rc[0], pin: 0 }, rec = null, cup = [], tasks = [], task = null, last = 0;
     function delta(k) { return vaneT(k, st.q) / 2 + PIN_R + 0.05; }
     function norm(a) { while (a < 0) a += TAU; while (a >= TAU) a -= TAU; return a; }
-    function thetaFwd(k) { return norm(thL[k] - 6 * P - delta(k) / rc[k]); }
-    function thetaRev(k) { return norm(thL[k] - 5 * P + delta(k) / rc[k]); }
+    function thetaFwd(k) { return norm(thL[k] - 8 * P - delta(k) / rc[k]); }
+    function thetaRev(k) { return norm(thL[k] - 8 * P + delta(k) / rc[k]); }
     function applyArm() {
-      armG.rotation.y = arm.theta; carG.position.x = arm.carr; pinion.rotation.y = (arm.carr - rc[0]) / 6;
-      var tip = PIN_UP + (PIN_DOWN - PIN_UP) * arm.pin; pinG.position.set(0, tip, 0);
-      var tz = tip + COLLAR - 0.8, dx = 0 - S2X, dz = tz - S2Z; horn.rotation.z = Math.atan2(dz, dx); hornBar.scale.x = Math.hypot(dx, dz) / 12; hornBar.position.x = 6 * hornBar.scale.x;
+      armG.rotation.y = arm.theta; carG.position.x = arm.carr;
+      pinG.position.y = PINZ.retracted_z + (PINZ.engaged_z - PINZ.retracted_z) * arm.pin - PIN_LEN;
+      var L = Math.max(1, arm.carr - 4.5 - 10.5); [wireA, wireB].forEach(function (w) { w.scale.x = L; w.position.x = 10.5 + L / 2; });
+      sv1.horn.rotation.y = -(arm.carr - rc[0]) / (rc[3] - rc[0]) * 2.4; sv2.horn.rotation.y = -arm.pin * 0.7;
+      updateSheaths();
     }
     function applyRings(selColor) {
       rings.forEach(function (r) {
@@ -298,7 +296,7 @@
         return { lid: st.lidT > 0, ring: k, counts: rings.map(function (x) { return x.pills.length; }), busy: !free, lifted: Boolean(r && r.liftT > 0),
           canOpen: free && st.lidT === 0, canClose: free && st.lidT > 0, canSelect: free && st.lidT > 0 && !rings.some(function (x) { return x.liftT > 0; }),
           canLoad: free && st.lidT > 0 && r && r.liftT === 0 && r.pills.length < CAP, canIndex: free && st.lidT > 0 && r && r.liftT === 0 && r.sess && frontU(r) > 1,
-          canLift: free && st.lidT > 0 && Boolean(r) };
+          canLift: free && st.lidT > 0 && Boolean(r), canFill: free && st.lidT > 0 && r && r.liftT === 0 && r.pills.length < CAP };
       },
       openLid: function () { if (!refill.state().canOpen) return false; st.lidT = 1; st.session = true; return true; },
       select: function (k) {
@@ -311,6 +309,13 @@
         if (!r.sess) { r.sess = true; r.canon = false; var nrev = CAP - r.pills.length; for (var i = 0; i < nrev; i++) stroke(k, -1); armTo(PARK, rc[k], 0.5, 0); }
         else armTo(PARK, rc[k], 0.45, 0);
         loadDrop(k); stroke(k, 1); armTo(PARK, rc[k], 0.5, 0); return true;
+      },
+      fill: function () {
+        if (!refill.state().canFill) return false;
+        var k = st.sel, r = rings[k], n = CAP - r.pills.length;
+        if (!r.sess) { r.sess = true; r.canon = false; for (var i = 0; i < n; i++) stroke(k, -1); }
+        for (var j = 0; j < n; j++) { armTo(PARK, rc[k], 0.4, 0); loadDrop(k); stroke(k, 1); }
+        armTo(PARK, rc[k], 0.5, 0); return true;
       },
       index: function () { if (!refill.state().canIndex) return false; var k = st.sel; stroke(k, 1); armTo(PARK, rc[k], 0.5, 0); return true; },
       lift: function () { if (!refill.state().canLift) return false; var r = rings[st.sel]; r.liftT = r.liftT > 0 ? 0 : 1; return true; },
@@ -353,10 +358,9 @@
     // ---------- servo mounts for the wiring harness (pivot = axle-relative shaft position at the parked arm) ----------
     function ringAct() {
       if (!st.active) return null;
-      var c = Math.cos(PARK), s = Math.sin(PARK), pt = function (x, l) { return [c * x - s * l, s * x + c * l]; };
       return {
-        s1: { pivot: pt(S1X, S1L), body_dir: [-c, -s], plate_z: [S1Z0 - 1, S1Z0] },
-        s2: { pivot: pt(rc[0] + S2X, (S2L0 + S2L1) / 2), body_dir: [-c, -s], body_z0: S2Z - SV.w / 2 }
+        s1: { pivot: [S1X, S1V], body_dir: [-1, 0], plate_z: [ZB - 1, ZB] },
+        s2: { pivot: [S2X, S2V], body_dir: [-1, 0], body_z0: ZB }
       };
     }
     // Mass and tip-over estimate (ASSUMED densities and bought-part masses; the arm's servos and rings count as rotating mass).
@@ -375,8 +379,8 @@
       add(6, S.axle[0] - 20, CYa - 20, S.bay_z0 + 2);
       add(3, 20, CYa, -12); add(5, 59, CYa - 1.6, -27);
       add(Math.PI * BALLAST.r * BALLAST.r * (BALLAST.z1 - BALLAST.z0) / 1000 * 7.85, S.axle[0], CYa, (BALLAST.z0 + BALLAST.z1) / 2);
-      var p1 = onArm(-18, 15.5), p2 = onArm(arm.carr - 12, -11.5), pa = onArm(-4, 4);
-      add(9, p1[0], p1[1], 28.7, true); add(9, p2[0], p2[1], 22, true); add(4, pa[0], pa[1], 14, true);
+      add(9, S1X - 9 + S.axle[0], CYa + S1V, ZB + 11); add(9, S2X - 9 + S.axle[0], CYa + S2V, ZB + 11);
+      var pa = onArm(25, 0); add(4, pa[0], pa[1], -9, true);
       rings.forEach(function (r) {
         var tr = R.tracks[r.k], vol = 0;
         vol += 0.8 * WH * TAU * (tr[0] + 0.4) + 0.8 * WH * TAU * (tr[1] - 0.4);

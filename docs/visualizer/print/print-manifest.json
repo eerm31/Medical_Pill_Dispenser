@@ -139,11 +139,11 @@
         41.7
       ],
       "fits_bed_mm": 100,
-      "volume_mm3": 43763.5,
-      "solid_mass_g": 55.6,
-      "triangles": 2578,
+      "volume_mm3": 42070.5,
+      "solid_mass_g": 53.4,
+      "triangles": 4354,
       "bodies": 1,
-      "sha256": "6a32842fdea89985ece0611c3ca7a03fb1fc138a12bed11fc3a8e40b28949cf5",
+      "sha256": "a8b44bc63360518d7f74b03207cfd9874393044e5287b0eb5cb00f538de12791",
       "features": [
         {
           "feature": "Bearing seat diameter",
@@ -329,7 +329,7 @@
       "solid_mass_g": 54.7,
       "triangles": 9788,
       "bodies": 1,
-      "sha256": "b4428589c5b2699c69c44b83427e227e00d55587ff7d93bf5b5b042544abb01c",
+      "sha256": "c537022ce69e48bbe8b137e0a3308d641c509feb2dfdf3acb88ed7cd39c3fdc5",
       "features": [
         {
           "feature": "Screw clearance hole",

@@ -137,6 +137,11 @@
       S.deck_layers.forEach(function (ly) {
         var sh = new T.Shape(); sh.absarc(0, CYd, S.platform_r, 0, Math.PI * 2, false);
         ly.holes.forEach(function (h) { var q = new T.Path(); q.moveTo(h[0], h[2]); q.lineTo(h[1], h[2]); q.lineTo(h[1], h[3]); q.lineTo(h[0], h[3]); q.closePath(); sh.holes.push(q); });
+        // pin slots of the ring magazine: arcs concentric with the axle, one per ring
+        ((S.ring && S.ring.arc_slots) || []).forEach(function (a) {
+          var q = new T.Path(), a0 = a.a0 * Math.PI / 180, a1 = a.a1 * Math.PI / 180, ro = a.r + a.w / 2, ri = a.r - a.w / 2;
+          q.moveTo(ro * Math.cos(a0), CYd + ro * Math.sin(a0)); q.absarc(0, CYd, ro, a0, a1, false); q.lineTo(ri * Math.cos(a1), CYd + ri * Math.sin(a1)); q.absarc(0, CYd, ri, a1, a0, true); q.closePath(); sh.holes.push(q);
+        });
         var m = new T.Mesh(new T.ExtrudeGeometry(sh, { depth: ly.z1 - ly.z0, bevelEnabled: false, curveSegments: 96 }), H);
         m.rotation.x = -Math.PI / 2; m.position.y = ly.z0; fixedRoot.add(m); rtag(m, 'Station housing platform', 'printed', 'platform'); ex('platform', m);
       });
@@ -1174,8 +1179,8 @@
       [ctx.carriageGroup, ctx.tongueGroup].forEach(function (g) { if (g) list.push(g); });
       COLORS.forEach(function (c) { if (ctx.stationGroups[c]) list.push(ctx.stationGroups[c]); if (ctx.cartridgeLiftGroups[c]) list.push(ctx.cartridgeLiftGroups[c]); });
       list.forEach(function (o) { if (o && !legacySaved.some(function (r) { return r.o === o; })) { legacySaved.push({ o: o, v: o.visible }); o.visible = false; } });
-      // the rod only needs to reach the actuator arm hub
-      rodMesh.scale.z = (17.6 - S.rod_z0) / (S.rod_z1 - S.rod_z0);
+      // ring mode: the rod only needs to reach the bearing; the arm sits under the deck
+      rodMesh.scale.z = (S.platform_top - S.rod_z0) / (S.rod_z1 - S.rod_z0);
     }
     function ringChanged() {
       if (wiring3d && wiring3d.invalidate) { wiring3d.invalidate(); if (wiring3d.group.visible && wiring3d.setVisible) wiring3d.setVisible(true); }

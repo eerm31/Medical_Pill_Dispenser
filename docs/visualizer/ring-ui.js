@@ -8,7 +8,7 @@
     var look = window.DispenserReferenceLook, rm = look && look.ringMagazine;
     if (!rm || !$('ringTools')) { if (tries++ < 60) setTimeout(init, 250); return; }
     var tools = $('ringTools'), slider = $('pocketSize'), out = $('pocketOut'), info = $('pocketInfo'), note = $('ringRefillNote');
-    var rb = { open: $('ringOpenLid'), load: $('ringLoad'), index: $('ringIndex'), lift: $('ringLift'), close: $('ringCloseLid') };
+    var rb = { open: $('ringOpenLid'), load: $('ringLoad'), index: $('ringIndex'), fill: $('ringFill'), close: $('ringCloseLid') };
     var names = ['Red', 'Blue', 'Green', 'Orange'];
     Array.prototype.forEach.call(document.querySelectorAll('input[name="designOpt"]'), function (r) {
       r.addEventListener('change', function () {
@@ -28,13 +28,12 @@
     rb.open.addEventListener('click', function () { rm.refill.openLid(); refresh(); });
     rb.load.addEventListener('click', function () { rm.refill.load(); refresh(); });
     rb.index.addEventListener('click', function () { rm.refill.index(); refresh(); });
-    rb.lift.addEventListener('click', function () { rm.refill.lift(); refresh(); });
+    rb.fill.addEventListener('click', function () { rm.refill.fill(); refresh(); });
     rb.close.addEventListener('click', function () { rm.refill.closeLid(); refresh(); });
     function refresh() {
       if (!rm.active()) return;
       var s = rm.refill.state();
-      rb.open.disabled = !s.canOpen; rb.load.disabled = !s.canLoad; rb.index.disabled = !s.canIndex; rb.lift.disabled = !s.canLift; rb.close.disabled = !s.canClose;
-      rb.lift.textContent = s.lifted ? 'Put cartridge back' : 'Lift cartridge out';
+      rb.open.disabled = !s.canOpen; rb.load.disabled = !s.canLoad; rb.index.disabled = !s.canIndex; rb.fill.disabled = !s.canFill; rb.close.disabled = !s.canClose;
       Array.prototype.forEach.call(document.querySelectorAll('#refillRings [data-ring]'), function (b) { var i = Number(b.dataset.ring); b.disabled = !s.canSelect; b.classList.toggle('active', s.ring === i); b.setAttribute('aria-pressed', s.ring === i ? 'true' : 'false'); });
       var text;
       if (s.busy) text = 'Working…';

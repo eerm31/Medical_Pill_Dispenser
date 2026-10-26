@@ -63,7 +63,7 @@ def test_cup_window_is_a_single_wall_opening_inside_one_sector(g):
 def test_ring_files_are_loaded_in_order_and_the_controller_is_untouched():
     html = (VIS / "index.html").read_text(encoding="utf-8")
     assert html.index("ring-magazine.js") < html.index("reference-look.js") < html.index("ring-ui.js")
-    for ident in ("pocketSize", "ringOpenLid", "ringLoad", "ringIndex", "ringLift", "ringCloseLid", 'name="designOpt"'):
+    for ident in ("pocketSize", "ringOpenLid", "ringLoad", "ringIndex", "ringFill", "ringCloseLid", 'name="designOpt"'):
         assert ident in html
     assert hashlib.sha1((VIS / "demo-controller.js").read_bytes()).hexdigest() == "0c8396023ca6fc85cb135fbbf58ea39e903cee11"
 
@@ -85,3 +85,26 @@ def test_stability_readout_and_ballast_are_wired():
     assert "function stability" in js and "BALLAST" in js
     for ident in ("stabMass", "stabCom", "stabRot", "stabTip"):
         assert ident in html
+
+
+def test_under_deck_arm_sweeps_between_posts_and_clear_of_stepper_columns(g):
+    ring, posts = g["ring"], sorted(a % 360 for a in g["platform_posts"]["angles"])
+    lo, hi = min(a["a0"] for a in ring["arc_slots"]), max(a["a1"] for a in ring["arc_slots"])
+    reach = math.degrees(math.asin((3.0 + 0.5) / 45.5)) + math.degrees(math.asin(g["platform_posts"]["rad"] / g["platform_posts"]["r"])) + 2.0
+    before = max(p for p in posts if p < lo)
+    after = min(p for p in posts if p > hi)
+    assert lo - before > reach and after - max(hi, ring["park_deg"]) > reach
+    my = g["axle"][1] + g["motor_offset_y"]
+    s, cx = g["collar_half"] + 1.2, g["column_x"]
+    for a in ring["arc_slots"]:
+        for k in range(41):
+            ang = math.radians(a["a0"] + (a["a1"] - a["a0"]) * k / 40)
+            x, y = a["r"] * math.cos(ang), g["axle"][1] + a["r"] * math.sin(ang)
+            assert not (abs(abs(x) - cx) < s and abs(y - my) < s)  # slot stays out of the column collars
+
+
+def test_servos_stand_on_the_tray_not_above_the_rings(g):
+    js = (VIS / "ring-magazine.js").read_text(encoding="utf-8")
+    assert "var ZB = " in js or "ZB = S.bay_z0" in js
+    assert "S1Z0" not in js and "arm_z" in js
+    assert g["ring"]["arm_z"][1] < g["platform_top"]
