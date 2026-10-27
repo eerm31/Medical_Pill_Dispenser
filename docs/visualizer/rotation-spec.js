@@ -172,7 +172,7 @@ window.DispenserRotationSpec = {
         "z1": -23.0
       }
     ],
-    "scanner_dx": -48,
+    "scanner_dx": -29,
     "table_z": -51.0,
     "bay_z0": -35.0,
     "standoff_r": 2,

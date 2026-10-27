@@ -1,4 +1,16 @@
 <!-- SPECKIT START -->
+Subsystems 3 and 4 (user request 2026-10-27) are concept-level features 009
+(`verification-subsystem`: break-beam dispense check, ring EMPTY/PARTIAL/FULL,
+same-pill storage check) and 010 (`touchscreen-schedule`: touchscreen + status
+LED on the shell, dose schedule, barcode reader moved onto the shell, `scanner_dx`
+-29). Read `specs/009-verification-subsystem/spec.md` / `plan.md` and
+`specs/010-touchscreen-schedule/spec.md` / `plan.md` before work on them. Code:
+`docs/visualizer/verification-controller.js`, `schedule-controller.js`,
+`housing-modules.js`, `subsystem-ui.js`; tests `tests/test_feature009_*.py`,
+`tests/test_feature010_*.py`. Both are ASSUMED / NOT_VALIDATED, read the locked demo
+controller only, and the wiring window is not changed (pin plans are in plan.md).
+The active feature pointer is `.specify/feature.json` (now 010); Feature 005's
+rotation notes below still apply to the mechanism.
 The active Spec Kit feature is 005, `first-subsystem-rotation-pin-gates`.
 Feature 006 (`compartment-weight-verification`) is parked: its spec and plan
 exist (read `specs/006-compartment-weight-verification/spec.md` and

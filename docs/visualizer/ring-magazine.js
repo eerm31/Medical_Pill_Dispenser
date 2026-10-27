@@ -8,7 +8,8 @@
      and only drives the phase names this file maps to motion.
      Support: the rod runs through a bushing in the fixed centre column; each ring rests on 14 caged balls in a fixed grooved track on the deck
      (the cage turns at half the ring's speed, so the balls roll; PTFE-lined guide walls between the rings hold them radially). A clamp pad per ring locks it; only the ring being served is unlocked.
-     Refill: a small hatch per ring in the lid sits over that ring's loading pocket; the ring turns an empty pocket under it first. */
+     Refill: one hinged flap (half of the lid) lifts over the five queue pockets of every ring; the rings stay locked and a pill is dropped
+     straight into each empty pocket (rounded divider tops shed a pill that lands on them into a pocket). */
   var TAU = Math.PI * 2;
   function wrap(a) { return Math.atan2(Math.sin(a), Math.cos(a)); }
   function ease(q) { q = Math.max(0, Math.min(1, q)); return q * q * (3 - 2 * q); }
@@ -49,12 +50,12 @@
     var rp = R.tracks.map(function (t) { return t[0] + 0.4; });
     var thL = rc.map(function (r) { return Math.asin(VL / r); });
     var CUPV = (VL + VT_) / 2, LIP_X = 54, CUP = { x0: 52.5, x1: 66, floor: -30 };
-    var st = { active: false, sel: -1, lid: 0, lidT: 0, session: false, armLift: 0, show: -1, showHatch: -1 };
+    var st = { active: false, lid: 0, lidT: 0, session: false, armLift: 0, show: -1 };
     var root = new T.Group(); root.name = 'ring magazine'; root.position.set(0, 0, -CYa); root.visible = false; ctx.parent.add(root);
     var PR = std(0x9fc2e6, { transparent: true, opacity: 0.8, roughness: 0.45 });
-    // each ring rides on NB captive balls (radius BR) in a fixed grooved track; the loading pocket sits UL pockets before the exit
-    var BR = 0.5, TRK = 0.3, RAISE = TRK + 2 * BR, RZ = ZF + RAISE, NB = 14, UL = CAP, LOCK_A = -Math.PI / 2, LDS = S.lid;
-    var thLoad = thL.map(function (t) { return t - (UL - 0.5) * P; }), rh = rc.map(function (r) { return Math.min(r, LDS.r - 4); }), DROPH = (LDS.z1 + 6 - ZF) / 9;
+    // each ring rides on NB captive balls (radius BR) in a fixed grooved track; the five queue pockets before the exit sit under the refill flap
+    var BR = 0.5, TRK = 0.3, RAISE = TRK + 2 * BR, RZ = ZF + RAISE, NB = 14, LOCK_A = Math.PI / 2, LDS = S.lid, FLAP_MAX = 1.9;
+    var ZB0 = RZ + WH + 12, DROPH = (ZB0 - ZF) / 9;
 
     function tag(o, label, kind, piece, type) { ctx.rtag(o, label, kind, piece); o.userData.ring = true; if (type) ctx.ptype(o, type); return o; }
     function edges(m) { m.add(new T.LineSegments(new T.EdgesGeometry(m.geometry, 30), ctx.EL)); return m; }
@@ -94,7 +95,7 @@
     });
 
     // ---------- ring wheels ----------
-    var rings = [], pillMats = [], rimMats = [], solidMats = [];
+    var rings = [], pillMats = [], rimMats = [], fadeMeshes = [];
     // every pocket has the same fixed width: the thickest pill model plus 0.6 mm play, so any pill model fits any pocket of any ring
     var POCKET = Math.max.apply(null, PILLS.map(function (p) { return p.L; })) + 0.6;
     function fits(k, i) { var tr = R.tracks[k]; return PILLS[i].L + 0.6 <= POCKET + 1e-9 && PILLS[i].W + 0.4 <= tr[1] - tr[0] - 2 * RT + 1e-9 && P * rc[k] - POCKET >= VMIN; }
@@ -103,21 +104,22 @@
     function modelFor(k, m) { var i = (k + m) % PILLS.length; return fits(k, i) ? i : 0; }
     COLORS.forEach(function (color, k) {
       var tr = R.tracks[k], accent = ctx.accent[color] || 0x8294a5, g = new T.Group(), rim = std(accent, { transparent: true, opacity: 0.5, roughness: 0.5, side: T.DoubleSide, depthWrite: false }), solid = std(accent, { roughness: 0.55 });
-      rimMats.push(rim); solidMats.push(solid); g.position.y = RZ; root.add(g);
+      rimMats.push(rim); g.position.y = RZ; root.add(g);
       var mi = new T.Mesh(ringGeo(tr[0] + RT, tr[0], WH), rim), mo = new T.Mesh(ringGeo(tr[1], tr[1] - RT, WH), rim), band = new T.Mesh(ringGeo(tr[1], tr[1] - RT - 0.2, 0.9), solid);
-      band.position.y = WH - 0.9; [mi, mo, band].forEach(function (m) { g.add(m); tag(m, 'Ring magazine', 'printed', 'ring' + k); });
+      band.position.y = WH - 0.9; [mi, mo, band].forEach(function (m) { g.add(m); tag(m, 'Ring magazine', 'printed', 'ring' + k); fadeMeshes.push(m); });
       var vanes = [], width = (tr[1] - RT) - (tr[0] + RT) + 0.2, vaneGeo = new T.CylinderGeometry(0.5, 0.5, width, 16);
       vaneGeo.rotateZ(Math.PI / 2); // smooth oval divider; its thickness (scale.z) is pitch minus the fixed pocket
       var toothGeo = new T.BoxGeometry(RT, 1.2, TOOTH);
       for (var j = 0; j < N; j++) {
         var vg = new T.Group(); vg.rotation.y = thL[k] - j * P; g.add(vg);
-        var tooth = new T.Mesh(toothGeo, solid); tooth.position.set(rp[k], -0.6, 0); vg.add(tooth); tag(tooth, 'Drive tooth', 'printed', 'tooth' + k);
-        var v = new T.Mesh(vaneGeo, solid); v.scale.y = WH; v.position.set(rc[k], WH / 2, 0); vg.add(v); tag(v, 'Pocket divider', 'printed', 'divider' + k); vanes.push(v);
+        var tooth = new T.Mesh(toothGeo, solid); tooth.position.set(rp[k], -0.6, 0); vg.add(tooth); tag(tooth, 'Drive tooth', 'printed', 'tooth' + k); fadeMeshes.push(tooth);
+        var v = new T.Mesh(vaneGeo, solid); v.scale.y = WH; v.position.set(rc[k], WH / 2, 0); vg.add(v); tag(v, 'Pocket divider', 'printed', 'divider' + k); vanes.push(v); fadeMeshes.push(v);
       }
       rings.push({ k: k, g: g, vanes: vanes, K: 0, A: 0, pills: [], lift: 0, liftT: 0, sess: false, canon: true, nextM: 0 });
       var c = accent;
       pillMats.push({ main: std(c, { roughness: 0.35 }), white: std(0xf4f4f0, { roughness: 0.4 }) });
     });
+    fadeMeshes.forEach(function (m) { m.userData.fade0 = { o: m.material.opacity, t: m.material.transparent, d: m.material.depthWrite }; });
     function applyPocket() { rings.forEach(function (r) { var t = vaneT(r.k); r.vanes.forEach(function (v) { v.scale.z = t; }); }); }
     applyPocket();
     function slackOf(p) { return Math.max(0, (POCKET - PILLS[p.model].L) / 2) / rc[p.k]; }
@@ -167,19 +169,6 @@
     [guide0, ptfe0].forEach(function (m) { m.position.y = ZF; fixedG.add(m); });
     tag(edges(guide0), 'Ring support track', 'printed', 'track0'); tag(ptfe0, 'PTFE liner', 'bought', 'ptfe0', 'hardware');
 
-    // ---------- loading hatches: one small hatch per ring in the lid, a short funnel down to that ring's loading pocket ----------
-    var hatches = [], lidHost = root;
-    if (ctx.lid) { lidHost = new T.Group(); lidHost.position.set(0, 0, -CYa); lidHost.visible = false; ctx.lid.add(lidHost); }
-    COLORS.forEach(function (color, k) {
-      var pg = polarG(lidHost, thLoad[k]), acc = std(ctx.accent[color] || 0x8294a5, { roughness: 0.5 }), z1 = LDS.z1, zb = RZ + WH + 1.0, dx = rc[k] - rh[k], dz = LDS.z0 - zb;
-      tag(bx(pg, rh[k] - 3.0, rh[k] + 3.0, -3.6, 3.6, z1, z1 + 0.3, M.dark), 'Loading hatch', 'printed', 'hatch' + k);
-      var fg = new T.Group(); fg.position.set(rh[k] + 2.6, z1 + 0.3, 0); pg.add(fg);
-      tag(bx(fg, -5.2, 0, -3.3, 3.3, 0, 0.8, acc), 'Loading hatch', 'printed', 'hatch' + k);
-      var tube = new T.Mesh(new T.CylinderGeometry(3.1, 3.1, Math.hypot(dx, dz), 20, 1, true), std(ctx.accent[color] || 0x8294a5, { transparent: true, opacity: 0.25, side: T.DoubleSide, depthWrite: false }));
-      tube.position.set((rh[k] + rc[k]) / 2, (zb + LDS.z0) / 2, 0); tube.rotation.z = -Math.atan2(-dx, dz); pg.add(tube); tag(tube, 'Fill funnel', 'printed', 'funnel' + k);
-      hatches.push({ g: fg, v: 0 });
-    });
-
     // ---------- pills ----------
     function pillObject(k, model) {
       var d = PILLS[model], mm = pillMats[k], g = new T.Group(), body = new T.Group(), m; g.add(body);
@@ -199,11 +188,11 @@
     function newPill(r, u, drop) { var m = mOfU(r, u), i = modelFor(r.k, m), p = { k: r.k, m: m, off: 0, model: i, mesh: pillObject(r.k, i), drop: drop || 0, yaw: 0 }; r.pills.push(p); return p; }
     function killPill(p) { if (p.mesh.parent) p.mesh.parent.remove(p.mesh); }
     function rebuild(r, n) { r.pills.forEach(killPill); r.pills = []; for (var u = 1; u <= n; u++) newPill(r, u, 0.6 + 0.12 * u); r.canon = true; r.nextM = mod(r.K + n, N); }
-    // refill drops the pill into the next empty pocket (nextM), which the ring has turned under the hatch
+    // refill drops the pill into the next empty queue pocket (nextM = K + pills in the ring)
     function newPillAt(r) { var i = modelFor(r.k, r.nextM), p = { k: r.k, m: r.nextM, off: 0, model: i, mesh: pillObject(r.k, i), drop: 0, yaw: 0 }; r.pills.push(p); r.nextM = mod(r.nextM + 1, N); return p; }
     function pocketCenter(r, m) { return r.A + thL[r.k] - (m + 0.5) * P; }
     function placePill(p, r, pos) {
-      var phi = pocketCenter(r, p.m) + p.off, lift = r.lift * 30, rad = rc[p.k] + (p.hold ? (rh[p.k] - rc[p.k]) * Math.min(1, p.drop / DROPH) : 0);
+      var phi = pocketCenter(r, p.m) + p.off, lift = r.lift * 30, rad = rc[p.k];
       p.mesh.position.set(rad * Math.cos(phi), ZF + p.drop * 9 + lift, -rad * Math.sin(phi)); p.mesh.rotation.set(0, phi + Math.PI / 2, 0); p.mesh.userData.lay(p.lay || 0); p.mesh.visible = true;
     }
     function movePills(r, dA) {
@@ -256,7 +245,7 @@
       });
     }
 
-    // amber marker on the next empty pocket of every ring that is not full (shown while the lid is open)
+    // amber marker on the next empty queue pocket of every ring that is not full (shown while the flap is open)
     var markers = rings.map(function () {
       var m = new T.Mesh(new T.RingGeometry(2.6, 3.6, 28), new T.MeshBasicMaterial({ color: 0xffb300, transparent: true, opacity: 0.9, side: T.DoubleSide }));
       m.rotation.x = -Math.PI / 2; m.renderOrder = 30; m.visible = false; root.add(m); return m;
@@ -288,7 +277,7 @@
         // the cage carries the balls at half the ring's turn and each ball spins by A * rb / (2 BR): rolling without slipping
         balls[r.k].cage.rotation.y = r.A / 2;
         balls[r.k].list.forEach(function (b) { b.rotation.x = -r.A * balls[r.k].rb / (2 * BR); });
-        rimMats[r.k].emissive = rimMats[r.k].emissive || new T.Color(0); var on = COLORS[r.k] === selColor || r.k === st.sel;
+        rimMats[r.k].emissive = rimMats[r.k].emissive || new T.Color(0); var on = COLORS[r.k] === selColor;
         rimMats[r.k].emissive.setHex(on ? 0x333333 : 0x000000);
         r.pills.forEach(function (p) { if (p.drop > 0 && !p.hold) p.drop = Math.max(0, p.drop - 0.06); placePill(p, r); });
       });
@@ -368,24 +357,23 @@
       for (var i = 0; i < Math.abs(d); i++) stroke(k, d > 0 ? 1 : -1, f);
       if (d) armTo(PARK, rp[k], 0.5 * f, 0);
     }
-    // before each pill the ring turns the next empty pocket under the open hatch (UL pockets before the exit)
-    function stageLoad(k, f) { macro(function () { if (lockV[k] < 0.95) wait(0.45, null); indexTo(k, mod(rings[k].nextM + 1 - UL, N), f); }); }
-    // after loading, turn the pills forward until the first one sits right before the exit again
+    // after a demo, turn the pills forward until the first one sits right before the exit again
     function stageHome(k, f) { macro(function () { var r = rings[k]; if (r.pills.length) indexTo(k, mod(r.nextM - r.pills.length, N), f); }); }
-    // the hatch is aligned with the loading pocket: a bottle comes down over it, tips, one pill drops through the funnel, the bottle lifts away
-    function loadDrop(k, quick) {
-      var r = rings[k], p = null, ZB0 = LDS.z1 + 8;
-      enqueue({ dur: quick ? 0.9 : 1.5, start: function () { bandMat.color.setHex(ctx.accent[COLORS[k]] || 0x888888); bottle.visible = true; p = null; },
+    // the ring never turns while it is refilled: a bottle sweeps over the open queue pockets of ring k and drops one pill straight into each empty pocket
+    function pourRing(k, n) {
+      var r = rings[k], per = 0.26, lead = 0.6, tail = 0.5, fall = 0.32, made = [], m0 = 0, phi0 = 0;
+      enqueue({ dur: lead + n * per + tail,
+        start: function () { bandMat.color.setHex(ctx.accent[COLORS[k]] || 0x888888); bottle.visible = true; made = []; m0 = r.nextM; phi0 = pocketCenter(r, m0); },
         run: function (q) {
-          var phi = thLoad[k], up = q < 0.25 ? 1 - ease(q / 0.25) : q < 0.8 ? 0 : ease((q - 0.8) / 0.2);
-          var tilt = q < 0.25 ? 0 : q < 0.45 ? ease((q - 0.25) / 0.2) : q < 0.8 ? 1 : 1 - ease((q - 0.8) / 0.2);
-          bottle.position.set(rh[k] * Math.cos(phi), ZB0 + 28 * up, -rh[k] * Math.sin(phi)); bottle.rotation.y = phi + Math.PI / 2; bTilt.rotation.z = tilt * 0.62;
-          if (!p && q >= 0.45) { p = newPillAt(r); p.off = 0; p.hold = true; p.drop = DROPH; p.lay = 1; r.loading = p; }
-          if (p && q >= 0.45) { var f = Math.min(1, (q - 0.45) / 0.3); p.drop = DROPH * (1 - f * f); p.lay = 1 - ease(f); }
+          var t = q * (lead + n * per + tail), x = Math.max(0, Math.min(n - 1, (t - lead) / per)), phi = phi0 - x * P, end = lead + n * per;
+          var up = t < lead * 0.6 ? 1 - ease(t / (lead * 0.6)) : t > end ? ease((t - end) / tail) : 0;
+          var tilt = t < lead * 0.4 ? 0 : t < lead ? ease((t - lead * 0.4) / (lead * 0.6)) : t < end ? 1 : 1 - ease((t - end) / tail);
+          bottle.position.set(rc[k] * Math.cos(phi), ZB0 + 8 + 28 * up, -rc[k] * Math.sin(phi)); bottle.rotation.y = phi + Math.PI / 2; bTilt.rotation.z = tilt * 0.62;
+          while (made.length < n && t >= lead + made.length * per) { var p = newPillAt(r); p.off = 0; p.hold = true; p.drop = DROPH; p.lay = 1; made.push({ p: p, t0: lead + (made.length) * per }); }
+          made.forEach(function (e) { var f = Math.min(1, (t - e.t0) / fall); e.p.drop = DROPH * (1 - f * f); e.p.lay = 1 - ease(f); });
         },
-        end: function () { bottle.visible = false; if (p) { p.hold = false; p.drop = 0; p.lay = 0; } r.loading = null; pushCounts(); } });
+        end: function () { bottle.visible = false; made.forEach(function (e) { e.p.hold = false; e.p.drop = 0; e.p.lay = 0; }); pushCounts(); } });
     }
-    function loadOne(k, quick) { stageLoad(k, quick ? 0.4 : 0.7); loadDrop(k, quick); }
     function pushCounts() {
       var host = window.DispenserStepHost; if (!host || !host.controller) return;
       rings.forEach(function (r) { var c = host.controller.state.cartridges[COLORS[r.k]]; if (!c) return; c.count = r.pills.length; c.occupancy = r.pills.length ? 'loaded' : 'empty'; });
@@ -403,67 +391,46 @@
     function idle(s) { return !s || s.operation === null; }
     function host() { return window.DispenserStepHost && window.DispenserStepHost.controller.state; }
     function wait(dur, start, end) { enqueue({ dur: dur, start: start, run: function () {}, end: end }); }
-    function finishSession() { pushCounts(); st.session = false; st.sel = -1; }
+    function finishSession() { pushCounts(); st.session = false; }
     var refill = {
       state: function () {
-        var s = host(), k = st.sel, r = k >= 0 ? rings[k] : null, free = idle(s) && !busy(), open = st.lidT > 0;
-        return { lid: open, ring: k, counts: rings.map(function (x) { return x.pills.length; }), busy: !free, lifted: false, lidOpen: st.lid > 0.98, lidClosed: st.lidT === 0 && st.lid < 0.02,
-          canOpen: free && !open, canClose: free && open, canSelect: free && open,
-          canLoad: free && open && Boolean(r) && r.pills.length < CAP, canFill: free && open && Boolean(r) && r.pills.length < CAP, canIndex: false, canLift: false,
-          canFillAll: free && rings.some(function (x) { return x.pills.length < CAP; }) };
+        var s = host(), free = idle(s) && !busy(), open = st.lidT > 0, counts = rings.map(function (x) { return x.pills.length; });
+        return { lid: open, counts: counts, busy: !free, lidOpen: st.lid > 0.98, lidClosed: st.lidT === 0 && st.lid < 0.02,
+          canOpen: free && !open, canClose: free && open, canDrop: counts.map(function (c) { return free && open && c < CAP; }),
+          canFill: free && open && counts.some(function (c) { return c < CAP; }), canFillAll: free && counts.some(function (c) { return c < CAP; }) };
       },
       openLid: function () { if (!refill.state().canOpen) return false; st.lidT = 1; st.session = true; return true; },
-      // picking a ring releases only its lock and opens only its hatch; the previous ring is first turned back so its first pill sits before the exit
-      select: function (k) {
-        if (!refill.state().canSelect || k < 0 || k >= rings.length) return false;
-        var prev = st.sel;
-        if (prev >= 0 && prev !== k) { stageHome(prev, 0.5); wait(0.3, function () { st.sel = k; }); } else st.sel = k;
-        return true;
-      },
-      prepare: function () { return refill.state().canLoad; },
-      load: function () { if (!refill.state().canLoad) return false; loadOne(st.sel, false); return true; },
-      drop: function () { return refill.load(); },
-      advance: function () { return false; },
-      index: function () { return false; },
-      lift: function () { return false; },
+      // one pill into the next empty queue pocket of ring k
+      drop: function (k) { if (!refill.state().canDrop[k]) return false; pourRing(k, 1); return true; },
+      // every empty queue pocket of every ring that is not full (the flap stays open)
       fill: function () {
         if (!refill.state().canFill) return false;
-        var k = st.sel, n = CAP - rings[k].pills.length;
-        for (var j = 0; j < n; j++) loadOne(k, true);
+        rings.forEach(function (r) { macro(function () { var n = CAP - r.pills.length; if (n > 0) pourRing(r.k, n); }); });
         return true;
       },
-      // one click: open the hatch session if needed, load every ring that is not full (its own lock and hatch only), close the hatch
+      // one click: open the flap if needed, fill every pocket of every ring, close the flap
       fillAll: function () {
         if (!refill.state().canFillAll) return false;
         if (st.lidT === 0) { st.session = true; wait(0.6, function () { st.lidT = 1; }); }
-        rings.forEach(function (r) {
-          var n = CAP - r.pills.length; if (n <= 0) return;
-          wait(0.2, function () { st.sel = r.k; });
-          for (var j = 0; j < n; j++) loadOne(r.k, true);
-        });
-        macro(function () { if (st.sel >= 0) stageHome(st.sel, 0.4); });
+        rings.forEach(function (r) { macro(function () { var n = CAP - r.pills.length; if (n > 0) pourRing(r.k, n); }); });
         wait(1.0, function () { st.lidT = 0; }, finishSession);
         return true;
       },
       closeLid: function () {
         if (!refill.state().canClose) return false;
-        macro(function () { if (st.sel >= 0) stageHome(st.sel, 0.5); });
         wait(1.0, function () { st.lidT = 0; }, finishSession);
         return true;
       }
     };
 
-    // ---------- hatches and ring locks, per-frame update ----------
+    // ---------- refill flap and ring locks, per-frame update ----------
     function applyLid() {
       st.lid += (st.lidT - st.lid) * 0.12; if (Math.abs(st.lidT - st.lid) < 0.002) st.lid = st.lidT;
-      hatches.forEach(function (h, k) {
-        var t = (st.lidT > 0 && st.sel === k) || st.showHatch === k ? 1 : 0; h.v += (t - h.v) * 0.12; if (Math.abs(t - h.v) < 0.002) h.v = t;
-        h.g.rotation.z = -1.75 * ease(h.v);
-      });
+      if (ctx.lidFlap) ctx.lidFlap(FLAP_MAX * ease(st.lid));
     }
-    // only the ring being refilled or dispensed is unlocked; every other pad stays down on its rim
+    // only the ring being dispensed or shown in a demo is unlocked; every other pad stays down on its rim
     function applyLocks() {
-      var open = rec ? rec.k : (st.session ? st.sel : st.show);
+      var open = rec ? rec.k : st.show;
       pads.forEach(function (pad, k) { var t = k === open ? 1 : 0; lockV[k] += (t - lockV[k]) * 0.15; if (Math.abs(t - lockV[k]) < 0.002) lockV[k] = t; pad.position.y = pad.userData.y0 + PADUP * lockV[k]; });
     }
     function sync(s) {
@@ -482,9 +449,9 @@
       sync(s); applyArm(); applyRings(s && s.operation === 'dispense' ? s.selected : null); applyLid(); applyLocks();
       var now2 = Date.now() / 400;
       rings.forEach(function (r, k) {
-        var show = st.lidT > 0 && k === st.sel && r.pills.length < CAP, m = markers[k];
+        var show = st.lidT > 0 && r.pills.length < CAP, m = markers[k], phi = pocketCenter(r, r.nextM);
         m.visible = show; if (!show) return;
-        m.position.set(rc[k] * Math.cos(thLoad[k]), ZF + 0.4, -rc[k] * Math.sin(thLoad[k])); m.scale.setScalar(1.25 + 0.15 * Math.sin(now2)); m.material.opacity = 1;
+        m.position.set(rc[k] * Math.cos(phi), RZ + WH + 0.4, -rc[k] * Math.sin(phi)); m.scale.setScalar(1.25 + 0.15 * Math.sin(now2)); m.material.opacity = 1;
       });
     }
 
@@ -531,17 +498,22 @@
       });
       return { mass: M_, rotating: rot, com: [X, Y, Z], comAboveTable: Z - S.table_z, tip: tip };
     }
-    // Show bearings: the rings (rims, dividers, teeth) fade to 20% so the balls, cage, race and pin slots show from above
+    // Show bearings: the rings (rims, dividers, teeth) fade to 20% so the balls, cage, race and pin slots show from above.
+    // Each mesh's own material is changed because the system sub-view clones them; ctx.fadeBase keeps that view's fade logic in step.
     function setBearings(on) {
       st.bearings = Boolean(on);
-      rimMats.forEach(function (m) { m.opacity = on ? 0.2 : 0.5; m.needsUpdate = true; });
-      solidMats.forEach(function (m) { m.transparent = Boolean(on); m.opacity = on ? 0.2 : 1; m.depthWrite = !on; m.needsUpdate = true; });
+      fadeMeshes.forEach(function (m) {
+        var f = m.userData.fade0, mat = m.material, v = on ? 0.2 : f.o;
+        mat.opacity = v; mat.transparent = on || f.t; mat.depthWrite = on ? false : f.d; mat.needsUpdate = true;
+        if (ctx.fadeBase) ctx.fadeBase(m, v);
+      });
+      if (ctx.changed) ctx.changed();
     }
     function setActive(on) {
       on = Boolean(on); if (on === st.active) return;
-      st.active = on; root.visible = on; lidHost.visible = on; if (ctx.legacy) ctx.legacy(on);
+      st.active = on; root.visible = on; if (ctx.lidSplit) ctx.lidSplit(on); if (ctx.legacy) ctx.legacy(on);
       if (on) { last = 0; applyArm(); applyRings(null); }
-      else { st.lidT = 0; st.lid = 0; st.session = false; st.show = -1; st.showHatch = -1; applyLid(); }
+      else { st.lidT = 0; st.lid = 0; st.session = false; st.show = -1; }
       if (ctx.changed) ctx.changed();
     }
     // labels for the parts: constant screen size with a leader line in the main view; the same names are callouts in the system sub-views
@@ -572,9 +544,7 @@
       ca('Ring support track', 'printed', pol(R.tracks[1][1] - 0.2, Math.PI * 0.75, ZF + 0.2), [-72, 40, -2]);
       ca('PTFE liner', 'bought', pol(R.tracks[2][1] + 0.7, Math.PI * 0.6, ZF + 1.2), [-72, 40, 30]);
       ca('Pocket divider', 'printed', pol(rc[2], thL[2] - 3 * P, RZ + WH), [72, 40, 40]);
-      ca('Ring lock pad', 'printed', pol(R.tracks[3][1] - 0.5, LOCK_A, RZ + WH + 1.6), [72, -40, 22]);
-      ca('Loading hatch', 'printed', pol(rh[2], thLoad[2], LDS.z1 + 0.8), [-72, -10, LDS.z1 + 22]);
-      ca('Fill funnel', 'printed', pol(rh[1], thLoad[1], 36), [-72, -10, 62]);
+      ca('Ring lock pad', 'printed', pol(R.tracks[3][1] - 0.5, LOCK_A, RZ + WH + 1.6), [72, 55, 22]);
       ca('Actuator arm', 'printed', pol(26, PARK, ZA1), [72, 40, 4]);
       ca('Engagement pin', 'bought', pol(rp[0], PARK, ZA1 + 3), [-72, 40, -18]);
       ca('Exit funnel', 'printed', [30, 0, zf(30)], [76, 0, -14]);
@@ -586,24 +556,32 @@
     var demo = {
       free: function () { var s = host(); return idle(s) && !busy() && !st.session; },
       unlock: function (k) { st.show = k; return true; },
-      hatch: function (k) { st.showHatch = k; return true; },
+      hatch: function (open) { st.lidT = open ? 1 : 0; st.session = Boolean(open); return true; },
       lockOpen: function (k) { return lockV[k] > 0.95; },
       allLocked: function () { return lockV.every(function (v) { return v < 0.02; }); },
-      hatchOpen: function (k) { return hatches[k].v > 0.98; },
-      allHatchesShut: function () { return hatches.every(function (h) { return h.v < 0.02; }); },
+      flapOpen: function () { return st.lid > 0.98; },
+      flapShut: function () { return st.lid < 0.02; },
       rodTo: function (k, dir) { armTo(dir > 0 ? thetaFwd(k) : thetaRev(k), rp[k], 0.7, 0); return true; },
       pin: function (v) { pinTo(v, 0.6); return true; },
       turn: function (k, dir) { turnTask(k, dir, 1.3); return true; },
       park: function (k) { armTo(PARK, rp[k], 0.8, 0); return true; },
-      // after an unfinished demo: lock everything, close hatches, turn every ring back so its first pill sits before the exit
-      reset: function () { st.show = -1; st.showHatch = -1; pinTo(0, 0.3); rings.forEach(function (r) { stageHome(r.k, 0.5); }); armTo(PARK, rp[0], 0.6, 0); }
+      // after an unfinished demo: lock everything, close the flap, turn every ring back so its first pill sits before the exit
+      reset: function () { st.show = -1; st.lidT = 0; st.session = false; pinTo(0, 0.3); rings.forEach(function (r) { stageHome(r.k, 0.5); }); armTo(PARK, rp[0], 0.6, 0); }
     };
 
     return { active: function () { return st.active; }, setLabels: function (on) { tagG.visible = Boolean(on); }, labelsShown: function () { return tagG.visible; }, labelItems: function () { return tagItems; }, setFloor: function (on) { floorG.visible = Boolean(on); }, setBearings: setBearings, bearings: function () { return st.bearings; }, demo: demo, setActive: setActive, update: update, ringAct: ringAct, refill: refill, stability: stability,
       pocket: function () { return { width: Math.round(POCKET * 10) / 10, dividers: rings.map(function (r) { return Math.round(vaneT(r.k) * 10) / 10; }), pills: PILLS.map(function (p) { return p.name + ' ' + p.L + 'x' + p.W; }) }; },
       fits: fits,
+      // fixed queue pocket u (1 = next to the exit) of ring k: where the level sensors look. sense() is true when a pill sits over that spot right now
+      capacity: CAP,
+      addLabel: tagLabel,
+      queuePocket: function (k, u) { return { r: rc[k], phi: thL[k] - (u - 0.5) * P }; },
+      sense: function (k, u) {
+        var r = rings[k], phiU = thL[k] - (u - 0.5) * P;
+        return r.pills.some(function (p) { return p.drop <= 0.05 && Math.abs(wrap(pocketCenter(r, p.m) + p.off - phiU)) * rc[k] < 2.0; });
+      },
       label: function (ph) { return st.active && LABELS[ph] ? LABELS[ph] : null; },
-      report: function () { return { active: st.active, pockets: N, rings: rings.map(function (r) { return { k: r.k, K: r.K, pills: r.pills.length, front: frontU(r) }; }), arm: { theta: arm.theta, carr: arm.carr, pin: arm.pin }, cup: cup.length, lid: st.lid, busy: busy(), locks: lockV.slice(), hatches: hatches.map(function (h) { return h.v; }), selected: st.sel }; },
+      report: function () { return { active: st.active, pockets: N, rings: rings.map(function (r) { return { k: r.k, K: r.K, pills: r.pills.length, front: frontU(r) }; }), arm: { theta: arm.theta, carr: arm.carr, pin: arm.pin }, cup: cup.length, lid: st.lid, busy: busy(), locks: lockV.slice(), flap: st.lid }; },
       root: root, constants: { N: N, rc: rc, thL: thL, PARK: PARK, ZF: ZF }
     };
   }

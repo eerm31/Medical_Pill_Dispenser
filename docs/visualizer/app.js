@@ -5,7 +5,7 @@
   var controller=new Controller(), renderer=null, scene=null, camera=null, root3d=null, drumGroup=null, targets={}, labels=[], pills={}, capToggle=document.getElementById('capsToggle'), labelToggle=document.getElementById('labelsToggle'), scannerToggle=document.getElementById('scannerSubsystemToggle');
   var last=performance.now(), lastStatus=0, orbit={theta:.72,phi:1.02,radius:330}, pointer=null, pinchDistance=0, previousSnapshot=null;
   var mechanismToggle=document.getElementById('mechanismToggle'), mechanismGroup=null, mechanismVisible=true;
-  var SCAN_DX=-48, fixedAssemblyGroup=null, fixedGroup=null, scannerGroup=null, stationGroups={}, cartridgeLiftGroups={}, carriageGroup=null, tongueGroup=null, servoLinkageGroup=null, capHingeParts={}, assemblySchedule=DATA.assembly_schedule||null, placementById={}, groupById={}, tongueSpringEndpoints=null;
+  var SCAN_DX=-29, fixedAssemblyGroup=null, fixedGroup=null, scannerGroup=null, stationGroups={}, cartridgeLiftGroups={}, carriageGroup=null, tongueGroup=null, servoLinkageGroup=null, capHingeParts={}, assemblySchedule=DATA.assembly_schedule||null, placementById={}, groupById={}, tongueSpringEndpoints=null;
   var cameraTarget=new THREE.Vector3(-8,4,-12);
   var palette={}; DATA.palette.forEach(function (item) { palette[item.id]=item.three; });
   var recipeMap={}; DATA.component_recipes.forEach(function (r) { recipeMap[r.recipe_id]=r; });
@@ -251,7 +251,7 @@
     var ringFloor=document.getElementById('ringFloor'),floorRow=document.getElementById('ringFloorRow'),floorHere=Boolean(on&&view==='compartment'&&look&&look.ringActive&&look.ringActive());
     if(!floorHere&&ringFloor&&!ringFloor.checked){ringFloor.checked=true;if(look&&look.ringMagazine)look.ringMagazine.setFloor(true);}
     if(floorRow)floorRow.hidden=!floorHere;
-    if(on){var ringM=Boolean(look&&look.ringActive&&look.ringActive()),still=ringM||view==='mount'||view==='compartment'||view==='housing';document.getElementById('removalFlow').hidden=ringM||view!=='compartment';if(view==='compartment'&&!ringM)removalReset();document.getElementById('rotationPanelTitle').textContent=view==='mount'?'Stepper mount preview':view==='housing'?'Housing preview':view==='compartment'?(ringM?'Ring compartments preview':'Compartments & decks preview'):(ringM?'Ring rotation preview':'Rotation subsystem preview');document.querySelector('#rotationPanel .rotation-buttons').hidden=still;document.querySelector('#rotationPanel .readout-grid').hidden=still;fillRotationParts();}
+    if(on){var ringM=Boolean(look&&look.ringActive&&look.ringActive()),still=ringM||view==='mount'||view==='compartment'||view==='housing';document.getElementById('removalFlow').hidden=ringM||view!=='compartment';if(view==='compartment'&&!ringM)removalReset();document.getElementById('rotationPanelTitle').textContent=view==='mount'?'Stepper mount preview':view==='housing'?'Housing preview':view==='compartment'?(ringM?'Ring magazine preview':'Compartments & decks preview'):(ringM?'Ring rotation preview':'Rotation subsystem preview');document.querySelector('#rotationPanel .rotation-buttons').hidden=still;document.querySelector('#rotationPanel .readout-grid').hidden=still;fillRotationParts();}
     else{if(look&&look.selectRotationPart)look.selectRotationPart(null);setFocusFade('part',false);setFocusFade('dimension',false);rotationPreview.angle=0;rotationPreview.target=0;}
     refreshPartLists();
     if(camera)updateCamera();

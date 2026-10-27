@@ -196,7 +196,7 @@ def test_housing_fits_inside_the_shell_and_the_boards_fit_the_tray():
     reach = lambda x, y: math.hypot(x, y - cy)
     corners = lambda b: [(x, y) for x in b[0:2] for y in b[2:4]]
     assert g["platform_r"] <= g["ledge"][1] and g["platform_r"] <= ri
-    assert -37 + g["scanner_dx"] < -(g["shell_r1"] + 8)  # the reader stands outside the wall
+    assert -37 + g["scanner_dx"] < -(g["shell_r1"] + 8)  # the reader face stays 8 mm outside the wall, on its mounting arm
     mods = g["bay_modules"]
     assert len(mods) == 2  # ESP32-S3 mini and ULN2003; the servos run from 5 V
     boxes = []

@@ -32,7 +32,7 @@
     var WALL_SOLID = std(0xdde2e8, { roughness: .55, metalness: .05, side: T.DoubleSide }), PLINTH_SOLID = std(0x3b4350, { roughness: .6, metalness: .1, side: T.DoubleSide }), LID_SOLID = std(0xd3d9e1, { roughness: .5, metalness: .05, side: T.DoubleSide });
     if (ctx.renderer) ctx.renderer.localClippingEnabled = true;
     var M_PTFE = MT(0xf2f2ee, 0, .6), M_BEAR = MT(0xc7ced6, .8, .25), M_SHIELD = MT(0x3c434b, .5, .4), M_FLAT = std(0xff8c1a);
-    var lidG = null, lidLift = 0;
+    var lidG = null, lidLift = 0, lidApi = null;
     // housing look (assembled / transparent / cutaway / exploded) and the exploded layout: how far each assembly lifts along the shaft axis
     var housing = [], housingMode = 'assembled', housingHidden = false, housingSuspended = false, explode = 0, explodeTarget = 0, explodeNodes = [], explodeTags = null, crankLimbs = [];
     var EX = { platform: 16, drum: 36, cart: 45, wall: 152, lid: 170 };
@@ -51,12 +51,12 @@
     // Subsystem 1 has two sub-views: the rotation mechanism and the stepper mount; the stepper belongs to both.
     var VIEW_LABELS = {
       mount: ['Stepper mount', 'M3 screws', 'Housing socket collar', 'Station housing platform', '28BYJ-48 stepper', 'Base tray'],
-      housing: ['Cylindrical shell', 'Service lid', 'Base tray', 'Tray foot', 'Station housing platform'],
+      housing: ['Cylindrical shell', 'Service lid', 'Base tray', 'Tray foot', 'Station housing platform', 'Display pod', 'Touchscreen 2.4 in', 'Status LED', 'Reader mount arm'],
       compartment: ['Compartment cartridges', 'Slide blades', 'Blade return springs', 'Catch ledges', 'Drum hub + socket decks']
     };
-    var activeView = 'rotation', OWN_VIEW = ['Stepper mount', 'Station bracket', 'Pin cam', 'Pin return spring', 'Pin lever', 'Tongue lever', 'Tongue gate', 'Cylindrical shell', 'Service lid', 'Base tray', 'Tray foot', 'M3 screws', 'Housing socket collar', 'Station housing platform', 'Compartment cartridges', 'Slide blades', 'Blade return springs', 'Catch ledges'];
-    // Prototype 2: parts hidden with the drum design leave every list; the ring parts below show only in Ring compartments (and the hatch in Housing)
-    var RING_COMP = ['Pocket divider', 'Ball bearings', 'Ball cage', 'Ring support track', 'PTFE liner', 'Ring lock', 'Ring lock pad', 'Loading hatch', 'Fill funnel', 'Exit funnel', 'Collection cup'], ringGone = null;
+    var activeView = 'rotation', OWN_VIEW = ['Stepper mount', 'Station bracket', 'Pin cam', 'Pin return spring', 'Pin lever', 'Tongue lever', 'Tongue gate', 'Cylindrical shell', 'Service lid', 'Base tray', 'Tray foot', 'M3 screws', 'Housing socket collar', 'Station housing platform', 'Compartment cartridges', 'Slide blades', 'Blade return springs', 'Catch ledges', 'Display pod', 'Touchscreen 2.4 in', 'Status LED', 'Reader mount arm', 'IR level sensor', 'Exit break-beam'];
+    // Prototype 2: parts hidden with the drum design leave every list; the ring parts below show only in Ring magazine (and the refill flap in Housing)
+    var RING_COMP = ['Pocket divider', 'Ball bearings', 'Ball cage', 'Ring support track', 'PTFE liner', 'Ring lock', 'Ring lock pad', 'Exit funnel', 'Collection cup', 'IR level sensor', 'Exit break-beam'], ringGone = null;
     function legacyGone(label) {
       if (!ringGone) {
         var shown = {}, seen = {}; ringGone = {};
@@ -70,7 +70,7 @@
         if (legacyGone(label)) return false;
         if (label === 'Ring magazine' || label === 'Fixed centre column') return activeView === 'rotation' || activeView === 'compartment';
         if (label === 'Pocket floor') return activeView === 'compartment';
-        if (RING_COMP.indexOf(label) >= 0) return activeView === 'compartment' || (activeView === 'housing' && (label === 'Loading hatch' || label === 'Fill funnel'));
+        if (RING_COMP.indexOf(label) >= 0) return activeView === 'compartment';
       }
       return activeView === 'rotation' ? OWN_VIEW.indexOf(label) < 0 : VIEW_LABELS[activeView].indexOf(label) >= 0;
     }
@@ -277,9 +277,34 @@
       var ld = new T.Shape(); ld.absarc(0, CYc, LD.r, 0, Math.PI * 2, false);
       var lo = lidPart(ld, LD.z0, LD.z1, lm); lo.add(new T.LineSegments(new T.EdgesGeometry(lo.geometry, 30), EL));
       var lp = new T.Shape(), lph = new T.Path(); lp.absarc(0, CYc, LD.lip_r1, 0, Math.PI * 2, false); lph.absarc(0, CYc, LD.lip_r0, 0, Math.PI * 2, true); lp.holes.push(lph);
-      lidPart(lp, LD.lip_z0, LD.z0, lm);
+      var lipM = lidPart(lp, LD.lip_z0, LD.z0, lm);
       var lg = new T.Mesh(new T.RingGeometry(LD.groove_r0, LD.groove_r1, 96), std(0x16314f, { roughness: .6 }));
       lg.rotation.x = -Math.PI / 2; lg.position.set(0, LD.z1 + .05, -CYc); lidG.add(lg); rtag(lg, 'Service lid', 'printed', 'lid');
+      // Prototype 2: the lid is a fixed half (lateral > 0) plus a refill flap (lateral < 0) hinged along the lid diameter; Prototype 1 keeps the full disc
+      if (S.ring) lidApi = (function () {
+        var t = LD.z1 - LD.z0, tl = LD.z0 - LD.lip_z0, hinge = new T.Group(), HL = 2; // hinge line 2 mm beyond the lid diameter so the innermost queue pocket is fully under the flap
+        hinge.position.set(0, LD.z1, -(CYc + HL)); hinge.visible = false; lidG.add(hinge);
+        // fixed part: lateral > HL (cy = lid centre); flap: lateral < HL, drawn about the hinge line (cy = -HL); r0 = 0 gives a disc segment, otherwise a ring segment
+        function half(cy, r0, r1, up) {
+          var sh = new T.Shape(), a1 = Math.asin(HL / r1), x1 = Math.sqrt(r1 * r1 - HL * HL), x0 = r0 ? Math.sqrt(r0 * r0 - HL * HL) : 0, a0 = r0 ? Math.asin(HL / r0) : 0;
+          if (up) { sh.absarc(0, cy, r1, a1, Math.PI - a1, false); if (r0) { sh.lineTo(-x0, cy + HL); sh.absarc(0, cy, r0, Math.PI - a0, a0, true); } }
+          else { sh.absarc(0, cy, r1, Math.PI - a1, 2 * Math.PI + a1, false); if (r0) { sh.lineTo(x0, cy + HL); sh.absarc(0, cy, r0, 2 * Math.PI + a0, Math.PI - a0, true); } }
+          sh.closePath(); return sh;
+        }
+        function ext(sh, d) { return new T.ExtrudeGeometry(sh, { depth: d, bevelEnabled: false, curveSegments: 96 }); }
+        var disc = { full: lo.geometry, fixed: ext(half(CYc, 0, LD.r, true), t) }, lip = { full: lipM.geometry, fixed: ext(half(CYc, LD.lip_r0, LD.lip_r1, true), tl) };
+        var edge = lo.children[0], edgeFull = edge.geometry, edgeFixed = new T.EdgesGeometry(disc.fixed, 30);
+        var flap = new T.Mesh(ext(half(-HL, 0, LD.r, false), t), lm); flap.rotation.x = -Math.PI / 2; flap.position.y = -t; hinge.add(flap);
+        rtag(flap, 'Service lid', 'printed', 'lid'); hs(flap, LID_SOLID, 'lid'); flap.add(new T.LineSegments(new T.EdgesGeometry(flap.geometry, 30), EL));
+        var flapLip = new T.Mesh(ext(half(-HL, LD.lip_r0, LD.lip_r1, false), tl), lm); flapLip.rotation.x = -Math.PI / 2; flapLip.position.y = LD.lip_z0 - LD.z1; hinge.add(flapLip);
+        rtag(flapLip, 'Service lid', 'printed', 'lid'); hs(flapLip, LID_SOLID, 'lid');
+        var gA = Math.asin(HL / LD.groove_r1), gFull = lg.geometry, gFixed = new T.RingGeometry(LD.groove_r0, LD.groove_r1, 96, 1, gA, Math.PI - 2 * gA);
+        var fg = new T.Mesh(new T.RingGeometry(LD.groove_r0, LD.groove_r1, 96, 1, Math.PI - gA, Math.PI + 2 * gA), lg.material); fg.rotation.x = -Math.PI / 2; fg.position.set(0, 0.05, HL); hinge.add(fg); rtag(fg, 'Service lid', 'printed', 'lid');
+        return {
+          split: function (on) { lo.geometry = on ? disc.fixed : disc.full; lipM.geometry = on ? lip.fixed : lip.full; edge.geometry = on ? edgeFixed : edgeFull; lg.geometry = on ? gFixed : gFull; hinge.visible = on; if (!on) hinge.rotation.x = 0; },
+          angle: function (a) { hinge.rotation.x = -a; }
+        };
+      }());
     }());
     // M3 screws fix the motor ears to the plate and columns; a printed collar in the housing platform holds each column spigot
     [-S.column_x, S.column_x].forEach(function (x) {
@@ -414,11 +439,11 @@
     // ---- barcode scanner + electronics deck (presentation only) ----
     function capEl(par, x, y, z0, r, h) { ptype(cylA(par, 'z', x, y, z0 + h / 2, r, h, M_BLACK, 20), 'electronic'); ptype(cylA(par, 'z', x, y, z0 + h + .1, r * .9, .3, M_STEEL, 20), 'electronic'); }
     function diodeX(par, x, y, z) { ptype(cylA(par, 'x', x, y, z, 1.35, 5.2, M_BLACK, 12), 'electronic'); ptype(cylA(par, 'x', x + 2, y, z, 1.4, .8, M_STEEL, 12), 'electronic'); }
-    // the barcode reader stands outside the product on the table: foot plate, column, housing
-    box(-64, -32, -10, 10, S.table_z, S.table_z + 1.6, M_DSTEEL, scanRoot); box(-50.7, -44.7, -3, 3, S.table_z + 1.6, 24, M_DSTEEL, scanRoot);
+    // the barcode reader is mounted on the housing wall: a printed arm under the reader runs to a saddle against the shell (printed in one piece with the left shell sector)
+    box(-58.4, -18.5, -4, 4, 21, 24, M_DSTEEL, scanRoot); box(-21, -17, -9, 9, 17, 28, M_DSTEEL, scanRoot);
     box(-38, -33, -4, 4, 23.8, 25.2, M_DSTEEL, scanRoot);   // bracket from the housing face to the container stage (the demo guide stop)
     ptype(box(-58.4, -37, -6.75, 6.75, 24, 35.8, M_BLACK, scanRoot), 'electronic'); ptype(box(-37.4, -37, -4.5, 4.5, 26, 33, MT(0x4a0f10, .2, .2), scanRoot), 'electronic');
-    box(-59.6, -58.4, -2, 2, S.table_z + 1.6, 28, MT(0x8a8f96, 0, .8), scanRoot);
+    box(-59.6, -58.4, -2, 2, 24, 28, MT(0x8a8f96, 0, .8), scanRoot);
     [-4, 4].forEach(function (dy) { ptype(cylA(scanRoot, 'z', -43.5, dy, 24.6, .9, 1.2, M_STEEL, 10), 'electronic'); });
     // under-base direct-drive stepper on the drum axis (assumed; replaces the right-deck stepper)
     // 28BYJ-48: body centre is offset from the output shaft, which sits on the drum axle
@@ -902,7 +927,7 @@
     var housingShell = null;
     function applyHousing() {
       var mode = housingSuspended ? 'transparent' : housingMode, cut = mode === 'cutaway';
-      if (!housingShell) { housingShell = []; fixedRoot.traverse(function (o) { var rp = o.userData && o.userData.rotationPart; if (o.isMesh && rp && (rp.label === 'Cylindrical shell' || rp.label === 'Service lid')) housingShell.push(o); }); }
+      if (!housingShell) { housingShell = []; fixedRoot.traverse(function (o) { var rp = o.userData && o.userData.rotationPart; if (o.isMesh && ((rp && (rp.label === 'Cylindrical shell' || rp.label === 'Service lid')) || o.userData.onHousing)) housingShell.push(o); }); }
       housingShell.forEach(function (o) { o.visible = !housingHidden; });
       housing.forEach(function (h) { h.o.material = mode === 'transparent' || (mode === 'exploded' && h.kind === 'wall') ? h.glass : h.solid; });
       [WALL_SOLID, LID_SOLID].forEach(function (m) { m.clippingPlanes = cut ? cutPlanes() : null; m.clipIntersection = cut; m.needsUpdate = true; });
@@ -945,6 +970,7 @@
       explodeTick();
       removalTick();
       if (ringMag) ringMag.update(s, Date.now());
+      if (housingMods) housingMods.update(s, Date.now());
       var e = s.tongueEdge, tongueClosed = s.tongueMotion === 'closed' && Math.abs(e - 5.7) < 1e-9;
       actuate(s.carriage, s.tongueEdge, s.pinZ);
       // the upper blade slides straight along its rails by the controller's blade state (open = +z, 10.4 mm); the return spring stretches with it
@@ -1266,8 +1292,14 @@
     }
     var accentMap = {}; COLORS.forEach(function (c) { accentMap[c] = palette[c] ? palette[c].three : 0x8294a5; });
     try {
-      if (window.DispenserRingMagazine && S.ring) ringMag = window.DispenserRingMagazine.build({ THREE: T, S: S, COLORS: COLORS, parent: fixedRoot, std: std, EL: EL, rtag: rtag, ptype: ptype, accent: accentMap, mats: { blue: M_BLUE, steel: M_STEEL, white: M_WHITE, dark: DK }, lid: lidG, legacy: setLegacyHidden, changed: ringChanged, callout: callout });
+      if (window.DispenserRingMagazine && S.ring) ringMag = window.DispenserRingMagazine.build({ THREE: T, S: S, COLORS: COLORS, parent: fixedRoot, std: std, EL: EL, rtag: rtag, ptype: ptype, accent: accentMap, mats: { blue: M_BLUE, steel: M_STEEL, white: M_WHITE, dark: DK }, lid: lidG, legacy: setLegacyHidden, changed: ringChanged, callout: callout, fadeBase: function (o, v) { rotMats.forEach(function (e) { if (e.o === o) e.base = v; }); }, lidSplit: function (on) { if (lidApi) lidApi.split(on); }, lidFlap: function (a) { if (lidApi) lidApi.angle(a); } });
     } catch (error) { ringMag = null; if (window.console) console.error('Ring magazine not built.', error); }
+    // Features 009/010: touchscreen pod with status LED on the shell, level sensors and exit break-beam (see housing-modules.js)
+    var housingMods = null;
+    try {
+      if (window.DispenserHousingModules && ringMag) housingMods = window.DispenserHousingModules.build({ THREE: T, S: S, parent: fixedRoot, std: std, EL: EL, ringMag: ringMag, mats: { dark: M_BLACK, blue: M_BLUE }, wallGlass: H2, canvasTexture: canvasTexture, callout: callout,
+        housingMount: function (g, mesh) { ex('wall', g); rtag(mesh, 'Cylindrical shell', 'printed', 'shell'); housing.push({ o: mesh, glass: mesh.material, solid: WALL_SOLID, kind: 'wall' }); housingShell = null; applyHousing(); } });
+    } catch (error) { housingMods = null; if (window.console) console.error('Housing modules not built.', error); }
 
     // 3D wiring harness: built here so it shares the scene; routed on first use (see wiring-3d.js)
     var wiring3d = null;
@@ -1297,7 +1329,7 @@
     var wiringLayout = null;
     try { if (window.DispenserWiringLayout3D && window.DispenserWiring3D && window.DispenserWiringSpec) { wiringLayout = window.DispenserWiringLayout3D.build({ THREE: T, root3d: root3d, W: window.DispenserWiringSpec }); wiringLayout.group.userData.partType = 'electronic'; } }
     catch (error) { wiringLayout = null; if (window.console) console.error('Wiring layout not built.', error); }
-    return { ringMag: ringMag, wiring: wiring3d, wiringLayout: wiringLayout, setGhostOpacity: setGhostOpacity, cartridgeOffset: function (c) { return cgByColor[c] ? cgByColor[c].position.y - cgBase[c].y : 0; }, setHousingMode: setHousingMode, setHousingHidden: setHousingHidden, housingMode: function () { return housingMode; }, update: update, report: report, removalSettled: removalSettled, printJobs: printJobsList, selectPrintJob: selectPrintJob, setPartFilter: setPartFilter, partFilter: function () { return typeFilter.slice(); }, electronicList: electronicList, setPrintLayout: setPrintLayout, printLayoutOn: function () { return layoutOn; }, selectedPrintJob: function () { return printSel; }, printLayoutInfo: function () { return printLayout ? printLayout.info : null; }, setRotationView: setRotationView, parts: partsList, active: function () { return rotActive; }, select: selectPart, selected: function () { return rotSelected; }, setLabels: setRotationLabels, setFade: setRotationFade, setDimensions: setRotationDimensions, declutter: declutterLabels, highlightDim: highlightDimensionFull, selectDim: selectDimension, selectedDim: function () { return rotSelectedDim; }, highlightLabel: highlightPartLabel, partLabelOf: partLabelOf, view: function () { return activeView; }, viewHas: viewHas, setRemoval: setRemovalState,
+    return { ringMag: ringMag, housingMods: housingMods, wiring: wiring3d, wiringLayout: wiringLayout, setGhostOpacity: setGhostOpacity, cartridgeOffset: function (c) { return cgByColor[c] ? cgByColor[c].position.y - cgBase[c].y : 0; }, setHousingMode: setHousingMode, setHousingHidden: setHousingHidden, housingMode: function () { return housingMode; }, update: update, report: report, removalSettled: removalSettled, printJobs: printJobsList, selectPrintJob: selectPrintJob, setPartFilter: setPartFilter, partFilter: function () { return typeFilter.slice(); }, electronicList: electronicList, setPrintLayout: setPrintLayout, printLayoutOn: function () { return layoutOn; }, selectedPrintJob: function () { return printSel; }, printLayoutInfo: function () { return printLayout ? printLayout.info : null; }, setRotationView: setRotationView, parts: partsList, active: function () { return rotActive; }, select: selectPart, selected: function () { return rotSelected; }, setLabels: setRotationLabels, setFade: setRotationFade, setDimensions: setRotationDimensions, declutter: declutterLabels, highlightDim: highlightDimensionFull, selectDim: selectDimension, selectedDim: function () { return rotSelectedDim; }, highlightLabel: highlightPartLabel, partLabelOf: partLabelOf, view: function () { return activeView; }, viewHas: viewHas, setRemoval: setRemovalState,
       clearance: function (pieceA, pieceB) {
         function boxes(match) { root3d.updateMatrixWorld(true); return rotParts.filter(function (o) { return match(o.userData.rotationPart.piece); }).map(function (o) { return new T.Box3().setFromObject(o); }); }
         var a = boxes(function (p) { return p === pieceA; }), b = boxes(function (p) { return pieceB.test(p); }), gap = Infinity, overlap = 0;
@@ -1339,6 +1371,7 @@
     electronicList: function () { return built ? built.electronicList() : []; },
     get wiring() { return built ? built.wiring : null; },
     get ringMagazine() { return built ? built.ringMag : null; },
+    get housingModules() { return built ? built.housingMods : null; },
     ringActive: function () { return Boolean(built && built.ringMag && built.ringMag.active()); },
     ringLabel: function (ph) { return built && built.ringMag ? built.ringMag.label(ph) : null; },
     get wiringLayout() { return built ? built.wiringLayout : null; },

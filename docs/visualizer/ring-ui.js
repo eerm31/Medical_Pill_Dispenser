@@ -9,13 +9,14 @@
     var look = window.DispenserReferenceLook, rm = look && look.ringMagazine;
     if (!rm || !$('ringTools')) { if (tries++ < 60) setTimeout(init, 250); return; }
     var info = $('pocketInfo'), note = $('ringRefillNote'), guide = $('ringGuide');
-    var rb = { open: $('ringOpenLid'), load: $('ringLoad'), fill: $('ringFill'), all: $('ringFillAll'), close: $('ringCloseLid') };
+    var rb = { open: $('ringOpenLid'), fill: $('ringFill'), all: $('ringFillAll'), close: $('ringCloseLid') };
     var names = ['Red', 'Blue', 'Green', 'Orange'];
     function setMode(m) {
       var ring = m === 'ring', wiring = document.querySelector('input[name="viewMode"][value="wiring"]'), open = document.querySelector('input[name="subsystemView"]:checked');
       if (open) open.click(); // leave any system sub-view so its part lists are rebuilt for the new prototype
-      $('compartmentOnlyToggle').parentNode.lastChild.textContent = ring ? ' Ring compartments' : ' Compartments & decks';
+      $('compartmentOnlyToggle').parentNode.lastChild.textContent = ring ? ' Ring magazine' : ' Compartments & decks';
       rm.setActive(ring); $('ringSection').hidden = !ring; if (ring) $('ringSection').classList.remove('collapsed');
+      $('ringBearingsRow').hidden = !ring; if (!ring && $('ringBearings').checked) { $('ringBearings').checked = false; rm.setBearings(false); }
       $('protoEyebrow').textContent = HEAD[m][0]; $('protoTitle').textContent = HEAD[m][1];
       if (wiring) wiring.disabled = false;
       refresh();
@@ -31,26 +32,26 @@
     $('ringFloor').addEventListener('change', function (e) { rm.setFloor(e.target.checked); });
     $('ringBearings').addEventListener('change', function (e) { rm.setBearings(e.target.checked); });
     Array.prototype.forEach.call(document.querySelectorAll('#refillRings [data-ring]'), function (b) {
-      b.addEventListener('click', function () { rm.refill.select(Number(b.dataset.ring)); refresh(); });
+      b.addEventListener('click', function () { rm.refill.drop(Number(b.dataset.ring)); refresh(); });
     });
-    [['open', 'openLid'], ['load', 'load'], ['fill', 'fill'], ['all', 'fillAll'], ['close', 'closeLid']].forEach(function (e) {
+    [['open', 'openLid'], ['fill', 'fill'], ['all', 'fillAll'], ['close', 'closeLid']].forEach(function (e) {
       rb[e[0]].addEventListener('click', function () { rm.refill[e[1]](); refresh(); });
     });
     function refresh() {
       if (!rm.active()) return;
       rm.setLabels(labelsToggle.checked);
       var s = rm.refill.state();
-      rb.open.disabled = !s.canOpen; rb.load.disabled = !s.canLoad; rb.fill.disabled = !s.canFill; rb.all.disabled = !s.canFillAll; rb.close.disabled = !s.canClose;
+      rb.open.disabled = !s.canOpen; rb.fill.disabled = !s.canFill; rb.all.disabled = !s.canFillAll; rb.close.disabled = !s.canClose;
       Array.prototype.forEach.call(document.querySelectorAll('#refillRings [data-ring]'), function (b) {
-        var i = Number(b.dataset.ring); b.disabled = !s.canSelect; b.classList.toggle('active', s.ring === i); b.setAttribute('aria-pressed', s.ring === i ? 'true' : 'false');
+        var i = Number(b.dataset.ring), subs = window.dispenserSubsystems, chk = subs && subs.verification ? subs.verification.canStore(['red', 'blue', 'green', 'orange'][i]) : { ok: true };
+        b.disabled = !s.canDrop[i] || !chk.ok; b.title = chk.ok ? '' : 'Storage check: ' + chk.reason;
         b.textContent = names[i] + ' ' + s.counts[i] + '/5';
       });
-      guide.textContent = 'Pills stand on edge between the dividers. Each pocket is a fixed ' + rm.pocket().width.toFixed(1) + ' mm wide and takes any pill model (up to 12 mm tall, 6.2 mm wide, 5 mm thick).';
+      guide.textContent = 'Pills stand on edge between the dividers. Each pocket is a fixed ' + rm.pocket().width.toFixed(1) + ' mm wide and takes any pill model (up to 12 mm tall, 6.2 mm wide, 5 mm thick). The ring never turns while it is refilled.';
       var text;
       if (s.busy) text = 'Working\u2026';
-      else if (!s.lid) text = 'Press Refill all rings: each ring in turn unlocks, opens its own hatch, turns an empty pocket under it and takes its pills, then everything locks again. Or open the hatch yourself and pour pill by pill.';
-      else if (s.ring < 0) text = 'Hatch ready. Pick a ring: only that ring unlocks and only its hatch opens; the other rings stay clamped.';
-      else text = names[s.ring] + ' ring: ' + s.counts[s.ring] + '/5 pills. ' + (s.counts[s.ring] >= 5 ? 'Full. Pick another ring or close the hatch.' : 'Pour 1 pill: the ring turns the next empty pocket under the amber mark, a pill drops through the funnel, the dividers hold it. Fill this ring repeats that.');
+      else if (!s.lid) text = 'Press Refill all rings: the flap lifts over the queue pockets of every ring, a pill goes into each empty pocket (amber marks show where), then the flap closes. The rings stay locked and do not turn.';
+      else text = 'Flap open: the amber mark is the next empty pocket of each ring. Add one pill to a ring, fill every ring, or close the flap.';
       note.textContent = text;
       var w = rm.stability(), g = window.DispenserRotationSpec.g;
       $('stabMass').textContent = Math.round(w.mass) + ' g';

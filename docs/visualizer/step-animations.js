@@ -69,17 +69,16 @@
     }),
     ringDemo('ringsupport', 'compartment', 'Ring support: balls, PTFE walls and lock', function (s, c) {
       var k = COLORS.indexOf(c);
-      return [{ label: 'All four rings clamped', text: 'Each ring rests on four balls in its track and is pressed by its lock pad. PTFE tape lines the walls on both sides of every ring.', kind: 'instant', act: function () { return true; } },
+      return [{ label: 'All four rings clamped', text: 'Each ring rests on 14 steel balls (1 mm) in its track and is pressed by its lock pad. PTFE tape lines the walls on both sides of every ring.', kind: 'instant', act: function () { return true; } },
         localStep(cap(c) + ' ring unlocks', 'Only the ' + c + ' lock pad lifts off the rim. The other rings cannot turn.', acts([function () { rd().unlock(k); }]), function () { return rd().lockOpen(k); }),
         localStep('Ring rolls one pocket', 'The balls carry the weight and roll; the rim slides on the PTFE tape with 0.1 mm clearance, so the ring stays centred.', acts([function () { rd().rodTo(k, -1); }, function () { rd().pin(1); }, function () { rd().turn(k, -1); }]), rfIdle),
         localStep('Ring rolls back', 'The same stroke in the other direction returns it.', acts([function () { rd().pin(0); }, function () { rd().rodTo(k, 1); }, function () { rd().pin(1); }, function () { rd().turn(k, 1); }, function () { rd().pin(0); }, function () { rd().park(k); }]), rfIdle),
         localStep('Lock clamps again', 'The pad drops onto the rim and the ring is held.', acts([function () { rd().unlock(-1); }]), lockedDone)];
     }),
-    ringDemo('ringhatch', 'compartment', 'Loading hatch: only the chosen ring opens', function (s, c) {
-      var k = COLORS.indexOf(c);
-      return [{ label: 'Hatches closed', text: 'Each ring has its own small hatch in the lid above its loading pocket. All are shut and all rings are clamped.', kind: 'instant', act: function () { return true; } },
-        localStep('Only the ' + c + ' hatch opens', 'The ' + c + ' ring is unlocked and its hatch flips open over the funnel. No ring is lifted out.', acts([function () { rd().unlock(k); }, function () { rd().hatch(k); }]), function () { return rd().lockOpen(k) && rd().hatchOpen(k); }),
-        localStep('Hatch closes, ring clamps', 'The hatch shuts and the lock pad drops back.', acts([function () { rd().unlock(-1); }, function () { rd().hatch(-1); }]), function () { return rd().allLocked() && rd().allHatchesShut(); })];
+    ringDemo('ringflap', 'compartment', 'Refill flap: one flap over all four rings', function (s, c) {
+      return [{ label: 'Flap closed', text: 'One flap, half of the lid, covers the queue pockets of all four rings. It is shut and every ring is clamped by its lock pad.', kind: 'instant', act: function () { return true; } },
+        localStep('Flap lifts', 'The flap hinges up along the lid diameter and exposes the five queue pockets of every ring. No ring moves and none is lifted out.', acts([function () { rd().hatch(true); }]), function () { return rfIdle() && rd().flapOpen(); }),
+        localStep('Flap closes', 'The flap shuts again; the rings were locked the whole time.', acts([function () { rd().hatch(false); }]), function () { return rfIdle() && rd().flapShut() && rd().allLocked(); })];
     })
   ];
 
@@ -101,16 +100,15 @@
       }
     },
     {
-      id: 'ringrefill', ring: true, label: 'Refill a ring (hatch, index, pour, lock)', color: true, view: 'main',
+      id: 'ringrefill', ring: true, label: 'Refill a ring (flap, drop pills, close)', color: true, view: 'main',
       check: function (s, c) { var m = ringMag(); return busy(s) || (!m ? 'not available' : null) || (s.cartridges[c].count >= 5 ? 'ring already full' : (m.refill.state().busy ? 'the mechanism is busy' : null)); },
       steps: function (s, c) {
         var m = ringMag(), k = COLORS.indexOf(c), have = s.cartridges[c].count, n = 5 - have, rf = m.refill, list = [];
-        list.push(localStep('Loading hatch armed', 'Refill goes through a small hatch per ring in the lid. No ring is removed, and every ring is still clamped by its lock pad.', function () { return rf.openLid(); }, function () { return rfIdle() && rf.state().lidOpen; }));
-        list.push(localStep(cap(c) + ' ring selected', 'Only the ' + c + ' lock pad lifts and only the ' + c + ' hatch flips open. The amber mark is the loading pocket under it; the other rings stay locked.', function () { return rf.select(k); }, rfIdle));
+        list.push(localStep('Refill flap lifts', 'One flap, half of the lid, hinges up over the queue pockets of all four rings. The rings stay clamped by their lock pads and do not turn.', function () { return rf.openLid(); }, function () { return rfIdle() && rf.state().lidOpen; }));
         for (var i = 1; i <= n; i++) {
-          list.push(localStep('Pill ' + (have + i) + ' of 5: index and pour', 'The ring turns the next empty pocket under the hatch, a pill bottle tips over it and one pill drops down the funnel between two dividers.', function () { return rf.drop(); }, rfIdle));
+          list.push(localStep('Pill ' + (have + i) + ' of 5: drop into its pocket', 'A pill bottle tips over the amber mark and one pill drops straight into the next empty ' + c + ' pocket. The rounded divider tops shed it into the pocket.', function () { return rf.drop(k); }, rfIdle));
         }
-        list.push(localStep('Pills staged, hatch closed', 'The ring turns until its first pill sits right before the exit slot, the hatch closes and the ring is clamped again. The inventory is updated.', function () { return rf.closeLid(); }, function () { return rfIdle() && rf.state().lidClosed; }));
+        list.push(localStep('Flap closes', 'The flap shuts. The pills already sit in front of the exit slot, so the ring never had to turn. The inventory is updated.', function () { return rf.closeLid(); }, function () { return rfIdle() && rf.state().lidClosed; }));
         return list;
       }
     },

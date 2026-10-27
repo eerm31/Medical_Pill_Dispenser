@@ -66,7 +66,7 @@ def test_cup_window_is_a_single_wall_opening_inside_one_sector(g):
 def test_ring_files_are_loaded_in_order_and_the_controller_is_untouched():
     html = (VIS / "index.html").read_text(encoding="utf-8")
     assert html.index("ring-magazine.js") < html.index("reference-look.js") < html.index("ring-ui.js")
-    for ident in ("ringOpenLid", "ringLoad", "ringFill", "ringCloseLid", 'name="designOpt"'):
+    for ident in ("ringOpenLid", "ringFill", "ringCloseLid", 'name="designOpt"'):
         assert ident in html
     assert hashlib.sha1((VIS / "demo-controller.js").read_bytes()).hexdigest() == "0c8396023ca6fc85cb135fbbf58ea39e903cee11"
 
@@ -116,16 +116,35 @@ def test_servos_stand_on_the_tray_not_above_the_rings(g):
 def test_prototype_2_has_its_own_refill_animation():
     steps = (VIS / "step-animations.js").read_text(encoding="utf-8")
     ring = (VIS / "ring-magazine.js").read_text(encoding="utf-8")
-    assert "id: 'ringrefill'" in steps and "legacy: true" in steps and "rf.drop()" in steps
-    assert "bottle" in ring and "prepare: function" in ring and "advance: function" in ring
+    assert "id: 'ringrefill'" in steps and "legacy: true" in steps and "rf.drop(k)" in steps
+    assert "bottle" in ring and "function pourRing" in ring and "drop: function" in ring
 
 
-def test_prototype_2_refill_indexes_the_next_empty_pocket_under_a_hatch_and_has_a_one_click_option():
+FLAP_HINGE = 2.0  # reference-look.js HL: the flap covers lateral < 2 mm
+
+
+def test_every_queue_pocket_sits_under_the_refill_flap_and_clear_of_the_lock_pads(g):
+    ring = g["ring"]
+    n, pitch, v0 = ring["n"], 2 * math.pi / ring["n"], ring["slot"]["v"][0]
+    js = (VIS / "ring-magazine.js").read_text(encoding="utf-8")
+    assert "LOCK_A = Math.PI / 2" in js  # pads at +90 deg, outside the queue sector
+    for r0, r1 in ring["tracks"]:
+        rc = (r0 + r1) / 2
+        th = math.asin(v0 / rc)
+        for u in range(1, ring["cap"] + 1):  # pocket u sits at thL - (u - 0.5) * pitch; box = 5.6 along the track, 6.6 across
+            phi = th - (u - 0.5) * pitch
+            lateral = [(rc + dr) * math.sin(phi) + dt * math.cos(phi) for dt in (-2.8, 2.8) for dr in (-3.3, 3.3)]
+            assert max(lateral) < FLAP_HINGE - 1.0  # at least 1 mm of flap beyond the pocket edge
+            assert abs(math.degrees(phi) - 90) > 20  # the pad at +90 deg never blocks a pocket opening
+
+
+def test_prototype_2_refill_drops_pills_straight_into_the_queue_pockets_and_has_a_one_click_option():
     js = (VIS / "ring-magazine.js").read_text(encoding="utf-8")
     html = (VIS / "index.html").read_text(encoding="utf-8")
     steps = (VIS / "step-animations.js").read_text(encoding="utf-8")
     assert "fillAll: function" in js and "ringFillAll" in html and "ringGuide" in html
-    assert "function stageLoad" in js and "function stageHome" in js and "newPillAt" in js  # the ring turns the empty pocket under the hatch
+    assert "function stageHome" in js and "newPillAt" in js and "function stageLoad" not in js  # the ring never turns to refill
+    assert "ringLoad" not in html and "ringPillRows" not in html and "Loading hatch" not in js
     assert 'value="flask"' not in html and "flask-magazine.js" not in html
     assert 'id="ringIndex"' not in html and "rf.advance()" not in steps
 
@@ -162,9 +181,9 @@ def test_every_ring_takes_every_pill(g):
 
 def test_prototype_2_rings_ride_on_balls_in_a_track_with_one_lock_pad_each(g):
     js = (VIS / "ring-magazine.js").read_text(encoding="utf-8")
-    for ident in ("Ball bearings", "Ring support track", "PTFE liner", "Shaft bushing", "Ring lock pad", "Loading hatch", "Fill funnel", "Pocket divider"):
+    for ident in ("Ball bearings", "Ring support track", "PTFE liner", "Shaft bushing", "Ring lock pad", "Pocket divider"):
         assert ident in js
-    assert "NB = 14" in js and "function applyLocks" in js and "hatches.forEach" in js
+    assert "NB = 14" in js and "function applyLocks" in js and "ctx.lidFlap" in js
     assert "lug" not in js  # rings are never lifted out for refilling
     assert "function tagLabel" in js and "PCFSoft" not in js
     ring = g["ring"]
@@ -194,6 +213,8 @@ def test_cage_rolls_the_balls_and_show_bearings_fades_only_the_rings():
     html = (VIS / "index.html").read_text(encoding="utf-8")
     assert "cage.rotation.y = r.A / 2" in js and "r.A * balls[r.k].rb / (2 * BR)" in js
     assert "Fixed centre column" in js and "Ball cage" in js
-    assert "function setBearings" in js and "rimMats.forEach" in js and "solidMats.forEach" in js
+    assert "function setBearings" in js and "fadeMeshes.forEach" in js and "ctx.fadeBase" in js
     assert 'id="ringBearings"' in html and "setBearings" in ui
+    assert html.index('id="compartmentOnlyToggle"') < html.index('id="ringBearings"') < html.index('id="scannerSubsystemToggle"')  # nested under Ring magazine in Systems
+    assert "Ring compartments" not in ui and "' Ring magazine'" in ui
     assert re.search(r'id="ringBearings"[^>]*type="checkbox"(?![^>]*checked)', html)  # off by default

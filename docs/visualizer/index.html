@@ -18,11 +18,15 @@
   <script defer src="wiring-3d.js"></script>
   <script defer src="wiring-layout3d.js"></script>
   <script defer src="ring-magazine.js"></script>
+  <script defer src="verification-controller.js"></script>
+  <script defer src="schedule-controller.js"></script>
+  <script defer src="housing-modules.js"></script>
   <script defer src="reference-look.js"></script>
   <script defer src="app.js"></script>
   <script defer src="step-animations.js"></script>
   <script defer src="ring-ui.js"></script>
   <script defer src="ui-nav.js"></script>
+  <script defer src="subsystem-ui.js"></script>
 </head>
 <body>
   <header class="topbar">
@@ -120,24 +124,21 @@
       <section class="control-section ring-section" id="ringSection" data-nav="Ring" hidden>
         <div class="section-title"><div><span class="eyebrow" id="ringSectionEyebrow">PROTOTYPE 2</span><h2 id="ringSectionTitle">Ring magazine</h2></div></div>
         <div id="ringTools">
-          <details class="how-details"><summary>How a ring turns</summary><p class="small-note">The stepper under the floor swings one arm. A carriage on the arm (servo S1) slides to the chosen ring and servo S2 lifts the pin up through that ring's curved slot in the floor, into a sealed channel under the ring's inner rim, never into a pill pocket. The pin pushes a drive tooth hanging under a divider and the ring rolls on its four balls, centred by PTFE-lined walls and clamped by its own lock pad when idle. The fixed pocket floor has no holes under the pockets, so each divider slides its pill (standing on edge, any size or shape) across the floor until it drops through the one exit hole into one chute and one cup. Refill goes through that ring's small hatch, so no ring is ever removed. ASSUMED / NOT VALIDATED.</p></details>
+          <details class="how-details"><summary>How a ring turns</summary><p class="small-note">The stepper under the floor swings one arm. A carriage on the arm (servo S1) slides to the chosen ring and servo S2 lifts the pin up through that ring's curved slot in the floor, into a sealed channel under the ring's inner rim, never into a pill pocket. The pin pushes a drive tooth hanging under a divider and the ring rolls on its 14 steel balls (1 mm), centred by PTFE-lined walls and clamped by its own lock pad when idle. The fixed pocket floor has no holes under the pockets, so each divider slides its pill (standing on edge, any size or shape) across the floor until it drops through the one exit hole into one chute and one cup. Refill needs no ring movement: one flap in the lid lifts over the five queue pockets of every ring and a pill is dropped straight into each empty pocket; the rounded divider tops shed a pill that lands on them into a pocket. ASSUMED / NOT VALIDATED.</p></details>
           <p id="pocketInfo" class="small-note"></p>
-          <div class="switch-list">
-            <label class="switch-row"><span><strong>Show bearings</strong><small>Fades the rings to 20% so the hub, balls, cage and pin slots show from above</small></span><input id="ringBearings" class="switch" type="checkbox" autocomplete="off"></label>
-          </div>
           <p class="sub-title">Weight and stability (assumed masses)</p>
           <div class="readout-grid"><div><span>Total mass</span><strong id="stabMass">-</strong></div><div><span>Centre of mass above table</span><strong id="stabCom">-</strong></div><div><span>Rotating mass (limit 150 g)</span><strong id="stabRot">-</strong></div><div><span>Tips over at</span><strong id="stabTip">-</strong></div></div>
-          <p class="sub-title">Refill (small hatch above the ring)</p>
+          <p class="sub-title">Refill (flap over all four rings)</p>
           <button id="ringFillAll" class="primary-button wide" type="button">Refill all rings (one click)</button>
           <p id="ringGuide" class="small-note"></p>
+          <div class="rotation-buttons">
+            <button id="ringOpenLid" class="secondary-button" type="button">Open flap</button>
+            <button id="ringFill" class="secondary-button" type="button">Fill every ring</button>
+            <button id="ringCloseLid" class="secondary-button" type="button">Close flap</button>
+          </div>
+          <p class="small-note">With the flap open, add one pill to a ring:</p>
           <div class="button-grid four-col" id="refillRings">
             <button class="color-button red" data-ring="0" type="button">Red</button><button class="color-button blue" data-ring="1" type="button">Blue</button><button class="color-button green" data-ring="2" type="button">Green</button><button class="color-button orange" data-ring="3" type="button">Orange</button>
-          </div>
-          <div class="rotation-buttons">
-            <button id="ringOpenLid" class="secondary-button" type="button">Open hatch</button>
-            <button id="ringLoad" class="secondary-button" type="button">Pour 1 pill</button>
-            <button id="ringFill" class="secondary-button" type="button">Fill this ring</button>
-            <button id="ringCloseLid" class="secondary-button" type="button">Close hatch</button>
           </div>
           <p id="ringRefillNote" class="small-note" aria-live="polite"></p>
         </div>
@@ -149,7 +150,10 @@
           <label class="switch-row flip sub"><input id="rotationOnlyToggle" type="radio" name="subsystemView" autocomplete="off"> Rotation mechanism</label>
           <label class="switch-row flip sub"><input id="mountOnlyToggle" type="radio" name="subsystemView" autocomplete="off"> Stepper mount</label>
           <label class="switch-row flip sub"><input id="compartmentOnlyToggle" type="radio" name="subsystemView" autocomplete="off"> Compartments &amp; decks</label>
+          <label id="ringBearingsRow" class="switch-row flip sub deep" hidden><input id="ringBearings" type="checkbox" autocomplete="off"> Show bearings</label>
           <label class="switch-row flip"><input id="scannerSubsystemToggle" type="checkbox" checked> Subsystem 2: Barcode scanner</label>
+          <label class="switch-row flip"><input id="verifySubsystemToggle" type="checkbox" checked autocomplete="off"> Subsystem 3: Verification sensors</label>
+          <label class="switch-row flip"><input id="displaySubsystemToggle" type="checkbox" checked autocomplete="off"> Subsystem 4: Touchscreen &amp; LED</label>
           <label class="switch-row flip"><input id="labelsToggle" type="checkbox" checked> Show labels</label>
           <label class="switch-row flip"><input id="dimensionsToggle" type="checkbox"> Show dimensions</label>
         </div>
@@ -259,6 +263,27 @@
         <div class="scanner-component-list" aria-label="Barcode scanner components shown in the main simulation"><strong>Scanner subsystem in the main scene</strong><span>Reader housing + optical point</span><span>Container guide rails</span><span>Fictional barcode package</span><span>Scan beam + local fixture status</span><span>Selected compartment cap</span></div>
         <div id="barcodeControls" class="barcode-list"></div>
         <p id="loadingNotice" class="small-note">All four supported compartments are empty, count zero, closed, and locked. No pill actors are shown; failed scans place nothing.</p>
+      </section>
+      <section class="control-section verify-section" data-nav="Verify">
+        <div class="section-title"><div><span class="eyebrow">SUBSYSTEM 3 · VERIFICATION</span><h2>Pill and compartment checks</h2></div><span id="verBeam" class="status-pill">BEAM CLEAR</span></div>
+        <p class="small-note">Each ring has two IR level sensors under its floor: READY at the pocket next to the exit and FULL at the last queue pocket. An IR break-beam across the exit funnel sees every pill that falls. Sensors show in Prototype 2. ASSUMED / NOT VALIDATED.</p>
+        <div id="verRings" class="ver-rings"></div>
+        <div class="ver-verdict"><span>Last dispense</span><strong id="verLast">none yet</strong></div>
+        <p class="small-note">A dispense is VERIFIED when the beam saw exactly one pill and the ring count dropped by one. A ring takes another pill of the SAME colour only while it has a free pocket.</p>
+      </section>
+      <section class="control-section touch-section" data-nav="Touchscreen">
+        <div class="section-title"><div><span class="eyebrow">SUBSYSTEM 4 · TOUCHSCREEN &amp; LED</span><h2>Dose schedule</h2></div><span id="ledState" class="status-pill">LED idle</span></div>
+        <p class="small-note">The 2.4 in touchscreen on the housing shows the clock, the next dose and the ring levels. This form is the touch input. A dose becomes DUE at its time; you tap TAKE to dispense it. ASSUMED / NOT VALIDATED, no medical use.</p>
+        <div class="clock-row"><div><span class="clock-label">Simulated clock</span><strong id="clockText">08:00</strong></div><div class="clock-btns"><button id="clockPlus1" class="secondary-button" type="button">+1 min</button><button id="clockPlus15" class="secondary-button" type="button">+15 min</button><button id="clockPlus60" class="secondary-button" type="button">+1 h</button><button id="clockPlay" class="secondary-button" type="button" aria-pressed="false">Play</button></div></div>
+        <div class="sched-line"><label for="clockInput">Set clock</label><input id="clockInput" type="time" value="08:00" autocomplete="off"><button id="clockSet" class="quiet-button" type="button">Set</button></div>
+        <p class="sub-title">Add a scheduled pill</p>
+        <div class="seg-group four" role="radiogroup" aria-label="Pill colour">
+          <label class="seg"><input type="radio" name="schedColor" value="red" checked autocomplete="off"><span>Red</span></label><label class="seg"><input type="radio" name="schedColor" value="blue" autocomplete="off"><span>Blue</span></label><label class="seg"><input type="radio" name="schedColor" value="green" autocomplete="off"><span>Green</span></label><label class="seg"><input type="radio" name="schedColor" value="orange" autocomplete="off"><span>Orange</span></label>
+        </div>
+        <div class="sched-line"><label for="schedTime">Time</label><input id="schedTime" type="time" value="08:05" autocomplete="off"><button id="schedAdd" class="primary-button" type="button">Add to schedule</button></div>
+        <p id="schedMsg" class="small-note" aria-live="polite"></p>
+        <ul id="schedList" class="sched-list"></ul>
+        <div id="dueBox" class="due-box" hidden><div><strong id="dueText"></strong><small id="dueReason"></small></div><button id="takeBtn" class="primary-button" type="button">TAKE (tap)</button></div>
       </section>
       <section class="control-section status-section" data-nav="Status" aria-live="polite" aria-atomic="false">
         <div class="section-title"><div><span class="eyebrow">LIVE STATUS</span><h2 id="phaseLabel">Parked</h2></div><span id="busyBadge" class="status-pill">IDLE</span></div>

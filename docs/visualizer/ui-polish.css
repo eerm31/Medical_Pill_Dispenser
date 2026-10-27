@@ -135,3 +135,50 @@ footer { margin-top: 2px; padding-top: 12px; border-top: 1px solid var(--line); 
   .switch-block { flex: 1 1 100%; }
   .scene-switches .seg-group { width: 100%; grid-template-columns: 1fr 1fr; }
 }
+/* Systems list: a sub option nested under a sub view */
+.switch-row.sub.deep { padding-left: 48px; background: #131d2b; }
+.switch-row.flip.sub.deep { font-weight: 500; color: #8fd0ff; }
+
+/* Subsystem 3: verification */
+.status-pill.alert { border-color: #ffb347; background: rgba(255, 179, 71, .14); color: #ffd08a; }
+.ver-rings { display: grid; gap: 6px; margin: 8px 0 10px; }
+.ver-ring { display: grid; grid-template-columns: 14px minmax(78px, 1fr) auto; grid-template-areas: "dot name level" "dot store store"; gap: 2px 10px; align-items: center; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel2); }
+.ver-ring > .dot { grid-area: dot; margin: 0; }
+.ver-name { grid-area: name; display: grid; }
+.ver-name small { color: var(--muted); font-size: 11px; letter-spacing: .04em; }
+.ver-level { grid-area: level; padding: 3px 10px; border-radius: 999px; background: #1d2b3e; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+.ver-ring.partial .ver-level { background: rgba(113, 214, 198, .14); color: var(--accent); }
+.ver-ring.full .ver-level { background: rgba(255, 179, 71, .16); color: #ffd08a; }
+.ver-ring.empty .ver-level { background: rgba(239, 85, 92, .16); color: #ff9aa0; }
+.ver-ring.bad { border-color: #ef555c; }
+.ver-ring .ver-store { grid-area: store; color: var(--muted); font-size: 12px; }
+.ver-verdict { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.ver-verdict span { color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.ver-verdict strong { font-size: 13px; }
+.ver-verdict strong.ok { color: #51b879; }
+.ver-verdict strong.bad { color: #ff9aa0; }
+
+/* Subsystem 4: touchscreen schedule */
+.clock-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 0 10px; }
+.clock-label { display: block; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+#clockText { font-size: 34px; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+.clock-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.clock-btns .secondary-button { min-width: 60px; }
+.clock-btns .secondary-button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.sched-line { display: grid; grid-template-columns: auto minmax(110px, 1fr) auto; align-items: center; gap: 8px; margin: 8px 0; color: var(--muted); font-size: 12px; }
+.sched-line input[type=time] { min-height: 36px; padding: 6px 8px; border: 1px solid #34465c; border-radius: 8px; background: #121d2b; color: var(--text); font: inherit; }
+.seg-group.four { grid-template-columns: repeat(4, 1fr); }
+.sched-list { display: grid; gap: 5px; margin: 8px 0 0; padding: 0; list-style: none; }
+.sched-item { display: grid; grid-template-columns: 12px 52px 1fr auto auto; align-items: center; gap: 8px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--panel2); font-size: 12px; }
+.sched-item .dot { margin: 0; }
+.sched-item strong { font-variant-numeric: tabular-nums; }
+.sched-item em { font-style: normal; font-size: 10.5px; font-weight: 800; letter-spacing: .08em; color: var(--muted); }
+.sched-item.due, .sched-item.taking { border-color: #ffb347; }
+.sched-item.due em, .sched-item.taking em { color: #ffd08a; }
+.sched-item.taken em { color: #51b879; }
+.sched-item.missed em, .sched-item.failed em { color: #ff9aa0; }
+.sched-empty { padding: 10px; color: var(--muted); font-size: 12px; text-align: center; }
+.due-box { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; padding: 10px 12px; border: 1px solid #ffb347; border-radius: 10px; background: rgba(255, 179, 71, .1); }
+.due-box strong { color: #ffd08a; font-size: 13px; }
+.due-box small { display: block; margin-top: 3px; color: #e8d3ad; font-size: 11.5px; line-height: 1.35; }
+.due-box small:empty { display: none; }

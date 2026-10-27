@@ -122,11 +122,11 @@ def parts():
     jx, jy = jk["xy"]
     add("jack-saddle", (jx - jk["w"] / 2, jx + jk["w"] / 2, jy - jk["d"] / 2, jy + jk["d"] / 2, g["base_z1"], jk["z0"]), "base")
     add("jack", (jx - jk["w"] / 2, jx + jk["w"] / 2, jy - jk["d"] / 2, jy + jk["d"] / 2 + 2, jk["z0"], jk["z1"]), "jack-saddle", "wall")
-    # the barcode reader stands outside on the table, not on the product
+    # the barcode reader hangs on the housing wall: a printed arm under it and a saddle against the shell (printed in one piece with the left sector)
     dx = g["scanner_dx"]
-    add("reader-plate", (-64 + dx, -32 + dx, -10, 10, g["table_z"], g["table_z"] + 1.6), "table")
-    add("reader-column", (-50.7 + dx, -44.7 + dx, -3, 3, g["table_z"] + 1.6, 24), "reader-plate")
-    add("reader-housing", (-58.4 + dx, -37 + dx, -6.75, 6.75, 24, 35.8), "reader-column")
+    add("reader-arm", (-58.4 + dx, -18.5 + dx, -4, 4, 21, 24), "wall")
+    add("reader-saddle", (-21 + dx, -17 + dx, -9, 9, 17, 28), "wall", "reader-arm")
+    add("reader-housing", (-58.4 + dx, -37 + dx, -6.75, 6.75, 24, 35.8), "reader-arm")
     add("reader-bracket", (-38 + dx, -33 + dx, -4, 4, 23.8, 25.2), "reader-housing")
     add("reader-stage", (-34 + dx + 0.5, -25 + dx, -6, 6, 24.2, 24.9), "reader-bracket")
     add("reader-guide0", (-29.5 + dx - 0.4, -29.5 + dx + 0.4, 4.2, 5.0, 23.9, 35.9), "reader-stage")
