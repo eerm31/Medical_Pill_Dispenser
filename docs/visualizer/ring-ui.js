@@ -42,7 +42,7 @@
       info.textContent = 'Pocket widths (mm): ' + names.map(function (n, i) { return n + ' ' + p.widths[i].toFixed(1) + ' (divider ' + p.dividers[i].toFixed(1) + ')'; }).join(' \u00b7 ');
     }
     slider.addEventListener('input', function () { rm.setPocket(Number(slider.value) / 100); pocketText(); });
-    $('ringLabels').addEventListener('change', function (e) { rm.setLabels(e.target.checked); });
+    var labelsToggle = $('labelsToggle');
     $('ringFloor').addEventListener('change', function (e) { rm.setFloor(e.target.checked); });
     Array.prototype.forEach.call(document.querySelectorAll('#refillRings [data-ring]'), function (b) {
       b.addEventListener('click', function () { rm.refill.select(Number(b.dataset.ring)); refresh(); });
@@ -52,6 +52,7 @@
     });
     function refresh() {
       if (!rm.active()) return;
+      rm.setLabels(labelsToggle.checked);
       var s = rm.refill.state();
       rb.open.disabled = !s.canOpen; rb.load.disabled = !s.canLoad; rb.fill.disabled = !s.canFill; rb.all.disabled = !s.canFillAll; rb.close.disabled = !s.canClose;
       Array.prototype.forEach.call(document.querySelectorAll('#refillRings [data-ring]'), function (b) {

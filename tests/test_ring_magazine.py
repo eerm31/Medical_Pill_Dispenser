@@ -130,6 +130,12 @@ def test_prototype_2_refill_indexes_the_next_empty_pocket_under_a_hatch_and_has_
     assert 'id="ringIndex"' not in html and "rf.advance()" not in steps
 
 
+def test_label_leaders_are_axis_aligned_segments():
+    for name in ("reference-look.js", "ring-magazine.js"):
+        js = (VIS / name).read_text(encoding="utf-8")
+        assert "function axisLeader" in js and "setFromPoints(axisLeader(a, l))" in js
+
+
 def test_every_ring_takes_every_pill(g):
     js = (VIS / "ring-magazine.js").read_text(encoding="utf-8")
     assert "setPill: function" in js and "function fits" in js and "pillOf" in js and "STAND on edge" in js

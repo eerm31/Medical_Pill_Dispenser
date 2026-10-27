@@ -68,13 +68,20 @@
     function viewHas(label) {
       if (ringMag && ringMag.active()) {
         if (legacyGone(label)) return false;
-        if (label === 'Ring magazine' || label === 'Pocket floor') return activeView === 'rotation' || activeView === 'compartment';
+        if (label === 'Ring magazine') return activeView === 'rotation' || activeView === 'compartment';
+        if (label === 'Pocket floor') return activeView === 'compartment';
         if (RING_COMP.indexOf(label) >= 0) return activeView === 'compartment' || (activeView === 'housing' && (label === 'Loading hatch' || label === 'Fill funnel'));
       }
       return activeView === 'rotation' ? OWN_VIEW.indexOf(label) < 0 : VIEW_LABELS[activeView].indexOf(label) >= 0;
     }
     function inRotationSet(o) { while (o) { var p = o.userData && o.userData.rotationPart; if (p) return !p.label || viewHas(p.label); o = o.parent; } return false; }
     var calloutMap = {};
+    // leader from the part to its label: up to three segments, each along a single axis (x, then depth, then height)
+    function axisLeader(a, l) {
+      var pts = [[a[0], a[1], a[2]], [l[0], a[1], a[2]], [l[0], l[1], a[2]], [l[0], l[1], l[2]]], out = [];
+      for (var i = 0; i < 3; i++) if (Math.abs(pts[i][0] - pts[i + 1][0]) + Math.abs(pts[i][1] - pts[i + 1][1]) + Math.abs(pts[i][2] - pts[i + 1][2]) > 1e-9) out.push(new T.Vector3(pts[i][0], pts[i][2], -pts[i][1]), new T.Vector3(pts[i + 1][0], pts[i + 1][2], -pts[i + 1][1]));
+      return out;
+    }
     function callout(par, label, kind, a, l) {
       var color = kind === 'printed' ? '#4fc3f7' : '#7ee08a', lineHex = kind === 'printed' ? 0x4fc3f7 : 0x7ee08a;
       function face(hot) {
@@ -88,8 +95,8 @@
       var sprite = new T.Sprite(new T.SpriteMaterial({ map: face(false), transparent: true, depthTest: false }));
       sprite.userData.texNormal = sprite.material.map; sprite.userData.texHot = face(true); sprite.userData.partLabel = label;
       sprite.scale.set(24, 4, 1); sprite.position.set(l[0], l[2], -l[1]); sprite.renderOrder = 20;
-      var line = new T.Line(new T.BufferGeometry().setFromPoints([new T.Vector3(a[0], a[2], -a[1]), sprite.position.clone()]), new T.LineBasicMaterial({ color: tint(lineHex), transparent: true, depthTest: false }));
-      line.renderOrder = 19; (calloutMap[label] = calloutMap[label] || []).push({ sprite: sprite, line: line, lineHex: lineHex });
+      var line = new T.LineSegments(new T.BufferGeometry().setFromPoints(axisLeader(a, l)), new T.LineBasicMaterial({ color: tint(lineHex), transparent: true, depthTest: false }));
+      line.renderOrder = 19; (calloutMap[label] = calloutMap[label] || []).push({ sprite: sprite, line: line, lineHex: lineHex, anchor: new T.Vector3(a[0], a[2], -a[1]), par: par });
       [sprite, line].forEach(function (o) { o.name = 'rotation callout \u00b7 ' + label; o.visible = false; o.userData.rotationPart = { callout: true, label: label }; par.add(o); callouts.push(o); });
     }
 
@@ -696,12 +703,65 @@
       });
     }
     // Part labels and the all-dimensions view keep only labels that do not overlap on screen (part names first, then the hovered item).
+    // Label layout: a label tries axis offsets from its anchor, nearest first, and keeps the first whose box and straight leader
+    // clear every label placed before it. The leader is one segment along a single axis. A label that stays valid keeps its spot.
+    var LAY_DIRS = [[0, 1, 0], [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, -1, 0]], LAY_D = [10, 18, 28, 40, 54, 70, 90, 115, 140, 170], layV = new T.Vector3(), layC = new T.Vector3();
+    function segHits(x1, y1, x2, y2, k, pad) {
+      for (var i = 0; i <= 24; i++) { var t = i / 24, x = x1 + (x2 - x1) * t, y = y1 + (y2 - y1) * t; if (Math.abs(x - k[0]) < k[2] / 2 + pad && Math.abs(y - k[1]) < k[3] / 2 + pad) return true; }
+      return false;
+    }
+    function layoutLabel(it, camera, w, h, kept, leads, avoid) {
+      var par = it.par, sp = it.sprite, unit = h / (2 * Math.tan(camera.fov * Math.PI / 360)), flat = sp.material.sizeAttenuation === false;
+      camera.getWorldPosition(layC); par.updateWorldMatrix(true, false);
+      function cand(di, ki) {
+        var dir = LAY_DIRS[ki], d = LAY_D[di], p = new T.Vector3(it.anchor.x + dir[0] * d, it.anchor.y + dir[1] * d, it.anchor.z + dir[2] * d);
+        layV.copy(p); par.localToWorld(layV); var dist = layV.distanceTo(layC); layV.project(camera);
+        return { p: p, key: di + ',' + ki, x: (layV.x + 1) / 2 * w, y: (1 - layV.y) / 2 * h, w: flat ? sp.scale.x * camera.projectionMatrix.elements[0] / 2 * w : sp.scale.x * unit / dist, h: flat ? sp.scale.y * camera.projectionMatrix.elements[5] / 2 * h : sp.scale.y * unit / dist };
+      }
+      layV.copy(it.anchor); par.localToWorld(layV); layV.project(camera);
+      var ax = (layV.x + 1) / 2 * w, ay = (1 - layV.y) / 2 * h;
+      function boxFree(c) {
+        if (c.x - c.w / 2 < 4 || c.x + c.w / 2 > w - 4 || c.y - c.h / 2 < 4 || c.y + c.h / 2 > h - 4) return false;
+        return !kept.some(function (k) { return Math.abs(k[0] - c.x) < (k[2] + c.w) / 2 + 3 && Math.abs(k[1] - c.y) < (k[3] + c.h) / 2 + 3; }) && !leads.some(function (L) { return segHits(L[0], L[1], L[2], L[3], [c.x, c.y, c.w, c.h], 1); });
+      }
+      function leaderFree(c) { return !kept.some(function (k) { return segHits(ax, ay, c.x, c.y, k, 1); }); }
+      function outside(c) { return !avoid || c.x + c.w / 2 < avoid[0] || c.x - c.w / 2 > avoid[1] || c.y + c.h / 2 < avoid[2] || c.y - c.h / 2 > avoid[3]; }
+      var pick = null, strict = [function (c) { return outside(c) && boxFree(c) && leaderFree(c); }, function (c) { return outside(c) && boxFree(c); }, function (c) { return boxFree(c) && leaderFree(c); }, boxFree];
+      if (it.key) { var pk = it.key.split(','), c0 = cand(+pk[0], +pk[1]); if (strict[avoid ? 0 : 2](c0)) pick = c0; }
+      for (var pass = 0; pass < 4 && !pick; pass++) for (var di = 0; di < LAY_D.length && !pick; di++) for (var ki = 0; ki < LAY_DIRS.length && !pick; ki++) { var c = cand(di, ki); if (strict[pass](c)) pick = c; }
+      if (!pick) return false;
+      if (it.key !== pick.key) {
+        it.key = pick.key; sp.position.copy(pick.p);
+        it.line.geometry.dispose(); it.line.geometry = new T.BufferGeometry().setFromPoints([it.anchor.clone(), pick.p.clone()]);
+      }
+      kept.push([pick.x, pick.y, pick.w, pick.h]); leads.push([ax, ay, pick.x, pick.y]);
+      return true;
+    }
     var declutterOn = false;
+    // the camera and panel buttons drawn over the scene count as occupied space for labels
+    function uiRects() {
+      var host = document.getElementById('sceneHost'), out = []; if (!host) return out;
+      var hr = host.getBoundingClientRect();
+      host.querySelectorAll('#controlsToggle, .cam-group').forEach(function (e) { var r = e.getBoundingClientRect(); if (r.width) out.push([r.left - hr.left + r.width / 2, r.top - hr.top + r.height / 2, r.width, r.height]); });
+      return out;
+    }
+    // screen box [x0, x1, y0, y1] of the ring machine (housing plus cup), so labels can sit beside it instead of on it
+    var mrCorner = new T.Vector3();
+    function machineRect(camera, w, h) {
+      if (!ringMag || !ringMag.active()) return null;
+      var x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, r = ringMag.root; r.updateWorldMatrix(true, false);
+      [-52, 70].forEach(function (x) { [-45, 60].forEach(function (y) { [-52, 52].forEach(function (z) {
+        mrCorner.set(x, y, z); r.localToWorld(mrCorner); mrCorner.project(camera);
+        var sx = (mrCorner.x + 1) / 2 * w, sy = (1 - mrCorner.y) / 2 * h; x0 = Math.min(x0, sx); x1 = Math.max(x1, sx); y0 = Math.min(y0, sy); y1 = Math.max(y1, sy);
+      }); }); });
+      return [x0, x1, y0, y1];
+    }
     function declutterLabels(camera, w, h) {
+      if (!rotActive && ringMag && ringMag.active() && ringMag.labelsShown()) { var k0 = uiRects(), l0 = [], mr = machineRect(camera, w, h); ringMag.labelItems().forEach(function (it) { it.sprite.visible = it.line.visible = layoutLabel(it, camera, w, h, k0, l0, mr); }); }
       var idle = !rotSelected && !rotSelectedDim, partsOn = rotActive && rotLabels && idle, dimsAll = rotActive && dimsOn && !rotSelectedDim && (dimsGroup === 'all' || Boolean(rotSelected));
       if (!partsOn && !dimsAll) { if (declutterOn) { declutterOn = false; refreshCallouts(); refreshDimensions(); } return; }
       declutterOn = true;
-      var kept = [], v = new T.Vector3(), cam = camera.getWorldPosition(new T.Vector3()), unit = h / (2 * Math.tan(camera.fov * Math.PI / 360));
+      var kept = uiRects(), leads = [], mrect = machineRect(camera, w, h), v = new T.Vector3(), cam = camera.getWorldPosition(new T.Vector3()), unit = h / (2 * Math.tan(camera.fov * Math.PI / 360));
       function place(o, lw, lh) {
         o.getWorldPosition(v); var d = v.distanceTo(cam), s = o.userData.pxFixed ? 1 : unit / d, x, y;
         lw *= s; lh *= s; v.project(camera); x = (v.x + 1) / 2 * w; y = (1 - v.y) / 2 * h;
@@ -712,7 +772,7 @@
         var names = Object.keys(calloutMap).filter(viewHas);
         if (hlPartLabel && calloutMap[hlPartLabel]) names.unshift(names.splice(names.indexOf(hlPartLabel), 1)[0]);
         names.forEach(function (name) {
-          calloutMap[name].forEach(function (c) { var ok = place(c.sprite, 24 + 2, 4 + .6); c.sprite.visible = c.line.visible = ok; });
+          calloutMap[name].forEach(function (c) { var ok = layoutLabel(c, camera, w, h, kept, leads, mrect); c.sprite.visible = c.line.visible = ok; });
         });
       }
       if (dimsAll) {

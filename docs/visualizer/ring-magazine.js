@@ -532,7 +532,13 @@
       if (ctx.changed) ctx.changed();
     }
     // labels for the parts: constant screen size with a leader line in the main view; the same names are callouts in the system sub-views
-    var tagG = new T.Group(); tagG.name = 'ring part labels'; root.add(tagG);
+    var tagG = new T.Group(); tagG.name = 'ring part labels'; root.add(tagG); var tagItems = [];
+    // leader: up to three segments, each along one axis (x, then depth, then height)
+    function axisLeader(a, l) {
+      var pts = [[a[0], a[1], a[2]], [l[0], a[1], a[2]], [l[0], l[1], a[2]], [l[0], l[1], l[2]]], out = [];
+      for (var i = 0; i < 3; i++) if (Math.abs(pts[i][0] - pts[i + 1][0]) + Math.abs(pts[i][1] - pts[i + 1][1]) + Math.abs(pts[i][2] - pts[i + 1][2]) > 1e-9) out.push(new T.Vector3(pts[i][0], pts[i][2], -pts[i][1]), new T.Vector3(pts[i + 1][0], pts[i + 1][2], -pts[i + 1][1]));
+      return out;
+    }
     function tagLabel(text, kind, a, l) {
       if (ctx.callout) ctx.callout(root, text, kind, a, l);
       var cv = document.createElement('canvas'), c, hex = kind === 'printed' ? 0x4fc3f7 : 0x7ee08a; cv.width = 384; cv.height = 64; c = cv.getContext('2d');
@@ -540,8 +546,9 @@
       c.font = 'bold 28px sans-serif'; c.fillStyle = '#eff8ff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(text, 192, 33, 366);
       var sp = new T.Sprite(new T.SpriteMaterial({ map: new T.CanvasTexture(cv), transparent: true, depthTest: false, depthWrite: false, sizeAttenuation: false }));
       sp.scale.set(0.15, 0.025, 1); sp.position.set(l[0], l[2], -l[1]); sp.renderOrder = 60; sp.name = 'ring label \u00b7 ' + text;
-      var ln = new T.Line(new T.BufferGeometry().setFromPoints([new T.Vector3(a[0], a[2], -a[1]), sp.position.clone()]), new T.LineBasicMaterial({ color: hex, transparent: true, depthTest: false }));
+      var ln = new T.LineSegments(new T.BufferGeometry().setFromPoints(axisLeader(a, l)), new T.LineBasicMaterial({ color: hex, transparent: true, depthTest: false }));
       ln.renderOrder = 59; [sp, ln].forEach(function (o) { o.userData.noWire = true; tagG.add(o); });
+      tagItems.push({ sprite: sp, line: ln, anchor: new T.Vector3(a[0], a[2], -a[1]), par: tagG, key: null });
     }
     (function () {
       var pol = function (r, phi, z) { return [r * Math.cos(phi), r * Math.sin(phi), z]; }, ca = tagLabel;
@@ -578,7 +585,7 @@
       reset: function () { st.show = -1; st.showHatch = -1; pinTo(0, 0.3); rings.forEach(function (r) { stageHome(r.k, 0.5); }); armTo(PARK, rp[0], 0.6, 0); }
     };
 
-    return { active: function () { return st.active; }, setLabels: function (on) { tagG.visible = Boolean(on); }, setFloor: function (on) { floorG.visible = Boolean(on); }, demo: demo, setActive: setActive, update: update, ringAct: ringAct, refill: refill, stability: stability,
+    return { active: function () { return st.active; }, setLabels: function (on) { tagG.visible = Boolean(on); }, labelsShown: function () { return tagG.visible; }, labelItems: function () { return tagItems; }, setFloor: function (on) { floorG.visible = Boolean(on); }, demo: demo, setActive: setActive, update: update, ringAct: ringAct, refill: refill, stability: stability,
       setPocket: function (q) { st.q = Math.max(0, Math.min(1, Number(q))); applyPocket(); rings.forEach(function (r) { var sl = slack(r.k); r.pills.forEach(function (p) { p.off = Math.max(-sl, Math.min(sl, p.off)); }); }); return st.q; },
       pocket: function () { return { q: st.q, widths: rings.map(function (r) { return Math.round(pocketW(r.k, st.q) * 10) / 10; }), dividers: rings.map(function (r) { return Math.round(vaneT(r.k, st.q) * 10) / 10; }), pills: PILLS.map(function (p) { return p.name + ' ' + p.L + 'x' + p.W; }), assigned: pillOf.slice(), maxLen: rings.map(function (r) { return Math.round(maxLen(r.k) * 10) / 10; }) }; },
       fits: fits,

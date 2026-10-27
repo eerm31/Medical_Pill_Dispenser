@@ -248,6 +248,9 @@
     rotationPreview.only=on;if(on){selectedComponentId=null;componentHoverId=null;applyComponentHighlight();}
     if(look&&look.setRotationView)look.setRotationView(on,view);
     document.getElementById('rotationPanel').hidden=!on;
+    var ringFloor=document.getElementById('ringFloor'),floorRow=document.getElementById('ringFloorRow'),floorHere=Boolean(on&&view==='compartment'&&look&&look.ringActive&&look.ringActive());
+    if(!floorHere&&ringFloor&&!ringFloor.checked){ringFloor.checked=true;if(look&&look.ringMagazine)look.ringMagazine.setFloor(true);}
+    if(floorRow)floorRow.hidden=!floorHere;
     if(on){var ringM=Boolean(look&&look.ringActive&&look.ringActive()),still=ringM||view==='mount'||view==='compartment'||view==='housing';document.getElementById('removalFlow').hidden=ringM||view!=='compartment';if(view==='compartment'&&!ringM)removalReset();document.getElementById('rotationPanelTitle').textContent=view==='mount'?'Stepper mount preview':view==='housing'?'Housing preview':view==='compartment'?(ringM?'Ring compartments preview':'Compartments & decks preview'):(ringM?'Ring rotation preview':'Rotation subsystem preview');document.querySelector('#rotationPanel .rotation-buttons').hidden=still;document.querySelector('#rotationPanel .readout-grid').hidden=still;fillRotationParts();}
     else{if(look&&look.selectRotationPart)look.selectRotationPart(null);setFocusFade('part',false);setFocusFade('dimension',false);rotationPreview.angle=0;rotationPreview.target=0;}
     refreshPartLists();
