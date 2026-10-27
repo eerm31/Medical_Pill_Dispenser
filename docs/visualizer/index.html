@@ -121,14 +121,15 @@
         <div class="section-title"><div><span class="eyebrow" id="ringSectionEyebrow">PROTOTYPE 2</span><h2 id="ringSectionTitle">Ring magazine</h2></div></div>
         <div id="ringTools">
           <details class="how-details"><summary>How a ring turns</summary><p class="small-note">The stepper under the floor swings one arm. A carriage on the arm (servo S1) slides to the chosen ring and servo S2 lifts the pin up through that ring's curved slot in the floor, into a sealed channel under the ring's inner rim, never into a pill pocket. The pin pushes a drive tooth hanging under a divider and the ring rolls on its four balls, centred by PTFE-lined walls and clamped by its own lock pad when idle. The fixed pocket floor has no holes under the pockets, so each divider slides its pill (standing on edge, any size or shape) across the floor until it drops through the one exit hole into one chute and one cup. Refill goes through that ring's small hatch, so no ring is ever removed. ASSUMED / NOT VALIDATED.</p></details>
-          <label class="range-row" for="pocketSize"><span>Pocket Size (divider spacing)</span><output id="pocketOut">45%</output><input id="pocketSize" type="range" min="0" max="100" step="1" value="45" autocomplete="off"></label>
           <p id="pocketInfo" class="small-note"></p>
+          <div class="switch-list">
+            <label class="switch-row"><span><strong>Show bearings</strong><small>Fades the rings to 20% so the hub, balls, cage and pin slots show from above</small></span><input id="ringBearings" class="switch" type="checkbox" autocomplete="off"></label>
+          </div>
           <p class="sub-title">Weight and stability (assumed masses)</p>
           <div class="readout-grid"><div><span>Total mass</span><strong id="stabMass">-</strong></div><div><span>Centre of mass above table</span><strong id="stabCom">-</strong></div><div><span>Rotating mass (limit 150 g)</span><strong id="stabRot">-</strong></div><div><span>Tips over at</span><strong id="stabTip">-</strong></div></div>
           <p class="sub-title">Refill (small hatch above the ring)</p>
           <button id="ringFillAll" class="primary-button wide" type="button">Refill all rings (one click)</button>
           <p id="ringGuide" class="small-note"></p>
-          <div id="ringPillRows"></div>
           <div class="button-grid four-col" id="refillRings">
             <button class="color-button red" data-ring="0" type="button">Red</button><button class="color-button blue" data-ring="1" type="button">Blue</button><button class="color-button green" data-ring="2" type="button">Green</button><button class="color-button orange" data-ring="3" type="button">Orange</button>
           </div>

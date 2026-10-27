@@ -66,7 +66,7 @@ def test_cup_window_is_a_single_wall_opening_inside_one_sector(g):
 def test_ring_files_are_loaded_in_order_and_the_controller_is_untouched():
     html = (VIS / "index.html").read_text(encoding="utf-8")
     assert html.index("ring-magazine.js") < html.index("reference-look.js") < html.index("ring-ui.js")
-    for ident in ("pocketSize", "ringOpenLid", "ringLoad", "ringFill", "ringCloseLid", 'name="designOpt"'):
+    for ident in ("ringOpenLid", "ringLoad", "ringFill", "ringCloseLid", 'name="designOpt"'):
         assert ident in html
     assert hashlib.sha1((VIS / "demo-controller.js").read_bytes()).hexdigest() == "0c8396023ca6fc85cb135fbbf58ea39e903cee11"
 
@@ -136,9 +136,24 @@ def test_label_leaders_are_axis_aligned_segments():
         assert "function axisLeader" in js and "setFromPoints(axisLeader(a, l))" in js
 
 
+def test_pocket_size_is_fixed_and_every_pocket_takes_every_pill(g):
+    js = (VIS / "ring-magazine.js").read_text(encoding="utf-8")
+    html = (VIS / "index.html").read_text(encoding="utf-8")
+    assert "pocketSize" not in html and "setPocket" not in js and "st.q" not in js
+    pocket = max(PILL_LEN) + 0.6  # ring-magazine.js POCKET: thickest pill plus play
+    ring = g["ring"]
+    for r0, r1 in ring["tracks"]:
+        assert 2 * math.pi * (r0 + r1) / 2 / ring["n"] - pocket >= ring["vane_t"]  # the divider stays printable in every ring
+        assert r1 - r0 - 2 * ring["rim_t"] >= 6.2 + 0.4 - 1e-9
+    assert "function modelFor" in js and "(k + m) % PILLS.length" in js and "model: i" in js  # each pill keeps its own model
+    for k in range(4):  # ring-magazine.js modelFor: any 4 neighbouring pockets show every model, and every ring starts differently
+        assert {(k + m) % 4 for m in range(4)} == {0, 1, 2, 3} and (k + 0) % 4 != (k + 1) % 4
+    assert len({k % 4 for k in range(4)}) == 4
+
+
 def test_every_ring_takes_every_pill(g):
     js = (VIS / "ring-magazine.js").read_text(encoding="utf-8")
-    assert "setPill: function" in js and "function fits" in js and "pillOf" in js and "STAND on edge" in js
+    assert "function fits" in js and "STAND on edge" in js and "ringPillRows" not in (VIS / "index.html").read_text(encoding="utf-8")
     ring = g["ring"]
     for r0, r1 in ring["tracks"]:
         pitch = 2 * math.pi * (r0 + r1) / 2 / ring["n"]
@@ -147,10 +162,38 @@ def test_every_ring_takes_every_pill(g):
 
 def test_prototype_2_rings_ride_on_balls_in_a_track_with_one_lock_pad_each(g):
     js = (VIS / "ring-magazine.js").read_text(encoding="utf-8")
-    for ident in ("Ball bearings", "Ring support track", "PTFE liner", "Shaft bushing", "Ring lock pad", "Loading hatch", "Fill funnel", "Adjustable divider"):
+    for ident in ("Ball bearings", "Ring support track", "PTFE liner", "Shaft bushing", "Ring lock pad", "Loading hatch", "Fill funnel", "Pocket divider"):
         assert ident in js
-    assert "NB = 4" in js and "function applyLocks" in js and "hatches.forEach" in js
+    assert "NB = 14" in js and "function applyLocks" in js and "hatches.forEach" in js
     assert "lug" not in js  # rings are never lifted out for refilling
     assert "function tagLabel" in js and "PCFSoft" not in js
     ring = g["ring"]
-    assert 2 * 0.55 + 0.3 < ring["vane_t"] + 1.0  # balls and race lift the ring only a little above the deck
+    assert 2 * 0.5 + 0.3 < ring["vane_t"] + 1.0  # balls and race lift the ring only a little above the deck
+
+
+BALL_R, NB = 0.5, 14  # ring-magazine.js BR (a 1.0 mm ball you can buy) and NB
+
+
+def test_ball_set_stays_inside_its_channel_clear_of_pin_slots_and_neighbour_rings(g):
+    ring = g["ring"]
+    tracks, slots = ring["tracks"], ring["arc_slots"]
+    for k, (r0, r1) in enumerate(tracks):
+        rb = r1 - 0.425  # ring-magazine.js: ball circle, centred in the channel between the lip (r1 - 0.95) and the PTFE face (r1 + 0.1)
+        assert 2 * BALL_R <= (r1 + 0.1) - (r1 - 0.95)  # the ball fits its channel
+        assert 2 * rb * math.sin(math.pi / NB) > 2 * BALL_R + 1.0  # neighbouring balls never touch
+        assert rb - BALL_R > r0 + ring["rim_t"]  # clear of this ring's own pin slot (inner rim)
+        assert slots[k]["r"] + slots[k]["w"] / 2 < rb - BALL_R - 5.0
+        if k + 1 < len(tracks):
+            nxt = slots[k + 1]["r"] - slots[k + 1]["w"] / 2
+            assert rb + BALL_R + 0.1 < nxt and rb + BALL_R < tracks[k + 1][0]  # clear of the next ring's slot and rim
+
+
+def test_cage_rolls_the_balls_and_show_bearings_fades_only_the_rings():
+    js = (VIS / "ring-magazine.js").read_text(encoding="utf-8")
+    ui = (VIS / "ring-ui.js").read_text(encoding="utf-8")
+    html = (VIS / "index.html").read_text(encoding="utf-8")
+    assert "cage.rotation.y = r.A / 2" in js and "r.A * balls[r.k].rb / (2 * BR)" in js
+    assert "Fixed centre column" in js and "Ball cage" in js
+    assert "function setBearings" in js and "rimMats.forEach" in js and "solidMats.forEach" in js
+    assert 'id="ringBearings"' in html and "setBearings" in ui
+    assert re.search(r'id="ringBearings"[^>]*type="checkbox"(?![^>]*checked)', html)  # off by default

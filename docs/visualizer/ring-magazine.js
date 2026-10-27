@@ -6,8 +6,8 @@
      carriage) selects a ring, drops its pin behind one divider and swings one pocket pitch. All four rings share ONE exit slot
      in the deck, ONE funnel and ONE cup. Geometry numbers come from rotation-spec.js (g.ring); the demo controller is untouched
      and only drives the phase names this file maps to motion.
-     Support: the rod runs through a bushing in the fixed post; each ring rests on 4 captive balls in a fixed grooved track on the deck
-     (balls carry the weight; PTFE-lined guide walls between the rings hold them radially). A clamp pad per ring locks it; only the ring being served is unlocked.
+     Support: the rod runs through a bushing in the fixed centre column; each ring rests on 14 caged balls in a fixed grooved track on the deck
+     (the cage turns at half the ring's speed, so the balls roll; PTFE-lined guide walls between the rings hold them radially). A clamp pad per ring locks it; only the ring being served is unlocked.
      Refill: a small hatch per ring in the lid sits over that ring's loading pocket; the ring turns an empty pocket under it first. */
   var TAU = Math.PI * 2;
   function wrap(a) { return Math.atan2(Math.sin(a), Math.cos(a)); }
@@ -49,11 +49,11 @@
     var rp = R.tracks.map(function (t) { return t[0] + 0.4; });
     var thL = rc.map(function (r) { return Math.asin(VL / r); });
     var CUPV = (VL + VT_) / 2, LIP_X = 54, CUP = { x0: 52.5, x1: 66, floor: -30 };
-    var st = { active: false, q: 0.45, sel: -1, lid: 0, lidT: 0, session: false, armLift: 0, show: -1, showHatch: -1 };
+    var st = { active: false, sel: -1, lid: 0, lidT: 0, session: false, armLift: 0, show: -1, showHatch: -1 };
     var root = new T.Group(); root.name = 'ring magazine'; root.position.set(0, 0, -CYa); root.visible = false; ctx.parent.add(root);
     var PR = std(0x9fc2e6, { transparent: true, opacity: 0.8, roughness: 0.45 });
     // each ring rides on NB captive balls (radius BR) in a fixed grooved track; the loading pocket sits UL pockets before the exit
-    var BR = 0.55, TRK = 0.3, RAISE = TRK + 2 * BR, RZ = ZF + RAISE, NB = 4, UL = CAP, LOCK_A = -Math.PI / 2, LDS = S.lid;
+    var BR = 0.5, TRK = 0.3, RAISE = TRK + 2 * BR, RZ = ZF + RAISE, NB = 14, UL = CAP, LOCK_A = -Math.PI / 2, LDS = S.lid;
     var thLoad = thL.map(function (t) { return t - (UL - 0.5) * P; }), rh = rc.map(function (r) { return Math.min(r, LDS.r - 4); }), DROPH = (LDS.z1 + 6 - ZF) / 9;
 
     function tag(o, label, kind, piece, type) { ctx.rtag(o, label, kind, piece); o.userData.ring = true; if (type) ctx.ptype(o, type); return o; }
@@ -75,7 +75,7 @@
 
     // ---------- fixed parts: centre post, exit funnel, wall shelf and cup ----------
     var fixedG = new T.Group(); root.add(fixedG);
-    var post = new T.Mesh(ringGeo(R.tracks[0][0] - 0.8, 2.8, WH), PR); post.position.y = ZF; fixedG.add(post); tag(edges(post), 'Ring magazine', 'printed', 'post');
+    var post = new T.Mesh(ringGeo(R.tracks[0][0] - 0.8, 2.8, WH), std(0x6b7a8c, { roughness: 0.45, metalness: 0.35 })); post.position.y = ZF; fixedG.add(post); tag(edges(post), 'Fixed centre column', 'printed', 'post');
     var zf = function (x) { return FUN.z0 + (FUN.z1 - FUN.z0) * (x - FUN.x0) / (FUN.x1 - FUN.x0); };
     var FT = FUN.t, WALL_X1 = 47.5, DECK_UND = -3.0;
     tag(profile(fixedG, [[FUN.x0, zf(FUN.x0) - FT], [LIP_X, zf(LIP_X) - FT], [LIP_X, zf(LIP_X)], [FUN.x0, zf(FUN.x0)]], VL - FT, VT_ + FT, PR), 'Exit funnel', 'printed', 'funnel');
@@ -94,34 +94,33 @@
     });
 
     // ---------- ring wheels ----------
-    var rings = [], pillMats = [], rimMats = [];
-    // each ring can hold any of the pill models that fits its pockets: pitch = ring circumference / N, minus the divider and 0.6 mm play
-    var pillOf = [0, 1, 2, 3];
-    function pl(k) { return PILLS[pillOf[k]]; }
-    function maxLen(k) { return P * rc[k] - VMIN - 0.6; }
-    function fits(k, i) { var tr = R.tracks[k]; return PILLS[i].L <= maxLen(k) + 1e-9 && PILLS[i].W + 0.4 <= tr[1] - tr[0] - 2 * RT + 1e-9; }
-    function pocketW(k, q) { var pitch = P * rc[k], cmax = Math.max(0.6, Math.min(3.0, pitch - VMIN - pl(k).L)); return pl(k).L + 0.6 + (cmax - 0.6) * q; }
-    function vaneT(k, q) { return P * rc[k] - pocketW(k, q); }
+    var rings = [], pillMats = [], rimMats = [], solidMats = [];
+    // every pocket has the same fixed width: the thickest pill model plus 0.6 mm play, so any pill model fits any pocket of any ring
+    var POCKET = Math.max.apply(null, PILLS.map(function (p) { return p.L; })) + 0.6;
+    function fits(k, i) { var tr = R.tracks[k]; return PILLS[i].L + 0.6 <= POCKET + 1e-9 && PILLS[i].W + 0.4 <= tr[1] - tr[0] - 2 * RT + 1e-9 && P * rc[k] - POCKET >= VMIN; }
+    function vaneT(k) { return P * rc[k] - POCKET; }
+    // pocket m of ring k holds pill model (k + m) mod 4, so every ring shows all shapes and sizes and no two rings start alike
+    function modelFor(k, m) { var i = (k + m) % PILLS.length; return fits(k, i) ? i : 0; }
     COLORS.forEach(function (color, k) {
       var tr = R.tracks[k], accent = ctx.accent[color] || 0x8294a5, g = new T.Group(), rim = std(accent, { transparent: true, opacity: 0.5, roughness: 0.5, side: T.DoubleSide, depthWrite: false }), solid = std(accent, { roughness: 0.55 });
-      rimMats.push(rim); g.position.y = RZ; root.add(g);
+      rimMats.push(rim); solidMats.push(solid); g.position.y = RZ; root.add(g);
       var mi = new T.Mesh(ringGeo(tr[0] + RT, tr[0], WH), rim), mo = new T.Mesh(ringGeo(tr[1], tr[1] - RT, WH), rim), band = new T.Mesh(ringGeo(tr[1], tr[1] - RT - 0.2, 0.9), solid);
       band.position.y = WH - 0.9; [mi, mo, band].forEach(function (m) { g.add(m); tag(m, 'Ring magazine', 'printed', 'ring' + k); });
       var vanes = [], width = (tr[1] - RT) - (tr[0] + RT) + 0.2, vaneGeo = new T.CylinderGeometry(0.5, 0.5, width, 16);
-      vaneGeo.rotateZ(Math.PI / 2); // smooth oval divider: its thickness (scale.z) is the adjustable part
+      vaneGeo.rotateZ(Math.PI / 2); // smooth oval divider; its thickness (scale.z) is pitch minus the fixed pocket
       var toothGeo = new T.BoxGeometry(RT, 1.2, TOOTH);
       for (var j = 0; j < N; j++) {
         var vg = new T.Group(); vg.rotation.y = thL[k] - j * P; g.add(vg);
         var tooth = new T.Mesh(toothGeo, solid); tooth.position.set(rp[k], -0.6, 0); vg.add(tooth); tag(tooth, 'Drive tooth', 'printed', 'tooth' + k);
-        var v = new T.Mesh(vaneGeo, solid); v.scale.y = WH; v.position.set(rc[k], WH / 2, 0); vg.add(v); tag(v, 'Adjustable divider', 'printed', 'divider' + k); vanes.push(v);
+        var v = new T.Mesh(vaneGeo, solid); v.scale.y = WH; v.position.set(rc[k], WH / 2, 0); vg.add(v); tag(v, 'Pocket divider', 'printed', 'divider' + k); vanes.push(v);
       }
       rings.push({ k: k, g: g, vanes: vanes, K: 0, A: 0, pills: [], lift: 0, liftT: 0, sess: false, canon: true, nextM: 0 });
       var c = accent;
       pillMats.push({ main: std(c, { roughness: 0.35 }), white: std(0xf4f4f0, { roughness: 0.4 }) });
     });
-    function applyPocket() { rings.forEach(function (r) { var t = vaneT(r.k, st.q); r.vanes.forEach(function (v) { v.scale.z = t; }); }); }
+    function applyPocket() { rings.forEach(function (r) { var t = vaneT(r.k); r.vanes.forEach(function (v) { v.scale.z = t; }); }); }
     applyPocket();
-    function slack(k) { return Math.max(0, (pocketW(k, st.q) - pl(k).L) / 2) / rc[k]; }
+    function slackOf(p) { return Math.max(0, (POCKET - PILLS[p.model].L) / 2) / rc[p.k]; }
 
     // ---------- fixed pocket floor: closes the bottom of every pocket; pills slide on it to the one exit hole, the pin rises through the arc slots ----------
     var floorG = (function () {
@@ -139,8 +138,9 @@
     var bronze = std(0xc08a3e, { roughness: 0.4, metalness: 0.5 }), redM = std(0xd33a3a, { roughness: 0.5 }), balls = [], pads = [], lockV = [0, 0, 0, 0], PADUP = 1.0;
     function polarG(par, phi) { var g = new T.Group(); g.rotation.y = phi; par.add(g); return g; }
     var bush = new T.Mesh(ringGeo(2.8, 2.5, WH), bronze); bush.position.y = ZF; fixedG.add(bush); tag(bush, 'Shaft bushing', 'bought', 'bushing', 'hardware');
+    var ballGeo = new T.SphereGeometry(BR, 14, 10), dotGeo = new T.SphereGeometry(0.17, 6, 4);
     R.tracks.forEach(function (tr, k) {
-      var rb = tr[1] - RT / 2, top = RZ + WH, lg = polarG(fixedG, LOCK_A), list = [];
+      var rb = tr[1] - 0.425, top = RZ + WH, lg = polarG(fixedG, LOCK_A), list = []; // 1.0 mm balls centred in the 1.05 mm channel between lip and PTFE face
       // flat race, inner lip (below the dividers) and a guide wall that stands in the gap between rings and guides both neighbours
       [[tr[1] + 0.3, tr[1] - 1.15, TRK], [tr[1] - 0.95, tr[1] - 1.15, RAISE - 0.1], [tr[1] + 0.65, tr[1] + 0.15, RAISE + 0.6], [tr[0] + 1.0, tr[0] + 0.9, RAISE - 0.1]].forEach(function (p) {
         var m = new T.Mesh(ringGeo(p[0], p[1], p[2]), PR); m.position.y = ZF; fixedG.add(m); tag(edges(m), 'Ring support track', 'printed', 'track' + k);
@@ -149,8 +149,14 @@
       [[tr[1] + 0.15, tr[1] + 0.1], [tr[1] + 0.7, tr[1] + 0.65]].forEach(function (p) {
         var m = new T.Mesh(ringGeo(p[0], p[1], RAISE + 0.5), M.white); m.position.y = ZF; fixedG.add(m); tag(m, 'PTFE liner', 'bought', 'ptfe' + k, 'hardware');
       });
-      for (var i = 0; i < NB; i++) { var b = new T.Mesh(new T.SphereGeometry(BR, 14, 10), M.steel); fixedG.add(b); tag(b, 'Ball bearings', 'bought', 'balls' + k, 'hardware'); list.push(b); }
-      balls.push({ rb: rb, list: list });
+      // fixed ball set: the cage carries 14 balls and turns at half the ring's speed; each ball also spins about its radial axis, so it rolls without slipping
+      var cage = new T.Group(); cage.userData.noWire = true; fixedG.add(cage);
+      var cr = new T.Mesh(ringGeo(rb + 0.15, rb - 0.15, 0.2), bronze); cr.position.y = ZF + TRK + BR - 0.1; cage.add(cr); tag(cr, 'Ball cage', 'bought', 'cage' + k, 'hardware');
+      for (var i = 0; i < NB; i++) {
+        var th = i * TAU / NB, pv = new T.Group(); pv.position.set(rb * Math.cos(th), ZF + TRK + BR, -rb * Math.sin(th)); pv.rotation.y = th; cage.add(pv);
+        var b = new T.Mesh(ballGeo, M.steel), dot = new T.Mesh(dotGeo, M.dark); dot.position.z = BR * 0.86; b.add(dot); pv.add(b); tag(b, 'Ball bearings', 'bought', 'balls' + k, 'hardware'); list.push(b);
+      }
+      balls.push({ rb: rb, list: list, cage: cage });
       // lock: bracket on the track lip, arm over the rim, pad that clamps the rim top (down = locked)
       tag(bx(lg, tr[1] + 0.1, tr[1] + 0.4, -1.2, 1.2, ZF, top + 2.2, PR), 'Ring lock', 'printed', 'lock' + k);
       tag(bx(lg, tr[1] - 2.6, tr[1] + 0.4, -1.2, 1.2, top + 1.6, top + 2.2, PR), 'Ring lock', 'printed', 'lock' + k);
@@ -175,8 +181,8 @@
     });
 
     // ---------- pills ----------
-    function pillObject(k) {
-      var d = pl(k), mm = pillMats[k], g = new T.Group(), body = new T.Group(), m; g.add(body);
+    function pillObject(k, model) {
+      var d = PILLS[model], mm = pillMats[k], g = new T.Group(), body = new T.Group(), m; g.add(body);
       if (d.kind === 'round') { m = new T.Mesh(new T.CylinderGeometry(d.H / 2, d.H / 2, d.L, 28), mm.main); m.rotation.z = Math.PI / 2; m.position.y = d.H / 2; body.add(m); }
       else if (d.kind === 'oval') { m = new T.Mesh(new T.SphereGeometry(1, 24, 16), mm.main); m.scale.set(d.L / 2, d.H / 2, d.W / 2); m.position.y = d.H / 2; body.add(m); }
       else {
@@ -190,19 +196,19 @@
     }
     function uOf(r, p) { return ((((p.m - r.K) % N) + N) % N) + 1; }
     function mOfU(r, u) { return (((u - 1 + r.K) % N) + N) % N; }
-    function newPill(r, u, drop) { var p = { k: r.k, m: mOfU(r, u), off: 0, mesh: pillObject(r.k), drop: drop || 0, yaw: 0 }; r.pills.push(p); return p; }
+    function newPill(r, u, drop) { var m = mOfU(r, u), i = modelFor(r.k, m), p = { k: r.k, m: m, off: 0, model: i, mesh: pillObject(r.k, i), drop: drop || 0, yaw: 0 }; r.pills.push(p); return p; }
     function killPill(p) { if (p.mesh.parent) p.mesh.parent.remove(p.mesh); }
     function rebuild(r, n) { r.pills.forEach(killPill); r.pills = []; for (var u = 1; u <= n; u++) newPill(r, u, 0.6 + 0.12 * u); r.canon = true; r.nextM = mod(r.K + n, N); }
     // refill drops the pill into the next empty pocket (nextM), which the ring has turned under the hatch
-    function newPillAt(r) { var p = { k: r.k, m: r.nextM, off: 0, mesh: pillObject(r.k), drop: 0, yaw: 0 }; r.pills.push(p); r.nextM = mod(r.nextM + 1, N); return p; }
+    function newPillAt(r) { var i = modelFor(r.k, r.nextM), p = { k: r.k, m: r.nextM, off: 0, model: i, mesh: pillObject(r.k, i), drop: 0, yaw: 0 }; r.pills.push(p); r.nextM = mod(r.nextM + 1, N); return p; }
     function pocketCenter(r, m) { return r.A + thL[r.k] - (m + 0.5) * P; }
     function placePill(p, r, pos) {
-      var phi = pocketCenter(r, p.m) + p.off, d = pl(p.k), lift = r.lift * 30, rad = rc[p.k] + (p.hold ? (rh[p.k] - rc[p.k]) * Math.min(1, p.drop / DROPH) : 0);
+      var phi = pocketCenter(r, p.m) + p.off, lift = r.lift * 30, rad = rc[p.k] + (p.hold ? (rh[p.k] - rc[p.k]) * Math.min(1, p.drop / DROPH) : 0);
       p.mesh.position.set(rad * Math.cos(phi), ZF + p.drop * 9 + lift, -rad * Math.sin(phi)); p.mesh.rotation.set(0, phi + Math.PI / 2, 0); p.mesh.userData.lay(p.lay || 0); p.mesh.visible = true;
     }
     function movePills(r, dA) {
-      var sl = slack(r.k); r.A += dA;
-      r.pills.forEach(function (p) { p.off = Math.max(-sl, Math.min(sl, p.off - dA)); });
+      r.A += dA;
+      r.pills.forEach(function (p) { var sl = slackOf(p); p.off = Math.max(-sl, Math.min(sl, p.off - dA)); });
     }
     // after the ring angle changes by dA, a pill that crossed the leading edge of the exit slot leaves the ring
     function crossed(r) {
@@ -279,8 +285,9 @@
       rings.forEach(function (r) {
         r.lift += (r.liftT - r.lift) * 0.15; if (Math.abs(r.liftT - r.lift) < 0.002) r.lift = r.liftT;
         r.g.rotation.y = r.A; r.g.position.y = RZ + r.lift * 30;
-        // the cage carries the balls at half the ring's turn (rolling without slipping)
-        balls[r.k].list.forEach(function (b, i) { var a = r.A / 2 + i * TAU / NB; b.position.set(balls[r.k].rb * Math.cos(a), ZF + TRK + BR, -balls[r.k].rb * Math.sin(a)); });
+        // the cage carries the balls at half the ring's turn and each ball spins by A * rb / (2 BR): rolling without slipping
+        balls[r.k].cage.rotation.y = r.A / 2;
+        balls[r.k].list.forEach(function (b) { b.rotation.x = -r.A * balls[r.k].rb / (2 * BR); });
         rimMats[r.k].emissive = rimMats[r.k].emissive || new T.Color(0); var on = COLORS[r.k] === selColor || r.k === st.sel;
         rimMats[r.k].emissive.setHex(on ? 0x333333 : 0x000000);
         r.pills.forEach(function (p) { if (p.drop > 0 && !p.hold) p.drop = Math.max(0, p.drop - 0.06); placePill(p, r); });
@@ -510,7 +517,7 @@
       rings.forEach(function (r) {
         var tr = R.tracks[r.k], vol = 0;
         vol += 0.8 * WH * TAU * (tr[0] + 0.4) + 0.8 * WH * TAU * (tr[1] - 0.4);
-        vol += N * (tr[1] - tr[0] - 2 * RT) * WH * vaneT(r.k, st.q);
+        vol += N * (tr[1] - tr[0] - 2 * RT) * WH * vaneT(r.k);
         add(vol / 1000 * RHO_R + r.pills.length * 0.25, S.axle[0], CYa, ZF + WH / 2, true);
       });
       add(cup.length * 0.25, 57, CYa - 1.6, -29);
@@ -523,6 +530,12 @@
         tip = Math.min(tip, Math.atan2(d, Z - S.table_z) * 180 / Math.PI);
       });
       return { mass: M_, rotating: rot, com: [X, Y, Z], comAboveTable: Z - S.table_z, tip: tip };
+    }
+    // Show bearings: the rings (rims, dividers, teeth) fade to 20% so the balls, cage, race and pin slots show from above
+    function setBearings(on) {
+      st.bearings = Boolean(on);
+      rimMats.forEach(function (m) { m.opacity = on ? 0.2 : 0.5; m.needsUpdate = true; });
+      solidMats.forEach(function (m) { m.transparent = Boolean(on); m.opacity = on ? 0.2 : 1; m.depthWrite = !on; m.needsUpdate = true; });
     }
     function setActive(on) {
       on = Boolean(on); if (on === st.active) return;
@@ -553,11 +566,12 @@
     (function () {
       var pol = function (r, phi, z) { return [r * Math.cos(phi), r * Math.sin(phi), z]; }, ca = tagLabel;
       ca('Shaft bushing', 'bought', [0, 0, ZF + WH], [-72, 10, 46]);
+      ca('Fixed centre column', 'printed', pol(R.tracks[0][0] - 0.8, Math.PI * 1.2, ZF + WH), [-72, -30, 30]);
       ca('Ball bearings', 'bought', pol(balls[3].rb, Math.PI / 2, ZF + TRK + BR), [-72, 40, 14]);
       ca('Pocket floor', 'printed', pol(R.tracks[3][1] + 0.6, Math.PI * 0.9, ZF), [-72, 70, -8]);
       ca('Ring support track', 'printed', pol(R.tracks[1][1] - 0.2, Math.PI * 0.75, ZF + 0.2), [-72, 40, -2]);
       ca('PTFE liner', 'bought', pol(R.tracks[2][1] + 0.7, Math.PI * 0.6, ZF + 1.2), [-72, 40, 30]);
-      ca('Adjustable divider', 'printed', pol(rc[2], thL[2] - 3 * P, RZ + WH), [72, 40, 40]);
+      ca('Pocket divider', 'printed', pol(rc[2], thL[2] - 3 * P, RZ + WH), [72, 40, 40]);
       ca('Ring lock pad', 'printed', pol(R.tracks[3][1] - 0.5, LOCK_A, RZ + WH + 1.6), [72, -40, 22]);
       ca('Loading hatch', 'printed', pol(rh[2], thLoad[2], LDS.z1 + 0.8), [-72, -10, LDS.z1 + 22]);
       ca('Fill funnel', 'printed', pol(rh[1], thLoad[1], 36), [-72, -10, 62]);
@@ -585,15 +599,9 @@
       reset: function () { st.show = -1; st.showHatch = -1; pinTo(0, 0.3); rings.forEach(function (r) { stageHome(r.k, 0.5); }); armTo(PARK, rp[0], 0.6, 0); }
     };
 
-    return { active: function () { return st.active; }, setLabels: function (on) { tagG.visible = Boolean(on); }, labelsShown: function () { return tagG.visible; }, labelItems: function () { return tagItems; }, setFloor: function (on) { floorG.visible = Boolean(on); }, demo: demo, setActive: setActive, update: update, ringAct: ringAct, refill: refill, stability: stability,
-      setPocket: function (q) { st.q = Math.max(0, Math.min(1, Number(q))); applyPocket(); rings.forEach(function (r) { var sl = slack(r.k); r.pills.forEach(function (p) { p.off = Math.max(-sl, Math.min(sl, p.off)); }); }); return st.q; },
-      pocket: function () { return { q: st.q, widths: rings.map(function (r) { return Math.round(pocketW(r.k, st.q) * 10) / 10; }), dividers: rings.map(function (r) { return Math.round(vaneT(r.k, st.q) * 10) / 10; }), pills: PILLS.map(function (p) { return p.name + ' ' + p.L + 'x' + p.W; }), assigned: pillOf.slice(), maxLen: rings.map(function (r) { return Math.round(maxLen(r.k) * 10) / 10; }) }; },
+    return { active: function () { return st.active; }, setLabels: function (on) { tagG.visible = Boolean(on); }, labelsShown: function () { return tagG.visible; }, labelItems: function () { return tagItems; }, setFloor: function (on) { floorG.visible = Boolean(on); }, setBearings: setBearings, bearings: function () { return st.bearings; }, demo: demo, setActive: setActive, update: update, ringAct: ringAct, refill: refill, stability: stability,
+      pocket: function () { return { width: Math.round(POCKET * 10) / 10, dividers: rings.map(function (r) { return Math.round(vaneT(r.k) * 10) / 10; }), pills: PILLS.map(function (p) { return p.name + ' ' + p.L + 'x' + p.W; }) }; },
       fits: fits,
-      // a ring takes another pill model only while it is empty, the mechanism is idle and the pill fits its pockets
-      setPill: function (k, i) {
-        var r = rings[k]; if (!r || !PILLS[i] || !fits(k, i) || r.pills.length || busy() || st.session || rec) return false;
-        pillOf[k] = i; applyPocket(); return true;
-      },
       label: function (ph) { return st.active && LABELS[ph] ? LABELS[ph] : null; },
       report: function () { return { active: st.active, pockets: N, rings: rings.map(function (r) { return { k: r.k, K: r.K, pills: r.pills.length, front: frontU(r) }; }), arm: { theta: arm.theta, carr: arm.carr, pin: arm.pin }, cup: cup.length, lid: st.lid, busy: busy(), locks: lockV.slice(), hatches: hatches.map(function (h) { return h.v; }), selected: st.sel }; },
       root: root, constants: { N: N, rc: rc, thL: thL, PARK: PARK, ZF: ZF }

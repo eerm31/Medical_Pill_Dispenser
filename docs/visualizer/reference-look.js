@@ -56,7 +56,7 @@
     };
     var activeView = 'rotation', OWN_VIEW = ['Stepper mount', 'Station bracket', 'Pin cam', 'Pin return spring', 'Pin lever', 'Tongue lever', 'Tongue gate', 'Cylindrical shell', 'Service lid', 'Base tray', 'Tray foot', 'M3 screws', 'Housing socket collar', 'Station housing platform', 'Compartment cartridges', 'Slide blades', 'Blade return springs', 'Catch ledges'];
     // Prototype 2: parts hidden with the drum design leave every list; the ring parts below show only in Ring compartments (and the hatch in Housing)
-    var RING_COMP = ['Adjustable divider', 'Ball bearings', 'Ring support track', 'PTFE liner', 'Ring lock', 'Ring lock pad', 'Loading hatch', 'Fill funnel', 'Exit funnel', 'Collection cup'], ringGone = null;
+    var RING_COMP = ['Pocket divider', 'Ball bearings', 'Ball cage', 'Ring support track', 'PTFE liner', 'Ring lock', 'Ring lock pad', 'Loading hatch', 'Fill funnel', 'Exit funnel', 'Collection cup'], ringGone = null;
     function legacyGone(label) {
       if (!ringGone) {
         var shown = {}, seen = {}; ringGone = {};
@@ -68,7 +68,7 @@
     function viewHas(label) {
       if (ringMag && ringMag.active()) {
         if (legacyGone(label)) return false;
-        if (label === 'Ring magazine') return activeView === 'rotation' || activeView === 'compartment';
+        if (label === 'Ring magazine' || label === 'Fixed centre column') return activeView === 'rotation' || activeView === 'compartment';
         if (label === 'Pocket floor') return activeView === 'compartment';
         if (RING_COMP.indexOf(label) >= 0) return activeView === 'compartment' || (activeView === 'housing' && (label === 'Loading hatch' || label === 'Fill funnel'));
       }
