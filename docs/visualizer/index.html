@@ -7,6 +7,7 @@
   <title>Rotating Cartridge Dispenser — Concept Viewer</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="overrides.css">
+  <link rel="stylesheet" href="ui-polish.css">
   <script defer src="vendor/three-r128.min.js"></script>
   <script defer src="concept-data.js"></script>
   <script defer src="dimension-annotations.js"></script>
@@ -21,23 +22,30 @@
   <script defer src="app.js"></script>
   <script defer src="step-animations.js"></script>
   <script defer src="ring-ui.js"></script>
+  <script defer src="ui-nav.js"></script>
 </head>
 <body>
   <header class="topbar">
-    <div><p class="eyebrow">MECHANISM STUDY · FEATURE 003</p><h1>Rotating Cartridge Dispenser</h1></div>
-    <span class="live-badge"><i></i> LOCAL CONCEPT VIEW</span>
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="8" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 9v7l5 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <div><p class="eyebrow">MECHANISM STUDY · FEATURE 003</p><h1>Rotating Cartridge Dispenser</h1></div>
+    </div>
+    <div class="topbar-status">
+      <span id="topStatus" class="status-chip" role="status" aria-label="Live simulation status"><i></i><span class="chip-label">Status</span><b id="topPhase">Parked</b><em id="topBusy">IDLE</em></span>
+      <span class="live-badge"><i></i> LOCAL CONCEPT VIEW</span>
+    </div>
   </header>
   <main class="layout">
     <section class="viewer card" aria-label="Interactive 3D dispenser scene">
-      <div class="scene-heading"><div><span class="eyebrow" id="protoEyebrow">PROTOTYPE 1 · ASSEMBLY VIEW</span><h2 id="protoTitle">Four-cartridge drum</h2></div><div class="seg-group proto-tabs" role="radiogroup" aria-label="Prototype">
+      <div class="scene-heading"><div class="scene-title"><span class="eyebrow" id="protoEyebrow">PROTOTYPE 1 · ASSEMBLY VIEW</span><h2 id="protoTitle">Four-cartridge drum</h2></div><div class="scene-switches"><div class="switch-block"><span class="seg-caption" id="capDesign">Design</span><div class="seg-group proto-tabs" role="radiogroup" aria-labelledby="capDesign">
           <label class="seg"><input type="radio" name="designOpt" value="legacy" checked autocomplete="off"><span>Prototype 1</span></label>
           <label class="seg"><input type="radio" name="designOpt" value="ring" autocomplete="off"><span>Prototype 2</span></label>
-        </div><div class="seg-group view-modes" role="radiogroup" aria-label="Viewer mode">
+        </div></div><div class="switch-block"><span class="seg-caption" id="capView">View</span><div class="seg-group view-modes" role="radiogroup" aria-labelledby="capView">
           <label class="seg"><input type="radio" name="viewMode" value="mechanism" checked autocomplete="off"><span>Mechanism</span></label>
           <label class="seg"><input type="radio" name="viewMode" value="wiring" autocomplete="off"><span>Wiring</span></label>
-        </div>
-        <span class="scene-hint">Drag orbit · right-drag pan · scroll zoom · double-click reset</span></div>
+        </div></div></div></div>
       <div id="sceneHost" class="scene-host" role="img" aria-label="Three-dimensional concept showing four colored cartridges around a rotating drum">
+        <span class="scene-hint" id="sceneHint"><b>Drag</b> orbit <i>·</i> <b>Right-drag</b> pan <i>·</i> <b>Scroll</b> zoom <i>·</i> <b>Double-click</b> reset</span>
         <button id="controlsToggle" class="view-toggle" type="button" aria-pressed="false" aria-label="Hide controls" title="Hide controls">
           <svg class="icon-hide" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4.5" width="18" height="15" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M14.5 4.5h4.5a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2h-4.5z" fill="currentColor"/></svg>
           <svg class="icon-show" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -76,8 +84,9 @@
       <div class="panel-bar">
         <span class="panel-bar-title">Controls</span>
         <span class="panel-bar-actions"><button id="panelExpand" class="quiet-button" type="button">Expand all</button><button id="panelCollapse" class="quiet-button" type="button">Collapse all</button></span>
+        <nav id="panelNav" class="panel-nav" aria-label="Jump to a control section"></nav>
       </div>
-      <section class="control-section wiring-panel" id="wiringPanel" hidden>
+      <section class="control-section wiring-panel" id="wiringPanel" data-nav="Wiring" hidden>
         <div class="section-title"><div><span class="eyebrow">WIRING</span><h2>Systems</h2></div></div>
         <div class="seg-group wiring-styles" role="radiogroup" aria-label="Wiring view">
           <label class="seg"><input type="radio" name="wiringStyle" value="wiring3d" checked autocomplete="off"><span>In place 3D</span></label>
@@ -90,12 +99,12 @@
           <label class="switch-row" hidden><span><strong>Hide other wires</strong><small>On: unpicked wires disappear · Off: they stay faint. Parts always stay in place</small></span><input id="wiringHide" class="switch" type="checkbox" autocomplete="off" checked></label>
         </div>
       </section>
-      <section class="control-section wiring-panel" id="wiringPins" hidden>
+      <section class="control-section wiring-panel" id="wiringPins" data-nav="Pins" hidden>
         <div class="section-title"><div><span class="eyebrow">WIRING</span><h2>Pin table</h2></div><span id="wiringTableCount" class="count-badge"></span></div>
         <div class="pin-table-wrap"><table class="pin-table"><thead><tr><th>Pin</th><th>Signal</th><th>Connects to</th><th>Live</th></tr></thead><tbody id="pinTableRows"></tbody></table></div>
         <p class="small-note">Pins of the ticked systems only; the ESP32's power pins belong to Power supply. ASSUMED / NOT VALIDATED.</p>
       </section>
-      <section class="control-section housing-section">
+      <section class="control-section housing-section" data-nav="Housing">
         <div class="section-title"><div><span class="eyebrow">APPEARANCE</span><h2>Housing</h2></div></div>
         <div class="seg-group" role="radiogroup" aria-label="Housing view">
           <label class="seg"><input type="radio" name="housingModeOpt" value="assembled" checked autocomplete="off"><span>Assembled</span></label>
@@ -108,10 +117,10 @@
           <label class="switch-row"><span><strong>Housing sub-view</strong><small>Parts list and dimensions</small></span><input id="housingOnlyToggle" class="switch" type="radio" name="subsystemView" autocomplete="off"></label>
         </div>
       </section>
-      <section class="control-section ring-section" id="ringSection" hidden>
+      <section class="control-section ring-section" id="ringSection" data-nav="Ring" hidden>
         <div class="section-title"><div><span class="eyebrow" id="ringSectionEyebrow">PROTOTYPE 2</span><h2 id="ringSectionTitle">Ring magazine</h2></div></div>
         <div id="ringTools">
-          <p class="small-note">How a ring turns: the stepper under the floor swings one arm. A carriage on the arm (servo S1) slides to the chosen ring and servo S2 lifts the pin up through that ring's curved slot in the floor, into a sealed channel under the ring's inner rim, never into a pill pocket. The pin pushes a drive tooth hanging under a divider and the ring rolls on its four balls, centred by PTFE-lined walls and clamped by its own lock pad when idle. The fixed pocket floor has no holes under the pockets, so each divider slides its pill (standing on edge, any size or shape) across the floor until it drops through the one exit hole into one chute and one cup. Refill goes through that ring's small hatch, so no ring is ever removed. ASSUMED / NOT VALIDATED.</p>
+          <details class="how-details"><summary>How a ring turns</summary><p class="small-note">The stepper under the floor swings one arm. A carriage on the arm (servo S1) slides to the chosen ring and servo S2 lifts the pin up through that ring's curved slot in the floor, into a sealed channel under the ring's inner rim, never into a pill pocket. The pin pushes a drive tooth hanging under a divider and the ring rolls on its four balls, centred by PTFE-lined walls and clamped by its own lock pad when idle. The fixed pocket floor has no holes under the pockets, so each divider slides its pill (standing on edge, any size or shape) across the floor until it drops through the one exit hole into one chute and one cup. Refill goes through that ring's small hatch, so no ring is ever removed. ASSUMED / NOT VALIDATED.</p></details>
           <label class="range-row" for="pocketSize"><span>Pocket Size (divider spacing)</span><output id="pocketOut">45%</output><input id="pocketSize" type="range" min="0" max="100" step="1" value="45" autocomplete="off"></label>
           <p id="pocketInfo" class="small-note"></p>
           <p class="sub-title">Weight and stability (assumed masses)</p>
@@ -132,7 +141,7 @@
           <p id="ringRefillNote" class="small-note" aria-live="polite"></p>
         </div>
       </section>
-      <section class="control-section systems-section">
+      <section class="control-section systems-section" data-nav="Systems">
         <div class="section-title"><div><span class="eyebrow">VISIBILITY</span><h2>Systems</h2></div></div>
         <div class="switch-list">
           <label class="switch-row flip"><input id="mechanismToggle" type="checkbox" checked> Subsystem 1: Dispensing mechanism</label>
@@ -197,7 +206,7 @@
           <ul id="electronicList" class="electronic-list"></ul>
         </div>
       </section>
-      <section class="control-section demo-section">
+      <section class="control-section demo-section" data-nav="Demo">
         <div class="section-title"><div><span class="eyebrow">DEMO CONTROL</span><h2>Step-by-step Animation</h2></div><button id="resetBtn" class="quiet-button" type="button">Reset</button></div>
         <div id="stepAnim" class="step-anim">
           <label class="range-row" for="stepAnimSelect"><span>Animation</span><select id="stepAnimSelect" autocomplete="off"></select></label>
@@ -239,18 +248,18 @@
         <p class="dimension-disclosure">Each 3D dimension has a measurement segment and its own guide line to the feature. Choose one group at a time to reduce clutter; provenance and caveats are listed here. Values are NOT VALIDATED or manufacturing tolerances. Missing dimensions remain unspecified.</p>
         <div id="dimensionDetails" class="dimension-details" hidden aria-live="polite"></div>
       </section>
-      <section class="control-section cartridges-section">
+      <section class="control-section cartridges-section" data-nav="Cartridges">
         <div class="section-title"><div><span class="eyebrow">EMPTY COMPARTMENTS · SCAN TO LOAD</span><h2>Cartridges &amp; caps</h2></div></div>
         <div id="cartridgeControls" class="cartridge-list"></div>
       </section>
-      <section class="control-section scan-section">
+      <section class="control-section scan-section" data-nav="Scanner">
         <div class="section-title"><div><span class="eyebrow">PACKAGE SCAN DEMO</span><h2>Barcode fixtures</h2></div></div>
         <p class="small-note">Starts with four empty compartments and zero pill actors. A unique RED/BLUE/GREEN/ORANGE fixture places an empty fictional container into its same-color slot; after package-out, only that lid opens. Rescan that matching code when the container has zero pills to reopen it for Fill, without placing another container. The single invalid-container example is refused and places nothing.</p>
         <div class="scanner-component-list" aria-label="Barcode scanner components shown in the main simulation"><strong>Scanner subsystem in the main scene</strong><span>Reader housing + optical point</span><span>Container guide rails</span><span>Fictional barcode package</span><span>Scan beam + local fixture status</span><span>Selected compartment cap</span></div>
         <div id="barcodeControls" class="barcode-list"></div>
         <p id="loadingNotice" class="small-note">All four supported compartments are empty, count zero, closed, and locked. No pill actors are shown; failed scans place nothing.</p>
       </section>
-      <section class="control-section status-section" aria-live="polite" aria-atomic="false">
+      <section class="control-section status-section" data-nav="Status" aria-live="polite" aria-atomic="false">
         <div class="section-title"><div><span class="eyebrow">LIVE STATUS</span><h2 id="phaseLabel">Parked</h2></div><span id="busyBadge" class="status-pill">IDLE</span></div>
         <div class="readout-grid"><div><span>Crank</span><strong id="servoStatus">180°</strong></div><div><span>Pin</span><strong id="pinStatus">UP</strong></div><div><span>Blade tip</span><strong id="bladeStatus">−5.2 mm</strong></div><div><span>Tongue edge</span><strong id="tongueStatus">+5.7 mm</strong></div><div><span>Tray</span><strong id="trayStatus">0 visual pills</strong></div><div><span>Actor</span><strong id="actorStatus">None — chamber empty</strong></div><div><span>Scanner</span><strong id="scannerStatus">Idle</strong></div></div>
         <div id="inventoryStatus" class="inventory-status"></div>
