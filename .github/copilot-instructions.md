@@ -1,9 +1,14 @@
 <!-- SPECKIT START -->
-Feature 011 (`ring-actuator-linkage`, active pointer in `.specify/feature.json`) designs the
-Prototype 2 pin carriage: S1 cable loop moves it, S2 cable pulls a wedge slider that lifts the pin,
-spools on the servos, sheave at the arm tip. Read `specs/011-ring-actuator-linkage/spec.md` first.
+Firmware lives apart from the simulation in `electronics/`, one folder per system: `electronics/rotation-mechanism/`
+(C++ port of `rotation-controller.js`) and `electronics/scheduling-system/` (port of `schedule-controller.js`, uses the
+rotation mechanism). Host tests: `make` in each `test/` folder; parity tests `tests/test_electronics_scheduling.py`.
+Keep their constants equal to the simulation's.
+Feature 011 (`ring-actuator-linkage`, active pointer in `.specify/feature.json`) is the
+Prototype 2 actuator: one arm under the deck with four fixed pins, one per ring, each lifted by its
+own micro pull solenoid (no sliding carriage, servos or cables); the stepper swings the arm.
+Read `specs/011-ring-actuator-linkage/spec.md` first.
 Code: the actuator block of `docs/visualizer/ring-magazine.js`; test `tests/test_feature011_linkage.py`.
-Still undesigned: the ring lock pad lift. ASSUMED / NOT_VALIDATED.
+Rings are held by a spring-plunger detent (12 rim dimples each), not lifted pads. ASSUMED / NOT_VALIDATED.
 Subsystems 3 and 4 (user request 2026-10-27) are concept-level features 009
 (`verification-subsystem`: break-beam dispense check, ring EMPTY/PARTIAL/FULL,
 same-pill storage check) and 010 (`touchscreen-schedule`: touchscreen + status

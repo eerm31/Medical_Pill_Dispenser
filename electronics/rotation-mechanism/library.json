@@ -1,0 +1,10 @@
+{
+  "name": "rotation-mechanism",
+  "version": "0.1.0",
+  "description": "Home search and indexing of the dispenser drum (28BYJ-48 + ULN2003 + A3144). ASSUMED / NOT_VALIDATED.",
+  "build": {
+    "srcDir": "firmware",
+    "includeDir": "firmware",
+    "srcFilter": ["+<*>", "-<main.cpp>"]
+  }
+}

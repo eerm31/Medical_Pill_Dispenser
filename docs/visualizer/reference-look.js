@@ -57,9 +57,9 @@
     };
     var activeView = 'rotation', OWN_VIEW = ['Stepper mount', 'Station bracket', 'Pin cam', 'Pin return spring', 'Pin lever', 'Tongue lever', 'Tongue gate', 'Cylindrical shell', 'Service lid', 'Base tray', 'Tray foot', 'M3 screws', 'Housing socket collar', 'Station housing platform', 'Compartment cartridges', 'Slide blades', 'Blade return springs', 'Catch ledges', 'Display pod', 'Touchscreen 2.4 in', 'Status LED', 'Reader mount arm', 'IR level sensor', 'Exit break-beam'];
     // Prototype 2: parts hidden with the drum design leave every list; the ring parts below show only in Ring magazine (and the refill flap in Housing)
-    var RING_COMP = ['Pocket divider', 'Ball bearings', 'Ball cage', 'Ring support track', 'PTFE liner', 'Ring lock', 'Ring lock pad', 'Exit funnel', 'Collection cup', 'IR level sensor', 'Exit break-beam'], ringGone = null;
+    var RING_COMP = ['Pocket divider', 'Ball bearings', 'Ball cage', 'Ring support track', 'PTFE liner', 'Ring lock', 'Index plunger', 'Exit funnel', 'Collection cup', 'IR level sensor', 'Exit break-beam'], ringGone = null;
     // Locking rod view (Prototype 2): the single actuator rod and arm, its pin, the cables and servos, and the lock bracket and pad of every ring
-    var LOCK_RING = ['Ring lock', 'Ring lock pad', 'Actuator arm', 'Engagement pin', 'Carriage pin spring', 'Push-pull cable', 'Micro servo S1 (pin)', 'Micro servo S2 (tongue)', 'Tray standoff'];
+    var LOCK_RING = ['Ring lock', 'Index plunger', 'Actuator arm', 'Engagement pin', 'Pin solenoid', 'Solenoid driver board', 'Flex cable', 'Tray standoff'];
     function legacyGone(label) {
       if (!ringGone) {
         var shown = {}, seen = {}; ringGone = {};

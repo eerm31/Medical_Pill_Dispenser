@@ -93,7 +93,7 @@ def test_stability_readout_and_ballast_are_wired():
 def test_under_deck_arm_sweeps_between_posts_and_clear_of_stepper_columns(g):
     ring, posts = g["ring"], sorted(a % 360 for a in g["platform_posts"]["angles"])
     lo, hi = min(a["a0"] for a in ring["arc_slots"]), max(a["a1"] for a in ring["arc_slots"])
-    reach = math.degrees(math.asin((6.6 + 0.5) / 45.5)) + math.degrees(math.asin(g["platform_posts"]["rad"] / g["platform_posts"]["r"])) + 2.0
+    reach = math.degrees(math.asin((3.5 + 0.5) / 42)) + math.degrees(math.asin(g["platform_posts"]["rad"] / g["platform_posts"]["r"])) + 2.0
     before = max(p for p in posts if p < lo)
     after = min(p for p in posts if p > hi)
     assert lo - before > reach and after - max(hi, ring["park_deg"]) > reach
@@ -179,9 +179,9 @@ def test_every_ring_takes_every_pill(g):
         assert pitch - ring["vane_t"] - 0.6 >= max(PILL_LEN)  # even the innermost ring holds the 12 mm capsule standing
 
 
-def test_prototype_2_rings_ride_on_balls_in_a_track_with_one_lock_pad_each(g):
+def test_prototype_2_rings_ride_on_balls_in_a_track_with_one_detent_plunger_each(g):
     js = (VIS / "ring-magazine.js").read_text(encoding="utf-8")
-    for ident in ("Ball bearings", "Ring support track", "PTFE liner", "Shaft bushing", "Ring lock pad", "Pocket divider"):
+    for ident in ("Ball bearings", "Ring support track", "PTFE liner", "Shaft bushing", "Index plunger", "Pocket divider"):
         assert ident in js
     assert "NB = 14" in js and "function applyLocks" in js and "ctx.lidFlap" in js
     assert "lug" not in js  # rings are never lifted out for refilling
@@ -226,5 +226,5 @@ def test_locking_rod_is_its_own_subsystem_1_view():
     app = (VIS / "app.js").read_text(encoding="utf-8")
     steps = (VIS / "step-animations.js").read_text(encoding="utf-8")
     assert html.index('id="rotationOnlyToggle"') < html.index('id="lockOnlyToggle"') < html.index('id="compartmentOnlyToggle"')
-    assert "lock: ['Pin lever'" in look and "LOCK_RING" in look and "'Ring lock pad'" in look and "'Actuator arm'" in look
+    assert "lock: ['Pin lever'" in look and "LOCK_RING" in look and "'Index plunger'" in look and "'Actuator arm'" in look
     assert "lockOnlyToggle" in app and "ringDemo('ringlock', 'lock'" in steps

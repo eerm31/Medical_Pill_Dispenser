@@ -51,42 +51,40 @@
 
   // Prototype 2 system views: every call goes to the ring magazine's demo API and queues like a refill does
   var rd = function () { return ringMag().demo; };
+  var focus = function (kind, k) { var m = ringMag(); if (m && m.camPose && host.flyTo) host.flyTo(m.camPose(kind, k)); };
   function ringDemoCheck(s) { var m = ringMag(); return busy(s) || (!m ? 'not available' : (m.demo.free() ? null : 'the mechanism is busy')); }
-  function ringDemo(id, view, label, steps) {
-    return { id: id, ring: true, label: label, color: true, view: view, check: ringDemoCheck, abort: function () { rd().reset(); }, steps: steps };
+  function ringDemo(id, view, label, steps, pick) {
+    return { id: id, ring: true, label: label, color: true, view: view, check: ringDemoCheck, abort: function () { rd().reset(); }, steps: steps, pick: pick };
   }
   function acts(list) { return function () { list.forEach(function (f) { f(); }); return true; }; }
-  var lockedDone = function () { return rfIdle() && rd().allLocked(); };
   var ringAnims = [
-    ringDemo('ringrotate', 'rotation', 'Single rod: unlock, engage, turn one pocket', function (s, c) {
+    ringDemo('ringrotate', 'rotation', 'Arm: select a ring, engage, turn one pocket', function (s, c) {
       var k = COLORS.indexOf(c), n = cap(c);
-      return [localStep('Rod slides to the ' + c + ' ring', 'Servo S1 pulls the carriage along the arm under the deck to the ' + c + ' ring. Its lock pad lifts; the other three stay clamped.', acts([function () { rd().unlock(k); }, function () { rd().rodTo(k, -1); }]), function () { return rfIdle() && rd().lockOpen(k); }),
-        localStep('Pin rises behind a tooth', 'Servo S2 pulls its cable and the pin rises through a slot in the floor into a sealed channel under the ring rim, behind a drive tooth. It never enters a pill pocket.', acts([function () { rd().pin(1); }]), rfIdle),
-        localStep('Rod swings the ring one pocket', 'The stepper turns the arm; the pin pushes the tooth and the ring rolls one pocket pitch on its balls.', acts([function () { rd().turn(k, -1); }]), rfIdle),
-        localStep('Pin lowers, rod swings back', 'The pin drops below the deck and the arm returns to the start of the stroke.', acts([function () { rd().pin(0); }, function () { rd().rodTo(k, 1); }]), rfIdle),
-        localStep('Rod brings the ring back', 'One stroke the other way: the ' + n + ' ring returns to its first pocket and the rod parks.', acts([function () { rd().pin(1); }, function () { rd().turn(k, 1); }, function () { rd().pin(0); }, function () { rd().park(k); }]), rfIdle),
-        localStep('Ring locked again', 'The lock pad clamps the rim. Only one ring was ever free.', acts([function () { rd().unlock(-1); }]), lockedDone)];
+      return [localStep('Arm swings to the ' + c + ' ring\'s slot', 'The arm under the deck has one pin per ring. The stepper turns it until the ' + c + ' pin sits below the start of that ring\'s slot. The other three pins stay down.', acts([function () { rd().rodTo(k, -1); }]), rfIdle),
+        localStep('Pin rises behind a tooth', 'The ' + c + ' solenoid pulls and its pin rises through a slot in the floor into a sealed channel under the ring rim, behind a drive tooth. It never enters a pill pocket.', acts([function () { rd().pin(1); }]), rfIdle),
+        localStep('Arm swings the ring one pocket', 'The stepper turns the arm; the pin pushes the tooth and the ring rolls one pocket pitch on its balls. The detent plunger clicks into the next dimple.', acts([function () { rd().turn(k, -1); }]), rfIdle),
+        localStep('Pin lowers, arm swings back', 'The pin drops below the deck and the arm returns to the start of the stroke.', acts([function () { rd().pin(0); }, function () { rd().rodTo(k, 1); }]), rfIdle),
+        localStep('Arm brings the ring back', 'One stroke the other way: the ' + n + ' ring returns to its first pocket and the arm parks.', acts([function () { rd().pin(1); }, function () { rd().turn(k, 1); }, function () { rd().pin(0); }, function () { rd().park(k); }]), rfIdle)];
     }),
-    ringDemo('ringsupport', 'compartment', 'Ring support: balls, PTFE walls and lock', function (s, c) {
+    ringDemo('ringsupport', 'compartment', 'Ring support: balls, PTFE walls and detent', function (s, c) {
       var k = COLORS.indexOf(c);
-      return [{ label: 'All four rings clamped', text: 'Each ring rests on 14 steel balls (1 mm) in its track and is pressed by its lock pad. PTFE tape lines the walls on both sides of every ring.', kind: 'instant', act: function () { return true; } },
-        localStep(cap(c) + ' ring unlocks', 'Only the ' + c + ' lock pad lifts off the rim. The other rings cannot turn.', acts([function () { rd().unlock(k); }]), function () { return rd().lockOpen(k); }),
-        localStep('Ring rolls one pocket', 'The balls carry the weight and roll; the rim slides on the PTFE tape with 0.1 mm clearance, so the ring stays centred.', acts([function () { rd().rodTo(k, -1); }, function () { rd().pin(1); }, function () { rd().turn(k, -1); }]), rfIdle),
-        localStep('Ring rolls back', 'The same stroke in the other direction returns it.', acts([function () { rd().pin(0); }, function () { rd().rodTo(k, 1); }, function () { rd().pin(1); }, function () { rd().turn(k, 1); }, function () { rd().pin(0); }, function () { rd().park(k); }]), rfIdle),
-        localStep('Lock clamps again', 'The pad drops onto the rim and the ring is held.', acts([function () { rd().unlock(-1); }]), lockedDone)];
+      return [{ label: 'All four rings held', text: 'Each ring rests on 14 steel balls (1 mm) in its track. A spring plunger presses on its rim top and sits in one of 12 dimples, so the ring is held at every pocket. PTFE tape lines the walls on both sides of every ring.', kind: 'instant', act: function () { return true; } },
+        localStep('Ring rolls one pocket', 'The pin pushes the ring; the plunger ball is pushed out of its dimple and clicks into the next. The balls carry the weight and roll; the rim slides on the PTFE tape with 0.1 mm clearance, so the ring stays centred.', acts([function () { focus('detent', k); }, function () { rd().rodTo(k, -1); }, function () { rd().pin(1); }, function () { rd().turn(k, -1); }]), rfIdle),
+        localStep('Ring rolls back', 'The same stroke in the other direction returns it; the plunger clicks again.', acts([function () { rd().pin(0); }, function () { rd().rodTo(k, 1); }, function () { rd().pin(1); }, function () { rd().turn(k, 1); }, function () { rd().pin(0); }, function () { rd().park(k); }]), rfIdle)];
     }),
-    ringDemo('ringlock', 'lock', 'Locking rod: select a ring, lift its pad', function (s, c) {
-      var k = COLORS.indexOf(c);
-      return [{ label: 'Every pad is down', text: 'Each ring has its own lock pad pressed on its rim. The single rod and its arm wait at the park position.', kind: 'instant', act: function () { return true; } },
-        localStep('Rod slides to the ' + c + ' ring', 'Servo S1 pulls the carriage along the arm under the deck to the ' + c + ' ring. Only that ring\'s lock pad lifts; the other three stay clamped.', acts([function () { rd().unlock(k); }, function () { rd().rodTo(k, -1); }]), function () { return rfIdle() && rd().lockOpen(k); }),
-        localStep('Pin rises', 'Servo S2 pulls its cable and the pin rises through the floor slot of the free ring.', acts([function () { rd().pin(1); }]), rfIdle),
-        localStep('Pin lowers', 'The pin drops below the floor again.', acts([function () { rd().pin(0); }]), rfIdle),
-        localStep('Rod parks, pad clamps', 'The rod returns to the park position and the pad drops back onto the rim. The ring is locked again.', acts([function () { rd().park(k); }, function () { rd().unlock(-1); }]), lockedDone)];
-    }),
+    ringDemo('ringlock', 'lock', 'Locking rod: solenoid pin and detent', function (s, c) {
+      var k = COLORS.indexOf(c), view = function (kind) { return function () { focus(kind, k); }; };
+      return [{ label: 'Everything parked', text: 'The arm under the deck carries four fixed pins, one under each ring, each with its own micro solenoid. Each ring is held by a spring plunger on its rim. A flex cable carries power from the driver board on the tray to the arm.', kind: 'instant', act: function () { focus('overview'); return true; } },
+        localStep('The stepper swings the arm to the slot', 'The controller picks the ' + c + ' solenoid. The stepper turns the arm until the ' + c + ' pin sits under the start of that ring\'s arc slot. Nothing slides.', acts([view('overview'), function () { rd().select(k); }, function () { rd().swing(k, -1, 1.8); }]), rfIdle),
+        localStep('The solenoid pulls: the pin rises', 'Close-up from the side. The solenoid pulls its plunger up 2.6 mm (it glows while on) and the red pin rises through the floor slot, behind a drive tooth of the ' + c + ' ring.', acts([view('pin'), function () { rd().pin(1, 1.4); }]), rfIdle),
+        localStep('The arm pushes the ring one pocket', 'Close-up of the detent. The pin pushes the tooth and the ring turns one pocket. The ball of the spring plunger is pushed out of its dimple and clicks into the next one, which holds the ring there.', acts([view('detent'), function () { rd().turn(k, -1); }]), rfIdle),
+        localStep('The pin drops and the arm swings back', 'The solenoid lets go and its spring returns the plunger, so the pin is below the floor. The arm returns to the start of the stroke.', acts([view('pin'), function () { rd().pin(0, 1.2); }, function () { rd().rodTo(k, 1); }]), rfIdle),
+        localStep('Reverse stroke: the ring is set back', 'For the demo, one stroke the other way returns the ' + c + ' ring to its first pocket (the plunger clicks again). The pin drops and the arm parks.', acts([view('detent'), function () { rd().pin(1); }, function () { rd().turn(k, 1); }, function () { rd().pin(0); }, function () { rd().park(k); }]), rfIdle)];
+    }, 'blue'),
     ringDemo('ringflap', 'compartment', 'Refill flap: one flap over all four rings', function (s, c) {
-      return [{ label: 'Flap closed', text: 'One flap, half of the lid, covers the queue pockets of all four rings. It is shut and every ring is clamped by its lock pad.', kind: 'instant', act: function () { return true; } },
+      return [{ label: 'Flap closed', text: 'One flap, half of the lid, covers the queue pockets of all four rings. It is shut and every ring is held by its detent plunger.', kind: 'instant', act: function () { return true; } },
         localStep('Flap lifts', 'The flap hinges up along the lid diameter and exposes the five queue pockets of every ring. No ring moves and none is lifted out.', acts([function () { rd().hatch(true); }]), function () { return rfIdle() && rd().flapOpen(); }),
-        localStep('Flap closes', 'The flap shuts again; the rings were locked the whole time.', acts([function () { rd().hatch(false); }]), function () { return rfIdle() && rd().flapShut() && rd().allLocked(); })];
+        localStep('Flap closes', 'The flap shuts again; the rings stayed held by their detents the whole time.', acts([function () { rd().hatch(false); }]), function () { return rfIdle() && rd().flapShut(); })];
     })
   ];
 
@@ -112,7 +110,7 @@
       check: function (s, c) { var m = ringMag(); return busy(s) || (!m ? 'not available' : null) || (s.cartridges[c].count >= 5 ? 'ring already full' : (m.refill.state().busy ? 'the mechanism is busy' : null)); },
       steps: function (s, c) {
         var m = ringMag(), k = COLORS.indexOf(c), have = s.cartridges[c].count, n = 5 - have, rf = m.refill, list = [];
-        list.push(localStep('Refill flap lifts', 'One flap, half of the lid, hinges up over the queue pockets of all four rings. The rings stay clamped by their lock pads and do not turn.', function () { return rf.openLid(); }, function () { return rfIdle() && rf.state().lidOpen; }));
+        list.push(localStep('Refill flap lifts', 'One flap, half of the lid, hinges up over the queue pockets of all four rings. The rings stay held by their detent plungers and do not turn.', function () { return rf.openLid(); }, function () { return rfIdle() && rf.state().lidOpen; }));
         for (var i = 1; i <= n; i++) {
           list.push(localStep('Pill ' + (have + i) + ' of 5: drop into its pocket', 'A pill bottle tips over the amber mark and one pill drops straight into the next empty ' + c + ' pocket. The rounded divider tops shed it into the pocket.', function () { return rf.drop(k); }, rfIdle));
         }
@@ -253,6 +251,8 @@
     });
     var usable = COLORS.indexOf(current) >= 0 && !(anim.color && anim.check(state(), current));
     colorEl.value = keep || usable ? (current || 'red') : (firstColor(anim) || 'red');
+    // red is ring 1, the carriage's home, so the locking-rod demo starts on a ring where the carriage visibly moves
+    if (!keep && anim.pick && !anim.check(state(), anim.pick)) colorEl.value = anim.pick;
   }
 
   function newRun() {

@@ -5,6 +5,16 @@ mechanism. Seeded actuation cycles classify each dispense as zero / exactly-one 
 multiple pills, attribute failures to named failure modes, and report
 single-dispense success rates against the 99.5% pass threshold.
 
+## Repository layout
+
+| Folder | What it holds |
+| --- | --- |
+| `src/`, `docs/visualizer/`, `tests/`, `configs/` | **Simulation**: the Python mechanism simulation and the offline browser viewer |
+| [`electronics/`](electronics/) | **Electronics code**: firmware for the dispenser's own electronics, one folder per system |
+| [`electronics/rotation-mechanism/`](electronics/rotation-mechanism/) | Drum rotation: home search and indexing (ESP32-S3, with host tests) |
+| [`electronics/scheduling-system/`](electronics/scheduling-system/) | Dose schedule and the automatic rotation that follows it (ESP32-S3, with host tests) |
+| `specs/` | Spec Kit feature specs and plans |
+
 ## Install
 
 ```bash

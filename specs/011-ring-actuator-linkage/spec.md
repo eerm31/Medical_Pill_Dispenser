@@ -1,56 +1,48 @@
-# Feature 011: Ring actuator linkage (Prototype 2)
+# Feature 011: Ring actuator, four solenoid pins (Prototype 2)
 
 Status: concept design, ASSUMED / NOT_VALIDATED. Not print-ready. Nothing here is hardware evidence.
 
 ## Why
 
-Prototype 2 animated a pin that slides along an arm and rises through the pocket floor, but the linkage that
-does it was not designed. This feature fixes that for the two motions the arm needs:
-
-1. **S1: carriage travel.** The pin carriage moves 27 mm along the arm (ring 1 at r = 11.4 to ring 4 at r = 38.4).
-2. **S2: pin lift.** The pin rises 2.6 mm (tip z 2.0 to 4.6) through the arc slot and returns.
+The first Prototype 2 actuator (one sliding pin carriage, servos S1 and S2, three cables, two sheaves, a wedge and a spring) worked on paper but had about twenty parts for two small motions. This version removes the sliding and the cables.
 
 ## Design
 
-Both servos stand on the tray, each with a cable spool on the horn. The cables are Bowden (push-pull) cables.
-Their sheaths end at stops on the hub end of the arm, so the arm can turn without dragging the servos.
+One arm under the deck carries **four fixed pins, one under each ring**. Each pin is the plunger of its own micro pull solenoid. The stepper (the existing drive on the central D-flat rod) swings the arm; nothing else moves except the selected pin.
 
 | Part | Dimensions (mm) | Notes |
 | --- | --- | --- |
-| Arm base plate | x 7..45.5, lateral +-6.6, z -9.6..-9.0 | Rails (lateral +-1.5..3) carry the carriage |
-| Hub sleeve | r 7.1..9, z -12.5..-9.6 | Lowered from z -5.5 so the carriage clears it. Coupler (r 7) clears the carriage by 0.4 |
-| Carriage | x -4.0..+5.5 around the pin, lateral +-4.5, z -8.2..+2.2 | Top plate sits 1.2 under the pocket floor (z 3.4) |
-| Wedge slider | 5 mm long, ramp 3.0 mm run, 2.6 mm rise (41 deg) | Slides 3 mm inside the carriage. Ramp rises toward the hub |
-| Engagement pin | 0.7 mm dia, 6.6 mm long, collar at 1.3..1.8 | Foot rests on the ramp, tip passes through the carriage top plate |
-| Pin return spring | coil, free 4.0 mm | Pushes the pin down; the ramp then pushes the slider back, so S2 needs a pull-only cable |
-| Cable B (S1, inward) | straight, lateral +5.0, z -8.4 | Stop at x 8.9, tab on the carriage |
-| Cable A (S1, outward) | out along lateral -5.8, around a tip sheave (r 1.5 at x 43.5), back to the carriage tab | Pulling it moves the carriage outward 1:1 |
-| Cable C (S2, lift) | out along lateral +5.8, around a second sheave, back to the slider tab | The tab sticks out of the open side of the carriage |
-| Spools | S1 r 9.0 (27 mm = 172 deg), S2 r 9.8 (30 mm = 175 deg) | A and B wind opposite ways on the S1 spool |
+| Arm base plate | x 7..42, lateral +-3.5, z -9.6..-9.0 | Clears the coupler (r 7). Was 13 mm wide, now 7 mm |
+| Pin solenoid x 4 | body dia 5, z -9.0..-0.2, stroke 2.6 (3 assumed available) | At ring radii 11.4, 20.4, 29.4, 38.4. 4 mm gap between bodies |
+| Engagement pin | 0.7 mm needle on the plunger | Tip z 2.0 retracted (under the floor, z 3.4), z 4.6 engaged |
+| Sockets | printed rings, wall 0.8 | Hold each body to the plate |
+| Flex cable | 5 wires (common + 4) | Board on the tray to a clamp at the arm hub; bends as the arm turns |
+| Solenoid driver board | ULN2003 breakout, 20 x 14 mm, on the tray at (-6, 29.5) | Built-in flyback diodes; 4 ESP32 pins |
 
-### Firmware rule (not in the demo controller)
+Selecting a ring means firing that ring's solenoid. The other three pins stay below the floor.
 
-Cable C ends on the slider, which rides on the carriage. When the carriage moves by d, the cable C return leg
-changes length by d. So **S2 must follow S1**: command the S2 spool to (carriage position + 3 mm x pin). The locked demo controller does
-not do this; the viewer applies the rule in `applyArm()` so the animation matches the design.
+## Ring lock: spring-plunger detent
 
-## Fits the existing spec
+The lock pads that had to be lifted are gone. Each ring rim has 12 shallow dimples (one per pocket, every 30 degrees). A ball-nose spring plunger (M3, about 6-10 mm, light spring) is screwed through the lock bracket at +90 degrees and presses on the rim top. It holds the ring at every pocket and clicks over when the pin pushes. Nothing is powered or lifted. The ring is symmetric about its axis, so shock and tilt put almost no torque on it. Estimate (to be tested): the 28BYJ-48 gives about 30 mN.m, i.e. about 34 mN.m on ring 4 at the pin (38.4 mm); a detent holding 0.25-0.5 N at the rim (46 mm) resists 12-23 mN.m.
 
-- Arm sweep: widest part is the arm base plate (6.6 mm half-width). Gap to the platform posts stays above the 15 deg park margin (test updated).
-- Servo positions and the wiring window are unchanged (S1 at -12, 29; S2 at 20, 29).
-- Spool top (z -10.1) stays 0.5 mm under the arm underside (z -9.6).
-- Features 001-010, `demo-controller.js` and the 52 component IDs are untouched.
+## Cautions
 
-## Known gaps (still open)
+- **Heat:** a small coil overheats if held on. Pull in at full power, then hold with PWM (about 30%).
+- **Hall sensor:** check that an energised solenoid does not disturb the A3144 home sensor.
+- **Flex cable:** wire flexes every cycle; use fine flexible wire.
+- **Part:** no specific solenoid confirmed. Search for a 5 V push-pull solenoid, about 5 mm diameter, 3 mm stroke, body 9 mm or shorter.
 
-- **Ring lock pad lift** is still animated only: a pad lifts when its ring is selected, but no lifting mechanism is designed.
-- Cable stiffness, wire diameter (0.5 mm assumed), sheave bend radius and friction were not checked.
-- The wedge ramp at 41 deg relies on the return spring for back-driving; friction not measured.
-- Printed sheaves and 0.4 mm rails need a tolerance test print.
-- Sheath stops at the servo end are not drawn.
+## Wiring window (not changed)
+
+Feature 008's wiring window still shows servos S1 and S2. In Prototype 2 the viewer places their harness ends at the driver board. A later feature should replace them with the four solenoid channels. Pin plan: 4 ESP32 GPIOs to the board inputs, common to 5 V.
+
+## Known gaps
+
+- Solenoid force, heat and stroke are not checked against a real part.
+- Detent force, dimple depth and plunger size need a test print and a push test; the torque numbers above are estimates.
 
 ## Acceptance
 
-- Locking rod and Ring magazine views show the carriage, wedge, spring, three cables, two sheaves and both spools; spools turn as the carriage moves.
-- `tests/test_feature011_linkage.py` passes: lift, clearances, cable lengths, spool angles.
-- The Show bearings toggle highlights the 1 mm balls in yellow at their true size.
+- Locking rod view: camera frames the arm and board, everything else ghosts to 2%, a 6-step animation (overview, swing arm to the slot, solenoid pulls the pin up in a side close-up, arm pushes the ring one pocket with a close-up of the plunger clicking, pin drops and arm swings back, reverse stroke sets the ring back). Blue is preselected because red is the home ring. The Ring support animation also flies to the plunger.
+- `tests/test_feature011_linkage.py` passes: pin stroke, ring pitch, coupler and shell clearance, board clear of the stepper, no servos or cables.
+- Show bearings highlights the 1 mm balls in yellow at true size.

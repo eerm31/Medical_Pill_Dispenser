@@ -129,7 +129,7 @@
   }
   function setScannerSubsystemVisibility(visible){scannerVisible=Boolean(visible);scannerVisualObjects.forEach(function(object){object.visible=scannerVisible;});if(targets.package)targets.package.visible=scannerVisible;if(targets.beam)targets.beam.visible=scannerVisible&&controller.state.phase==='BEAM';}
   function setDispensingMechanismVisibility(visible){mechanismVisible=Boolean(visible);if(mechanismGroup)mechanismGroup.visible=mechanismVisible;}
-  var rotationPreview={angle:0,target:0,saved:null,only:false},TWO_PI=Math.PI*2,DRUM_RAD_S=1.3,HALF_STEPS_PER_REV=4096;
+  var lockCamSaved=null,lockFadeSaved=null,rotationPreview={angle:0,target:0,saved:null,only:false},TWO_PI=Math.PI*2,DRUM_RAD_S=1.3,HALF_STEPS_PER_REV=4096;
   function syncRotationSelection(){var look=window.DispenserReferenceLook,sel=look&&look.selectedRotationPart?look.selectedRotationPart():null;document.querySelectorAll('#rotationPartsList .rot-part').forEach(function(b){var on=b.dataset.part===sel;b.classList.toggle('selected',on);b.setAttribute('aria-pressed',on?'true':'false');});}
   // Selecting a part or pinning a dimension drops the other-parts opacity to 2%; it returns when neither is active.
   var focusFade={part:false,dimension:false,before:null};
@@ -255,6 +255,12 @@
     else{if(look&&look.selectRotationPart)look.selectRotationPart(null);setFocusFade('part',false);setFocusFade('dimension',false);rotationPreview.angle=0;rotationPreview.target=0;}
     refreshPartLists();
     if(camera)updateCamera();
+    var lockNow=Boolean(on&&view==='lock'&&look&&look.ringActive&&look.ringActive()&&look.ringMagazine&&look.ringMagazine.camPose);
+    var fadeEl=document.getElementById('rotationFade');
+    if(lockNow&&lockFadeSaved===null){lockFadeSaved=fadeEl.value;fadeEl.value=2;fadeEl.dispatchEvent(new Event('input'));}
+    else if(!lockNow&&lockFadeSaved!==null){fadeEl.value=lockFadeSaved;lockFadeSaved=null;fadeEl.dispatchEvent(new Event('input'));}
+    if(lockNow&&!lockCamSaved){lockCamSaved={x:cameraTarget.x,y:cameraTarget.y,z:cameraTarget.z,theta:orbit.theta,phi:orbit.phi,radius:orbit.radius};flyTo(look.ringMagazine.camPose('overview'));}
+    else if(!lockNow&&lockCamSaved){flyTo(lockCamSaved);lockCamSaved=null;}
   }
   function spinPreview(rad){if(!rotationPreview.only||controller.snapshot().operation)return;rotationPreview.target+=rad;}
   function homePreview(){if(!rotationPreview.only||controller.snapshot().operation)return;var total=controller.snapshot().drumAngle+rotationPreview.target;rotationPreview.target+=(TWO_PI-((total%TWO_PI)+TWO_PI)%TWO_PI)%TWO_PI;}
@@ -506,6 +512,7 @@
     window.DispenserStepHost={controller:controller,barcodes:DATA.demo.barcodes,schedule:DATA.demo.schedule,setView:setView,
       view:function(){return activeSubView?(activeSubView.id==='mountOnlyToggle'?'mount':activeSubView.id==='housingOnlyToggle'?'housing':activeSubView.id==='lockOnlyToggle'?'lock':activeSubView.id==='compartmentOnlyToggle'?'compartment':'rotation'):'main';},
       spin:spinPreview,home:homePreview,rotationTo:function(t){if(!rotationPreview.only)return;if(t>rotationPreview.angle&&rotationPreview.angle<1e-6&&t>Math.PI)rotationPreview.angle=TWO_PI;rotationPreview.target=t;},removalTo:function(n){removalReset();for(var i=0;i<n;i++)removalAdvance();},rotationSettled:function(){return Math.abs(rotationPreview.angle-rotationPreview.target)<1e-6;},
+      flyTo:function(g){flyTo(g);},
       setRemovalColor:function(color){document.getElementById('removalColor').value=color;removalReset();},removalAdvance:removalAdvance,removalReset:removalReset,bladeSet:bladeSet};
     document.getElementById('rotationSpin90').addEventListener('click',function(){spinPreview(Math.PI/2);});
     document.getElementById('rotationSpin360').addEventListener('click',function(){spinPreview(TWO_PI);});
