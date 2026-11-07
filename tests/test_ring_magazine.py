@@ -93,7 +93,7 @@ def test_stability_readout_and_ballast_are_wired():
 def test_under_deck_arm_sweeps_between_posts_and_clear_of_stepper_columns(g):
     ring, posts = g["ring"], sorted(a % 360 for a in g["platform_posts"]["angles"])
     lo, hi = min(a["a0"] for a in ring["arc_slots"]), max(a["a1"] for a in ring["arc_slots"])
-    reach = math.degrees(math.asin((3.0 + 0.5) / 45.5)) + math.degrees(math.asin(g["platform_posts"]["rad"] / g["platform_posts"]["r"])) + 2.0
+    reach = math.degrees(math.asin((6.6 + 0.5) / 45.5)) + math.degrees(math.asin(g["platform_posts"]["rad"] / g["platform_posts"]["r"])) + 2.0
     before = max(p for p in posts if p < lo)
     after = min(p for p in posts if p > hi)
     assert lo - before > reach and after - max(hi, ring["park_deg"]) > reach
@@ -218,3 +218,13 @@ def test_cage_rolls_the_balls_and_show_bearings_fades_only_the_rings():
     assert html.index('id="compartmentOnlyToggle"') < html.index('id="ringBearings"') < html.index('id="scannerSubsystemToggle"')  # nested under Ring magazine in Systems
     assert "Ring compartments" not in ui and "' Ring magazine'" in ui
     assert re.search(r'id="ringBearings"[^>]*type="checkbox"(?![^>]*checked)', html)  # off by default
+
+
+def test_locking_rod_is_its_own_subsystem_1_view():
+    html = (VIS / "index.html").read_text(encoding="utf-8")
+    look = (VIS / "reference-look.js").read_text(encoding="utf-8")
+    app = (VIS / "app.js").read_text(encoding="utf-8")
+    steps = (VIS / "step-animations.js").read_text(encoding="utf-8")
+    assert html.index('id="rotationOnlyToggle"') < html.index('id="lockOnlyToggle"') < html.index('id="compartmentOnlyToggle"')
+    assert "lock: ['Pin lever'" in look and "LOCK_RING" in look and "'Ring lock pad'" in look and "'Actuator arm'" in look
+    assert "lockOnlyToggle" in app and "ringDemo('ringlock', 'lock'" in steps

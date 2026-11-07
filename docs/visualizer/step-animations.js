@@ -75,6 +75,14 @@
         localStep('Ring rolls back', 'The same stroke in the other direction returns it.', acts([function () { rd().pin(0); }, function () { rd().rodTo(k, 1); }, function () { rd().pin(1); }, function () { rd().turn(k, 1); }, function () { rd().pin(0); }, function () { rd().park(k); }]), rfIdle),
         localStep('Lock clamps again', 'The pad drops onto the rim and the ring is held.', acts([function () { rd().unlock(-1); }]), lockedDone)];
     }),
+    ringDemo('ringlock', 'lock', 'Locking rod: select a ring, lift its pad', function (s, c) {
+      var k = COLORS.indexOf(c);
+      return [{ label: 'Every pad is down', text: 'Each ring has its own lock pad pressed on its rim. The single rod and its arm wait at the park position.', kind: 'instant', act: function () { return true; } },
+        localStep('Rod slides to the ' + c + ' ring', 'Servo S1 pulls the carriage along the arm under the deck to the ' + c + ' ring. Only that ring\'s lock pad lifts; the other three stay clamped.', acts([function () { rd().unlock(k); }, function () { rd().rodTo(k, -1); }]), function () { return rfIdle() && rd().lockOpen(k); }),
+        localStep('Pin rises', 'Servo S2 pulls its cable and the pin rises through the floor slot of the free ring.', acts([function () { rd().pin(1); }]), rfIdle),
+        localStep('Pin lowers', 'The pin drops below the floor again.', acts([function () { rd().pin(0); }]), rfIdle),
+        localStep('Rod parks, pad clamps', 'The rod returns to the park position and the pad drops back onto the rim. The ring is locked again.', acts([function () { rd().park(k); }, function () { rd().unlock(-1); }]), lockedDone)];
+    }),
     ringDemo('ringflap', 'compartment', 'Refill flap: one flap over all four rings', function (s, c) {
       return [{ label: 'Flap closed', text: 'One flap, half of the lid, covers the queue pockets of all four rings. It is shut and every ring is clamped by its lock pad.', kind: 'instant', act: function () { return true; } },
         localStep('Flap lifts', 'The flap hinges up along the lid diameter and exposes the five queue pockets of every ring. No ring moves and none is lifted out.', acts([function () { rd().hatch(true); }]), function () { return rfIdle() && rd().flapOpen(); }),

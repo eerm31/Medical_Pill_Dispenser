@@ -1,4 +1,9 @@
 <!-- SPECKIT START -->
+Feature 011 (`ring-actuator-linkage`, active pointer in `.specify/feature.json`) designs the
+Prototype 2 pin carriage: S1 cable loop moves it, S2 cable pulls a wedge slider that lifts the pin,
+spools on the servos, sheave at the arm tip. Read `specs/011-ring-actuator-linkage/spec.md` first.
+Code: the actuator block of `docs/visualizer/ring-magazine.js`; test `tests/test_feature011_linkage.py`.
+Still undesigned: the ring lock pad lift. ASSUMED / NOT_VALIDATED.
 Subsystems 3 and 4 (user request 2026-10-27) are concept-level features 009
 (`verification-subsystem`: break-beam dispense check, ring EMPTY/PARTIAL/FULL,
 same-pill storage check) and 010 (`touchscreen-schedule`: touchscreen + status
