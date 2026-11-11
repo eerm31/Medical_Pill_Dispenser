@@ -27,6 +27,8 @@
   <script defer src="ring-ui.js"></script>
   <script defer src="ui-nav.js"></script>
   <script defer src="subsystem-ui.js"></script>
+  <script defer src="build-controller.js"></script>
+  <script defer src="build-ui.js"></script>
 </head>
 <body>
   <header class="topbar">
@@ -44,6 +46,7 @@
       <div class="scene-heading"><div class="scene-title"><span class="eyebrow" id="protoEyebrow">PROTOTYPE 1 · ASSEMBLY VIEW</span><h2 id="protoTitle">Four-cartridge drum</h2></div><div class="scene-switches"><div class="switch-block"><span class="seg-caption" id="capDesign">Design</span><div class="seg-group proto-tabs" role="radiogroup" aria-labelledby="capDesign">
           <label class="seg"><input type="radio" name="designOpt" value="legacy" checked autocomplete="off"><span>Prototype 1</span></label>
           <label class="seg"><input type="radio" name="designOpt" value="ring" autocomplete="off"><span>Prototype 2</span></label>
+          <label class="seg"><input type="radio" name="designOpt" value="build" autocomplete="off"><span>Current build</span></label>
         </div></div><div class="switch-block"><span class="seg-caption" id="capView">View</span><div class="seg-group view-modes" role="radiogroup" aria-labelledby="capView">
           <label class="seg"><input type="radio" name="viewMode" value="mechanism" checked autocomplete="off"><span>Mechanism</span></label>
           <label class="seg"><input type="radio" name="viewMode" value="wiring" autocomplete="off"><span>Wiring</span></label>
@@ -120,6 +123,24 @@
           <label class="switch-row"><span><strong>Show housing</strong><small>Turn off to see the systems inside</small></span><input id="housingVisible" class="switch" type="checkbox" checked autocomplete="off"></label>
           <label class="switch-row"><span><strong>Housing sub-view</strong><small>Parts list and dimensions</small></span><input id="housingOnlyToggle" class="switch" type="radio" name="subsystemView" autocomplete="off"></label>
         </div>
+      </section>
+      <section class="control-section build-section" id="buildSection" data-nav="Build" hidden>
+        <div class="section-title"><div><span class="eyebrow">CURRENT BUILD</span><h2>One cartridge on the stepper</h2></div><span id="buildBadge" class="status-pill">STOPPED</span></div>
+        <p class="small-note">What we have built so far, driven by the electronics code (<code>electronics-ESP32/scheduling-system</code>). There is no pin, solenoid or sensor: at each scheduled time the ESP32 spins the cartridge for 2 s per pill, then stops. The firmware cannot check that a pill came out, so every dose counts as taken. Shapes follow photos of the printed parts; sizes are ASSUMED, not measured CAD. NOT VALIDATED.</p>
+        <div class="readout-grid"><div><span>Clock</span><strong id="buildClock">08:00:00</strong></div><div><span>Motor</span><strong id="buildMotor">Stopped</strong></div><div><span>Dose</span><strong id="buildDose">None due</strong></div><div><span>Pills in cartridge</span><strong id="buildCart">12</strong></div><div><span>Pills in tray</span><strong id="buildTray">0</strong></div></div>
+        <p class="sub-title">Clock speed</p>
+        <div class="seg-group four" role="radiogroup" aria-label="Clock speed">
+          <label class="seg"><input type="radio" name="buildSpeed" value="1" autocomplete="off"><span>1x</span></label><label class="seg"><input type="radio" name="buildSpeed" value="10" checked autocomplete="off"><span>10x</span></label><label class="seg"><input type="radio" name="buildSpeed" value="60" autocomplete="off"><span>60x</span></label><label class="seg"><input type="radio" name="buildSpeed" value="300" autocomplete="off"><span>300x</span></label>
+        </div>
+        <div class="rotation-buttons"><button id="buildPlay" class="secondary-button" type="button">Pause</button><button id="buildStop" class="secondary-button" type="button">Stop motor</button><button id="buildReset" class="secondary-button" type="button">Reset demo</button></div>
+        <div class="sched-line"><label for="buildClockInput">Set clock</label><input id="buildClockInput" type="time" value="08:00" autocomplete="off"><button id="buildClockSet" class="quiet-button" type="button">Set</button></div>
+        <p class="sub-title">Schedule (my_schedule.h)</p>
+        <div class="sched-line"><label for="buildTime">Time</label><input id="buildTime" type="time" value="08:05" autocomplete="off"><label for="buildPills">Pills</label></div>
+        <div class="sched-line"><input id="buildPills" type="number" min="1" max="5" value="1" autocomplete="off"><span></span><button id="buildAdd" class="primary-button" type="button">Add dose</button></div>
+        <p id="buildMsg" class="small-note" aria-live="polite"></p>
+        <ul id="buildList" class="sched-list"></ul>
+        <p class="sub-title">Cartridge and tray</p>
+        <div class="rotation-buttons"><button id="buildRefill" class="secondary-button" type="button">Refill cartridge</button><button id="buildEmpty" class="secondary-button" type="button">Empty tray</button></div>
       </section>
       <section class="control-section ring-section" id="ringSection" data-nav="Ring" hidden>
         <div class="section-title"><div><span class="eyebrow" id="ringSectionEyebrow">PROTOTYPE 2</span><h2 id="ringSectionTitle">Ring magazine</h2></div></div>

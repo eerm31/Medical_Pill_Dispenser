@@ -26,7 +26,7 @@ library.json, platformio.ini
 ## Test on a laptop
 
 ```bash
-cd electronics/rotation-mechanism/test
+cd electronics-ESP32/rotation-mechanism/test
 make     # runs 162 checks, then syntax-checks main.cpp against an Arduino stub
 ```
 

@@ -1,5 +1,5 @@
-"""The electronics firmware (electronics/rotation-mechanism and electronics/scheduling-system) must pass its own host tests
-and stay in step with the simulation.
+"""The electronics firmware (electronics-ESP32 and electronics-Arduino-UNO) must pass its own host tests
+and stay in step with the simulation. The core files are identical on both boards.
 
 ASSUMED / NOT_VALIDATED. The C++ tests run only when a C++ compiler and make are installed.
 """
@@ -12,8 +12,10 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-SCHED = ROOT / "electronics" / "scheduling-system"
-ROT = ROOT / "electronics" / "rotation-mechanism"
+SCHED = ROOT / "electronics-ESP32" / "scheduling-system"
+ROT = ROOT / "electronics-ESP32" / "rotation-mechanism"
+UNO_SCHED = ROOT / "electronics-Arduino-UNO" / "scheduling-system"
+UNO_ROT = ROOT / "electronics-Arduino-UNO" / "rotation-mechanism"
 VIS = ROOT / "docs" / "visualizer"
 
 
@@ -22,7 +24,7 @@ def _read(path):
 
 
 @pytest.mark.skipif(not (shutil.which("make") and (shutil.which("g++") or shutil.which("c++"))), reason="needs make and a C++ compiler")
-@pytest.mark.parametrize("system", [ROT, SCHED], ids=["rotation-mechanism", "scheduling-system"])
+@pytest.mark.parametrize("system", [ROT, SCHED, UNO_ROT, UNO_SCHED], ids=["esp32-rotation", "esp32-scheduling", "uno-rotation", "uno-scheduling"])
 def test_firmware_host_tests_pass(system):
     try:
         done = subprocess.run(["make", "-C", str(system / "test")], capture_output=True, text=True, timeout=300)
@@ -66,3 +68,45 @@ def test_core_stays_free_of_arduino_and_hardware_headers():
     for system in (ROT, SCHED):
         for path in (system / "firmware" / "core").iterdir():
             assert "Arduino.h" not in _read(path), path
+
+
+CORE_PAIRS = [
+    (ROT / "firmware" / "core" / "colors.h", UNO_ROT / "colors.h"),
+    (ROT / "firmware" / "core" / "colors.cpp", UNO_ROT / "colors.cpp"),
+    (ROT / "firmware" / "core" / "rotation.h", UNO_ROT / "rotation.h"),
+    (ROT / "firmware" / "core" / "rotation.cpp", UNO_ROT / "rotation.cpp"),
+    (ROT / "firmware" / "core" / "colors.h", UNO_SCHED / "colors.h"),
+    (ROT / "firmware" / "core" / "colors.cpp", UNO_SCHED / "colors.cpp"),
+    (ROT / "firmware" / "core" / "rotation.h", UNO_SCHED / "rotation.h"),
+    (ROT / "firmware" / "core" / "rotation.cpp", UNO_SCHED / "rotation.cpp"),
+    (SCHED / "firmware" / "core" / "schedule.h", UNO_SCHED / "schedule.h"),
+    (SCHED / "firmware" / "core" / "schedule.cpp", UNO_SCHED / "schedule.cpp"),
+    (SCHED / "firmware" / "core" / "auto_rotate.h", UNO_SCHED / "auto_rotate.h"),
+    (SCHED / "firmware" / "core" / "auto_rotate.cpp", UNO_SCHED / "auto_rotate.cpp"),
+    (ROT / "firmware" / "hw" / "uln2003_stepper.h", UNO_ROT / "uln2003_stepper.h"),
+    (SCHED / "firmware" / "my_schedule.h", UNO_SCHED / "my_schedule.h"),
+]
+
+
+@pytest.mark.parametrize("esp32,uno", CORE_PAIRS, ids=[p[1].name + "-" + p[1].parent.name for p in CORE_PAIRS])
+def test_uno_core_is_the_esp32_core(esp32, uno):
+    # only the include paths differ (the Uno sketch folder is flat) and the Hall pin mode
+    def normal(path):
+        text = _read(path).replace('"core/', '"')
+        text = re.sub(r"pinMode\(PIN_HALL_HOME, INPUT(_PULLUP)?\);.*", "pinMode(PIN_HALL_HOME, ...);", text)
+        return text.replace("core/schedule.h", "schedule.h")
+    assert normal(esp32) == normal(uno)
+
+
+def test_uno_pins_are_valid_and_distinct():
+    cfg = _read(UNO_ROT / "config.h")
+    pins = [int(re.search(r"PIN_STEP_IN%d (\d+)" % i, cfg).group(1)) for i in range(1, 5)]
+    pins.append(int(re.search(r"PIN_HALL_HOME (\d+)", cfg).group(1)))
+    assert len(set(pins)) == 5
+    assert all(2 <= p <= 13 for p in pins)  # pins 0 and 1 are the USB serial port
+    assert _read(UNO_ROT / "config.h") == _read(UNO_SCHED / "config.h")
+
+
+def test_uno_sketches_have_no_printf_and_stay_in_ram():
+    for ino in (UNO_ROT / "rotation-mechanism.ino", UNO_SCHED / "scheduling-system.ino"):
+        assert "printf" not in _read(ino), ino  # the Uno's Serial has no printf

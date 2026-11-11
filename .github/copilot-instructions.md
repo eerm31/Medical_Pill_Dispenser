@@ -1,7 +1,8 @@
 <!-- SPECKIT START -->
-Firmware lives apart from the simulation in `electronics/`, one folder per system: `electronics/rotation-mechanism/`
-(C++ port of `rotation-controller.js`) and `electronics/scheduling-system/` (port of `schedule-controller.js`, uses the
-rotation mechanism). Host tests: `make` in each `test/` folder; parity tests `tests/test_electronics_scheduling.py`.
+Firmware lives apart from the simulation in two folders, one per board: `electronics-ESP32/` and
+`electronics-Arduino-UNO/`. Each has `rotation-mechanism/` (C++ port of `rotation-controller.js`) and
+`scheduling-system/` (port of `schedule-controller.js`, uses the rotation mechanism). The core files are kept identical
+on both boards. Host tests: `make` in each `test/` folder; parity tests `tests/test_electronics_scheduling.py`.
 Keep their constants equal to the simulation's.
 Feature 011 (`ring-actuator-linkage`, active pointer in `.specify/feature.json`) is the
 Prototype 2 actuator: one arm under the deck with four fixed pins, one per ring, each lifted by its

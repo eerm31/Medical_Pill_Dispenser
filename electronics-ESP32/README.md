@@ -1,6 +1,7 @@
-# Electronics
+# Electronics - ESP32
 
-Code that runs on the dispenser's own electronics, kept apart from the simulation. One folder per system.
+Code that runs on the dispenser's own electronics (ESP32-S3), kept apart from the simulation. One folder per system.
+The same code for the Arduino Uno is in [`../electronics-Arduino-UNO/`](../electronics-Arduino-UNO/).
 All of it is concept code, ASSUMED / NOT_VALIDATED, and none of it has run on hardware.
 
 | Folder | What it is | Ported from the simulation |
@@ -9,7 +10,7 @@ All of it is concept code, ASSUMED / NOT_VALIDATED, and none of it has run on ha
 | [`scheduling-system/`](scheduling-system/) | Dose schedule and the automatic rotation that follows it (uses `rotation-mechanism/`) | `schedule-controller.js` |
 
 ```text
-electronics/
+electronics-ESP32/
   rotation-mechanism/   firmware/core (portable), firmware/hw (Arduino), firmware/main.cpp, test/
   scheduling-system/    firmware/core (portable), firmware/main.cpp, test/   -> depends on rotation-mechanism
 ```

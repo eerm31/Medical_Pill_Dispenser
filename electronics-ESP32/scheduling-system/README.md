@@ -41,7 +41,7 @@ platformio.ini   uses ../rotation-mechanism as a library
 ## Test on a laptop
 
 ```bash
-cd electronics/scheduling-system/test
+cd electronics-ESP32/scheduling-system/test
 make     # runs 130 checks, then syntax-checks main.cpp against an Arduino stub
 ```
 

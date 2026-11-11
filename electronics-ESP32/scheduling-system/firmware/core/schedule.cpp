@@ -368,7 +368,7 @@ bool Scheduler::load(const uint8_t* buffer, size_t length) {
     int i;
     for (i = 0; i < newCount; i++) {
         const uint8_t* p = buffer + 3 + i * 5;
-        int minutes = p[2] + p[3] * 256;
+        long minutes = p[2] + p[3] * 256L;   // long: p[3] * 256 does not fit in a 16-bit int
         if (p[1] >= COLOR_COUNT || minutes >= 24 * 60 || p[4] < 1 || p[4] > MAX_PILLS) {
             return false;
         }

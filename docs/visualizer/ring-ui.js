@@ -4,7 +4,7 @@
      The demo controller is only read, and its inventory counts are written after a refill. */
   var tries = 0;
   function $(id) { return document.getElementById(id); }
-  var HEAD = { legacy: ['PROTOTYPE 1 \u00b7 ASSEMBLY VIEW', 'Four-cartridge drum'], ring: ['PROTOTYPE 2 \u00b7 ASSEMBLY VIEW', 'Ring magazine'] };
+  var HEAD = { legacy: ['PROTOTYPE 1 \u00b7 ASSEMBLY VIEW', 'Four-cartridge drum'], ring: ['PROTOTYPE 2 \u00b7 ASSEMBLY VIEW', 'Ring magazine'], build: ['CURRENT BUILD \u00b7 DRIVEN BY THE ELECTRONICS', 'One cartridge on the stepper'] };
   function init() {
     var look = window.DispenserReferenceLook, rm = look && look.ringMagazine;
     if (!rm || !$('ringTools')) { if (tries++ < 60) setTimeout(init, 250); return; }
@@ -13,12 +13,15 @@
     var names = ['Red', 'Blue', 'Green', 'Orange'];
     function setMode(m) {
       var ring = m === 'ring', wiring = document.querySelector('input[name="viewMode"][value="wiring"]'), open = document.querySelector('input[name="subsystemView"]:checked');
+      var build = window.DispenserBuildMode;
+      if (build && m !== 'build') build.set(false); // give the scene back before the prototype groups are switched
       if (open) open.click(); // leave any system sub-view so its part lists are rebuilt for the new prototype
       $('compartmentOnlyToggle').parentNode.lastChild.textContent = ring ? ' Ring magazine' : ' Compartments & decks';
       rm.setActive(ring); $('ringSection').hidden = !ring; if (ring) $('ringSection').classList.remove('collapsed');
       $('ringBearingsRow').hidden = !ring; if (!ring && $('ringBearings').checked) { $('ringBearings').checked = false; rm.setBearings(false); }
       $('protoEyebrow').textContent = HEAD[m][0]; $('protoTitle').textContent = HEAD[m][1];
       if (wiring) wiring.disabled = false;
+      if (build && m === 'build') build.set(true);
       refresh();
     }
     Array.prototype.forEach.call(document.querySelectorAll('input[name="designOpt"]'), function (r) {

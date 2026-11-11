@@ -225,7 +225,7 @@ void Rotation::update(uint32_t nowUs) {
     stepper->step(dir);
     stepsDone++;
 
-    int limit = cfg.stepsPerRev * cfg.searchLimitPercent / 100;
+    int limit = (int)((long)cfg.stepsPerRev * cfg.searchLimitPercent / 100);   // long: 16-bit int boards overflow here
 
     if (job == JOB_LEAVE_MAGNET || job == JOB_SEARCH) {
         searched++;

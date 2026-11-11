@@ -182,3 +182,11 @@ footer { margin-top: 2px; padding-top: 12px; border-top: 1px solid var(--line); 
 .due-box strong { color: #ffd08a; font-size: 13px; }
 .due-box small { display: block; margin-top: 3px; color: #e8d3ad; font-size: 11.5px; line-height: 1.35; }
 .due-box small:empty { display: none; }
+
+/* Current build tab (build-ui.js): third design tab, only its own panel section is shown */
+.scene-switches .seg-group.proto-tabs { grid-template-columns: repeat(3, auto); }
+@media (max-width: 760px) { .scene-switches .seg-group.proto-tabs { grid-template-columns: repeat(3, 1fr); } }
+body.build-view #controlPanel .control-section:not(.build-section) { display: none; }
+body.build-view .legend { display: none; }
+.sched-line input[type=number] { min-height: 36px; width: 100%; padding: 6px 8px; border: 1px solid #34465c; border-radius: 8px; background: #121d2b; color: var(--text); font: inherit; }
+.sched-item.build { grid-template-columns: 52px 1fr auto auto; }
