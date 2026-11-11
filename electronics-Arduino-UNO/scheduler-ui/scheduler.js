@@ -116,7 +116,7 @@
       var name = el('input', { type: 'text', value: d.name, maxlength: '40', placeholder: 'Medication name', 'aria-label': 'Medication name, row ' + (i + 1) });
       var time = el('input', { type: 'time', value: d.time, required: '', 'aria-label': 'Time, row ' + (i + 1) });
       var pills = el('input', { type: 'number', min: '1', max: String(MAX_PILLS), step: '1', value: String(d.pills), 'aria-label': 'Pills, row ' + (i + 1) });
-      var recurText = el('span', { class: 'recur-label', text: recurText(d.recur) || '—' });
+      var recurLabel = el('span', { class: 'recur-label', text: recurText(d.recur) || '—' });
       var expandBtn = el('button', { type: 'button', class: 'expand', 'aria-label': 'Toggle dose expansion, row ' + (i + 1), text: isExpanded ? '▼' : '▶' });
       var rm = el('button', { type: 'button', class: 'remove', text: 'Remove', 'aria-label': 'Remove row ' + (i + 1) });
       
@@ -131,7 +131,7 @@
       });
       rm.addEventListener('click', function () { state.doses.splice(i, 1); delete expandedRows[i]; renderRows(); changed(); });
       
-      var compactRow = el('tr', { class: 'dose-compact' }, [el('td', {}, [name]), el('td', {}, [time]), el('td', {}, [pills]), el('td', {}, [recurText]), el('td', {}, [expandBtn]), el('td', {}, [rm])]);
+      var compactRow = el('tr', { class: 'dose-compact' }, [el('td', {}, [name]), el('td', {}, [time]), el('td', {}, [pills]), el('td', {}, [recurLabel]), el('td', {}, [expandBtn]), el('td', {}, [rm])]);
       body.appendChild(compactRow);
       
       // expanded rows (shown only when expanded and if recurrence exists)
