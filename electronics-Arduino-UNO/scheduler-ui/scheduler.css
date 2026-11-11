@@ -94,3 +94,5 @@ button.big { min-width: 190px; min-height: 48px; font-size: 16px; }
 .modal-buttons button { flex: 1; }
 button.edit-ts { min-height: 32px; padding: 3px 10px; font-size: 13px; border-color: transparent; background: transparent; color: var(--primary); }
 button.edit-ts:hover:not(:disabled) { background: var(--primary-soft); color: var(--primary-dark); }
+button.add-ts { min-height: 32px; padding: 6px 12px; font-size: 13px; border-color: var(--primary); background: transparent; color: var(--primary); font-weight: 600; }
+button.add-ts:hover:not(:disabled) { background: var(--primary-soft); }

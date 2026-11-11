@@ -142,7 +142,7 @@
       var rm = el('button', { type: 'button', class: 'remove', text: 'Remove', 'aria-label': 'Remove row ' + (i + 1) });
       
       name.addEventListener('input', function () { d.name = name.value; changed(); });
-      time.addEventListener('input', function () { d.time = time.value; d.timestamps = []; changed(); });  // clear timestamps if time changes
+      time.addEventListener('input', function () { d.time = time.value; changed(); });
       time.addEventListener('change', function () { sortDoses(); renderRows(); });
       pills.addEventListener('input', function () { d.pills = Number(pills.value); changed(); });
       expandBtn.addEventListener('click', function () {
@@ -155,21 +155,36 @@
       var compactRow = el('tr', { class: 'dose-compact' }, [el('td', {}, [name]), el('td', {}, [time]), el('td', {}, [pills]), el('td', {}, [recurLabel]), el('td', {}, [expandBtn]), el('td', {}, [rm])]);
       body.appendChild(compactRow);
       
-      // expanded rows (show only recorded/completed timestamps, not future doses)
-      if (isExpanded && d.timestamps && d.timestamps.length > 0) {
-        d.timestamps.forEach(function (ts, j) {
-          var editBtn = el('button', { type: 'button', class: 'edit-ts', text: 'Edit', 'aria-label': 'Edit timestamp for ' + ts.date + ' ' + ts.time });
-          editBtn.addEventListener('click', function () { showTimestampEditor(i, j); });
-          var expandedRow = el('tr', { class: 'dose-expanded' }, [
-            el('td', { text: '├─ ' + ts.date + ' ' + ts.time }),
+      // expanded rows (show recorded/completed timestamps, or add button if none)
+      if (isExpanded) {
+        if (d.timestamps && d.timestamps.length > 0) {
+          d.timestamps.forEach(function (ts, j) {
+            var editBtn = el('button', { type: 'button', class: 'edit-ts', text: 'Edit', 'aria-label': 'Edit timestamp for ' + ts.date + ' ' + ts.time });
+            editBtn.addEventListener('click', function () { showTimestampEditor(i, j); });
+            var expandedRow = el('tr', { class: 'dose-expanded' }, [
+              el('td', { text: '├─ ' + ts.date + ' ' + ts.time }),
+              el('td', {}),
+              el('td', {}),
+              el('td', {}),
+              el('td', { style: 'text-align: center;' }, [editBtn]),
+              el('td', {})
+            ]);
+            body.appendChild(expandedRow);
+          });
+        } else {
+          // no timestamps yet: show "Add timestamp" button
+          var addTsBtn = el('button', { type: 'button', class: 'add-ts', text: '+ Add timestamp', 'aria-label': 'Add timestamp for row ' + (i + 1) });
+          addTsBtn.addEventListener('click', function () { showTimestampEditor(i, -1); });
+          var addTsRow = el('tr', { class: 'dose-expanded' }, [
+            el('td', { text: '├─ (no timestamps yet)' }),
             el('td', {}),
             el('td', {}),
             el('td', {}),
-            el('td', { style: 'text-align: center;' }, [editBtn]),
+            el('td', { style: 'text-align: center;' }, [addTsBtn]),
             el('td', {})
           ]);
-          body.appendChild(expandedRow);
-        });
+          body.appendChild(addTsRow);
+        }
       }
     });
     $('emptyMsg').hidden = state.doses.length > 0;
@@ -183,9 +198,17 @@
   function showTimestampEditor(doseIdx, tsIdx) {
     editingDose = doseIdx;
     editingTimestamp = tsIdx;
-    var ts = state.doses[doseIdx].timestamps[tsIdx];
-    $('editTsDate').value = ts.date;
-    $('editTsTime').value = ts.time;
+    if (tsIdx === -1) {
+      // new timestamp: set today's date and current time as defaults
+      var now = new Date();
+      $('editTsDate').value = pad(now.getFullYear()) + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+      $('editTsTime').value = pad(now.getHours()) + ':' + pad(now.getMinutes());
+    } else {
+      // existing timestamp
+      var ts = state.doses[doseIdx].timestamps[tsIdx];
+      $('editTsDate').value = ts.date;
+      $('editTsTime').value = ts.time;
+    }
     $('tsModal').hidden = false;
   }
   
@@ -196,10 +219,17 @@
   }
   
   function saveTimestampEditor() {
-    if (editingDose === null || editingTimestamp === null) return;
+    if (editingDose === null || editingTimestamp === null && editingTimestamp !== -1) return;
     var newDate = $('editTsDate').value, newTime = $('editTsTime').value;
     if (!newDate || !newTime) { alert('Date and time are required.'); return; }
-    state.doses[editingDose].timestamps[editingTimestamp] = { date: newDate, time: newTime };
+    if (editingTimestamp === -1) {
+      // new timestamp
+      if (!state.doses[editingDose].timestamps) state.doses[editingDose].timestamps = [];
+      state.doses[editingDose].timestamps.push({ date: newDate, time: newTime });
+    } else {
+      // edit existing
+      state.doses[editingDose].timestamps[editingTimestamp] = { date: newDate, time: newTime };
+    }
     save();
     renderRows();
     closeTimestampEditor();
