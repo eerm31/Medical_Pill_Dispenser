@@ -4,7 +4,7 @@ CXX ?= g++
 CXXFLAGS ?= -std=c++11 -Wall -Wextra -Werror -O1
 SK := ..
 ROT := ../../rotation-mechanism
-SOURCES := $(SK)/schedule.cpp $(SK)/auto_rotate.cpp $(SK)/rotation.cpp $(SK)/colors.cpp test_main.cpp
+SOURCES := $(SK)/schedule.cpp $(SK)/auto_rotate.cpp $(SK)/cartridge_turn.cpp $(SK)/rotation.cpp $(SK)/colors.cpp test_main.cpp
 
 all: build/test_main check-sketch
 	./build/test_main

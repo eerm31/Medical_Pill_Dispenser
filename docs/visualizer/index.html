@@ -126,7 +126,7 @@
       </section>
       <section class="control-section build-section" id="buildSection" data-nav="Build" hidden>
         <div class="section-title"><div><span class="eyebrow">CURRENT BUILD</span><h2>One cartridge on the stepper</h2></div><span id="buildBadge" class="status-pill">STOPPED</span></div>
-        <p class="small-note">What we have built so far, driven by the electronics code (<code>electronics-ESP32/scheduling-system</code>). There is no pin, solenoid or sensor: at each scheduled time the ESP32 spins the cartridge for 2 s per pill, then stops. The firmware cannot check that a pill came out, so every dose counts as taken. Shapes follow photos of the printed parts; sizes are ASSUMED, not measured CAD. NOT VALIDATED.</p>
+        <p class="small-note">What we have built so far, driven by the electronics code (<code>electronics-ESP32/scheduling-system</code>). There is no pin, solenoid or sensor: at each scheduled time the ESP32 turns the cartridge 30° for every pill (one window of the ring), pauses 1 s after each move so the pill can fall, then stops. The firmware cannot check that a pill came out, so every dose counts as taken. Shapes follow photos of the printed parts; sizes are ASSUMED, not measured CAD. NOT VALIDATED.</p>
         <div class="readout-grid"><div><span>Clock</span><strong id="buildClock">08:00:00</strong></div><div><span>Motor</span><strong id="buildMotor">Stopped</strong></div><div><span>Dose</span><strong id="buildDose">None due</strong></div><div><span>Pills in cartridge</span><strong id="buildCart">12</strong></div><div><span>Pills in tray</span><strong id="buildTray">0</strong></div></div>
         <p class="sub-title">Clock speed</p>
         <div class="seg-group four" role="radiogroup" aria-label="Clock speed">

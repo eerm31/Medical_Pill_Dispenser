@@ -160,6 +160,10 @@ bool Scheduler::remove(uint8_t id) {
     return false;
 }
 
+void Scheduler::clear() {
+    count = 0;
+}
+
 // ---------- the clock ----------
 // PENDING becomes DUE when the clock reaches the time, and DUE becomes MISSED after the grace time.
 // TAKING, TAKEN and FAILED are only set by the take flow.

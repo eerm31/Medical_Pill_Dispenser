@@ -5,7 +5,7 @@ CXXFLAGS ?= -std=c++11 -Wall -Wextra -Werror -O1
 FW := ../firmware
 ROT := ../../rotation-mechanism
 INCLUDES := -I$(FW) -I$(ROT)/firmware
-SOURCES := $(FW)/core/schedule.cpp $(FW)/core/auto_rotate.cpp $(ROT)/firmware/core/rotation.cpp $(ROT)/firmware/core/colors.cpp test_main.cpp
+SOURCES := $(FW)/core/schedule.cpp $(FW)/core/auto_rotate.cpp $(FW)/core/cartridge_turn.cpp $(ROT)/firmware/core/rotation.cpp $(ROT)/firmware/core/colors.cpp test_main.cpp
 
 all: build/test_main check-firmware
 	./build/test_main

@@ -83,6 +83,8 @@ CORE_PAIRS = [
     (SCHED / "firmware" / "core" / "schedule.cpp", UNO_SCHED / "schedule.cpp"),
     (SCHED / "firmware" / "core" / "auto_rotate.h", UNO_SCHED / "auto_rotate.h"),
     (SCHED / "firmware" / "core" / "auto_rotate.cpp", UNO_SCHED / "auto_rotate.cpp"),
+    (SCHED / "firmware" / "core" / "cartridge_turn.h", UNO_SCHED / "cartridge_turn.h"),
+    (SCHED / "firmware" / "core" / "cartridge_turn.cpp", UNO_SCHED / "cartridge_turn.cpp"),
     (ROT / "firmware" / "hw" / "uln2003_stepper.h", UNO_ROT / "uln2003_stepper.h"),
     (SCHED / "firmware" / "my_schedule.h", UNO_SCHED / "my_schedule.h"),
 ]

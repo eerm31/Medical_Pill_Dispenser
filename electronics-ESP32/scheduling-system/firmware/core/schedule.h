@@ -78,6 +78,7 @@ public:
 
     AddResult add(Color color, int minutes, uint8_t* idOut = NULL, int pills = 1);
     bool remove(uint8_t id);
+    void clear();   // removes every dose
 
     // Sets the clock, for example from an RTC. If the new time is earlier than the old one, midnight has passed.
     void setClock(uint32_t secondsOfDay);

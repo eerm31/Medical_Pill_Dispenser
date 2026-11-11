@@ -159,9 +159,9 @@
     function render(snap) {
       var s = snap || ctl.snapshot(), due = s.entries.filter(function (e) { return e.status === 'TAKING' || e.status === 'DUE'; })[0];
       $('buildClock').textContent = s.clock + (s.playing ? '' : ' (paused)');
-      $('buildMotor').textContent = s.spin ? 'Spinning ' + Math.round(B.DEG_PER_S) + '°/s' : 'Stopped';
-      $('buildBadge').textContent = s.spin ? 'SPINNING' : 'STOPPED';
-      $('buildDose').textContent = s.spin ? 'Pill ' + Math.min(s.spin.pills, s.spin.out + 1) + ' of ' + s.spin.pills + ' (' + Math.ceil(s.spin.total - s.spin.elapsed) + ' s left)' : (due ? due.time + ' waiting' : 'None due');
+      $('buildMotor').textContent = s.spin ? (s.spin.phase === 'move' ? 'Turning ' + B.DEGREES_PER_PILL + '°' : 'Holding (pill falls)') : 'Stopped';
+      $('buildBadge').textContent = s.spin ? 'TURNING' : 'STOPPED';
+      $('buildDose').textContent = s.spin ? 'Pill ' + Math.min(s.spin.pills, s.spin.out + (s.spin.phase === 'move' ? 1 : 0)) + ' of ' + s.spin.pills + ' (' + Math.max(0, Math.ceil(s.spin.total - s.spin.elapsed)) + ' s left)' : (due ? due.time + ' waiting' : 'None due');
       $('buildCart').textContent = inventory + ' of ' + CART_PILLS;
       $('buildTray').textContent = String(trayCount);
       $('buildPlay').textContent = s.playing ? 'Pause' : 'Play';

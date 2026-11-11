@@ -1,13 +1,21 @@
 (function () {
   'use strict';
   /* Current build: ONE cartridge turned by a 28BYJ-48 stepper, no pin, no sensors.
-     A plain-JS copy of electronics/scheduling-system (schedule.cpp + main.cpp): when a dose is due the cartridge spins
-     SPIN_S_PER_PILL seconds per pill, then stops and the dose counts as taken (nothing can check it).
+     A plain-JS copy of electronics-ESP32/scheduling-system (schedule.cpp + cartridge_turn.cpp + main.cpp): when a dose is
+     due the cartridge turns DEGREES_PER_PILL for every pill, pausing PAUSE_S after each move so the pill can fall, then
+     the dose counts as taken (nothing can check it).
      Keep the constants equal to the firmware (tests/test_current_build.py compares them). ASSUMED / NOT VALIDATED. */
   var MAX_ENTRIES = 8, MAX_PILLS = 5, GRACE_MIN = 30, DAY_S = 86400;
-  var SPIN_S_PER_PILL = 2, STEP_INTERVAL_US = 1500, STEPS_PER_REV = 4096;
+  var DEGREES_PER_PILL = 30, PAUSE_S = 1, STEP_INTERVAL_US = 1500, STEPS_PER_REV = 4096;
+  var SLOTS = 360 / DEGREES_PER_PILL;
   var STEPS_PER_S = 1e6 / STEP_INTERVAL_US;
   var DEG_PER_S = STEPS_PER_S * 360 / STEPS_PER_REV;
+  var AVG_MOVE_S = DEGREES_PER_PILL / DEG_PER_S;
+  /* half-steps of one move, worked out from the slot so a full turn adds up to exactly STEPS_PER_REV */
+  function moveSeconds(slot) {
+    var steps = Math.floor((slot + 1) * STEPS_PER_REV / SLOTS) - Math.floor(slot * STEPS_PER_REV / SLOTS);
+    return steps * STEP_INTERVAL_US / 1e6;
+  }
 
   function parse(text) {
     var m = /^(\d{1,2}):(\d{2})$/.exec(String(text || ''));
@@ -26,7 +34,7 @@
     var st;
 
     function reset() {
-      st = { seconds: startMinutes * 60, playing: true, speed: opts.speed || 10, entries: [], nextId: 1, spin: null, angle: 0, dispensed: 0 };
+      st = { seconds: startMinutes * 60, playing: true, speed: opts.speed || 10, entries: [], nextId: 1, spin: null, angle: 0, slot: 0, dispensed: 0 };
       first.forEach(function (d) { add(d[0], d[1]); });
     }
     function endOf(e) { return (e.minutes + GRACE_MIN) * 60; }
@@ -85,18 +93,27 @@
       advance(dt);
       if (!st.spin) {
         var d = due();
-        if (d) { d.status = 'TAKING'; st.spin = { id: d.id, pills: d.pills, elapsed: 0, out: 0 }; }
+        if (d) { d.status = 'TAKING'; st.spin = { id: d.id, pills: d.pills, out: 0, phase: 'move', t: 0, fromAngle: st.angle, moveS: moveSeconds(st.slot) }; }
       }
       if (st.spin) {
-        var s = st.spin;
-        s.elapsed = Math.min(s.elapsed + dt, s.pills * SPIN_S_PER_PILL);
-        st.angle = (st.angle + DEG_PER_S * dt) % 360;
-        var out = Math.floor(s.elapsed / SPIN_S_PER_PILL + 1e-9);
-        dropped = out - s.out; s.out = out; st.dispensed += dropped;
-        if (s.elapsed >= s.pills * SPIN_S_PER_PILL) {
-          var e = find(s.id);
-          if (e) e.status = 'TAKEN';
-          st.spin = null;
+        var s = st.spin, left = dt;
+        while (left > 0 && st.spin) {
+          if (s.phase === 'move') {
+            var use = Math.min(left, s.moveS - s.t);
+            s.t += use; left -= use;
+            st.angle = s.fromAngle + DEGREES_PER_PILL * (s.t / s.moveS);
+            if (s.t >= s.moveS - 1e-9) {
+              st.slot = (st.slot + 1) % SLOTS; st.angle = st.slot * DEGREES_PER_PILL;
+              s.out += 1; dropped += 1; st.dispensed += 1; s.phase = 'pause'; s.t = 0;
+            }
+          } else {
+            var wait = Math.min(left, PAUSE_S - s.t);
+            s.t += wait; left -= wait;
+            if (s.t >= PAUSE_S - 1e-9) {
+              if (s.out < s.pills) { s.phase = 'move'; s.t = 0; s.fromAngle = st.angle; s.moveS = moveSeconds(st.slot); }
+              else { var e = find(s.id); if (e) e.status = 'TAKEN'; st.spin = null; }
+            }
+          }
         }
       }
       return dropped;
@@ -108,10 +125,15 @@
       st.spin = null;
     }
     function snapshot() {
+      var sp = null;
+      if (st.spin) {
+        var cycle = AVG_MOVE_S + PAUSE_S, o = st.spin.out, t = st.spin.t;
+        sp = { id: st.spin.id, pills: st.spin.pills, out: o, phase: st.spin.phase, elapsed: st.spin.phase === 'move' ? o * cycle + t : (o - 1) * cycle + AVG_MOVE_S + t, total: st.spin.pills * cycle };
+      }
       return {
         seconds: st.seconds, clock: fmtSeconds(st.seconds), playing: st.playing, speed: st.speed, angle: st.angle,
         entries: st.entries.map(function (e) { return { id: e.id, minutes: e.minutes, time: fmt(e.minutes), pills: e.pills, status: e.status, tomorrow: e.tomorrow }; }),
-        spin: st.spin ? { id: st.spin.id, pills: st.spin.pills, out: st.spin.out, elapsed: st.spin.elapsed, total: st.spin.pills * SPIN_S_PER_PILL } : null,
+        spin: sp,
         dispensed: st.dispensed, count: st.entries.length
       };
     }
@@ -126,6 +148,6 @@
   window.DispenserBuild = {
     create: create, parse: parse, fmt: fmt,
     MAX_ENTRIES: MAX_ENTRIES, MAX_PILLS: MAX_PILLS, GRACE_MIN: GRACE_MIN,
-    SPIN_S_PER_PILL: SPIN_S_PER_PILL, STEP_INTERVAL_US: STEP_INTERVAL_US, STEPS_PER_REV: STEPS_PER_REV, DEG_PER_S: DEG_PER_S
+    DEGREES_PER_PILL: DEGREES_PER_PILL, PAUSE_S: PAUSE_S, STEP_INTERVAL_US: STEP_INTERVAL_US, STEPS_PER_REV: STEPS_PER_REV, DEG_PER_S: DEG_PER_S
   };
 }());

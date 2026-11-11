@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UI System</title>
+  <link rel="stylesheet" href="scheduler.css">
+  <script>
+    window.SCHEDULER_BOARD = {
+      name: 'ESP32-S3', short: 'esp32', baud: 115200, settleMs: 1500,
+      plugHelp: 'Plug the ESP32-S3 into this computer with the USB cable, then press Connect Arduino and pick it from the list.',
+      uploadHelp: 'Upload the scheduling-system program with PlatformIO, then press Connect Arduino.',
+      busyHelp: 'Close the PlatformIO serial monitor (only one program can use the USB port), then press Connect Arduino.'
+    };
+  </script>
+  <script defer src="scheduler.js"></script>
+</head>
+<body>
+  <header class="top">
+    <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6z"/></svg></div>
+    <div><h1>UI System</h1><p class="sub">Medication schedule &middot; <span id="boardName">ESP32-S3</span></p></div>
+  </header>
+
+  <main class="page">
+    <section class="card" aria-labelledby="hSchedule">
+      <div class="card-head">
+        <div><h2 id="hSchedule">Medication schedule</h2><p class="hint">Add each medication with its time and number of pills. You can edit any row directly or remove it.</p></div>
+        <span id="doseCount" class="count"></span>
+      </div>
+
+      <table id="doseTable" class="schedule" hidden>
+        <thead><tr><th>Medication</th><th>Time</th><th>Pills</th><th><span class="sr">Remove</span></th></tr></thead>
+        <tbody id="doseRows"></tbody>
+      </table>
+      <p id="emptyMsg" class="empty">No medication added yet. Add the first one below.</p>
+
+      <form id="addForm" class="add-row">
+        <label>Medication<input id="newName" type="text" maxlength="40" placeholder="Medication name" autocomplete="off"></label>
+        <label>Time<input id="newTime" type="time" required></label>
+        <label>Pills<input id="newPills" type="number" min="1" max="5" step="1" value="1" required></label>
+        <button class="primary" type="submit">Add to schedule</button>
+      </form>
+      <p id="addMsg" class="hint" aria-live="polite"></p>
+      <ul id="problems" class="problems" hidden></ul>
+    </section>
+  </main>
+
+  <div class="bar" role="region" aria-label="Arduino connection and saving">
+    <div class="conn">
+      <span id="connIcon" class="icon busy" aria-hidden="true"></span>
+      <div class="conn-text" aria-live="polite"><strong id="connText">Looking for the Arduino...</strong><span id="saveMsg" class="hint"></span></div>
+      <button id="connectBtn" type="button" hidden>Connect Arduino</button>
+    </div>
+    <button id="saveBtn" class="primary big" type="button" disabled>Save schedule</button>
+  </div>
+</body>
+</html>

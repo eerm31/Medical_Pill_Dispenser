@@ -16,5 +16,7 @@ electronics-ESP32/
 ```
 
 The simulation (the Python package in `src/`, the browser viewer in `docs/visualizer/`) is the model these were ported from.
+Open the UI System, [`scheduler-ui/index.html`](scheduler-ui/index.html), in Chrome or Edge to put the medication times in without editing code:
+it finds the running board over USB (Web Serial), and **Save schedule** sends the doses to it.
 Each folder has its own README, host tests (`make` in its `test/` folder) and a PlatformIO project.
 `tests/test_electronics_scheduling.py` runs both test suites and checks that the constants still match the simulation.

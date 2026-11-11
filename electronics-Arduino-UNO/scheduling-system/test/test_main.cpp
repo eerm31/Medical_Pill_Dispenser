@@ -8,6 +8,7 @@
 #include <string.h>
 #include "../../rotation-mechanism/test/fake_drive.h"
 #include "auto_rotate.h"
+#include "cartridge_turn.h"
 #include "schedule.h"
 
 int failures = 0;
@@ -386,6 +387,172 @@ void testHomeFaultAndRecover() {
     CHECK(rot.atStation() == RED);
 }
 
+// ---------- cartridge turner tests (30 degrees per pill) ----------
+
+// Runs update() until the dose is finished. Returns false if it never finishes.
+bool runUntilDone(CartridgeTurner& t) {
+    int i;
+    for (i = 0; i < 2000000 && t.isBusy(); i++) {
+        clockUs = clockUs + 200;
+        t.update(clockUs);
+    }
+    return t.isBusy() == false;
+}
+
+void testCartridgeMoves() {
+    FakeDrive drive(4096, 0, 100, 57);
+    CartridgeTurner t(&drive);
+
+    CHECK(t.start(0) == false);
+    CHECK(t.start(3));
+    CHECK(t.isBusy());
+    CHECK(t.start(1) == false);   // already busy
+    CHECK(runUntilDone(t));
+
+    CHECK(t.finished());
+    CHECK(t.finished() == false);   // it says true only once
+    CHECK(drive.total == 341 + 341 + 342);   // 3 x 30 degrees = 1024 half-steps
+    CHECK(drive.phys == 1024);
+    CHECK(drive.lastDir == 1);
+    CHECK(drive.released);   // the coils are off when the dose is over
+    CHECK(t.getPillsDone() == 3);
+    CHECK(t.getSlot() == 3);
+}
+
+void testCartridgeDoesNotDrift() {
+    FakeDrive drive(4096, 0, 100, 57);
+    CartridgeTurner t(&drive);
+
+    // 5 pills, then 7 pills: together exactly one full turn
+    CHECK(t.start(5));
+    CHECK(runUntilDone(t));
+    CHECK(t.start(7));
+    CHECK(runUntilDone(t));
+
+    CHECK(drive.total == 4096);
+    CHECK(drive.phys == 0);
+    CHECK(t.getSlot() == 0);
+}
+
+void testCartridgePausesAfterEachMove() {
+    FakeDrive drive(4096, 0, 100, 57);
+    CartridgeTurner t(&drive);
+    int i;
+
+    CHECK(t.start(2));
+    for (i = 0; i < 100000 && drive.total < 341; i++) {
+        clockUs = clockUs + 200;
+        t.update(clockUs);
+    }
+    CHECK(drive.total == 341);   // the first move is done
+
+    // during the pause nothing moves and the coils stay on
+    for (i = 0; i < 2000; i++) {
+        clockUs = clockUs + 200;
+        t.update(clockUs);
+    }
+    CHECK(drive.total == 341);
+    CHECK(t.isBusy());
+    CHECK(drive.released == false);
+
+    CHECK(runUntilDone(t));
+    CHECK(drive.total == 682);
+}
+
+void testCartridgeStopAndDirection() {
+    FakeDrive drive(4096, 0, 100, 57);
+    TurnConfig cfg;
+    cfg.direction = -1;
+    CartridgeTurner t(&drive, cfg);
+    int i;
+
+    CHECK(t.start(2));
+    for (i = 0; i < 500; i++) {
+        clockUs = clockUs + 200;
+        t.update(clockUs);
+    }
+    CHECK(drive.total > 0);
+    CHECK(drive.lastDir == -1);
+
+    t.stop();
+    CHECK(t.isBusy() == false);
+    CHECK(drive.released);
+    CHECK(t.finished() == false);   // a stopped dose is not a finished dose
+    CHECK(t.start(1));   // it can be started again
+}
+
+void testClearAndReuse() {
+    Scheduler s(8 * HOUR);
+    s.add(RED, 9 * 60);
+    s.add(RED, 10 * 60);
+    s.clear();
+    CHECK(s.getCount() == 0);
+    CHECK(s.add(RED, 9 * 60) == ADD_OK);   // the same time can be used again
+    CHECK(s.getCount() == 1);
+}
+
+void testTurnConfigStorage() {
+    TurnConfig c;
+    uint8_t buf[16];
+    CHECK(c.isValid());
+    CHECK(c.save(buf, 3) == 0);   // buffer too small
+    CHECK(c.save(buf, sizeof(buf)) == 7);
+
+    TurnConfig d;
+    d.degreesPerPill = 60;
+    d.pauseUs = 2500000UL;
+    d.stepIntervalUs = 2000;
+    d.direction = -1;
+    CHECK(d.save(buf, sizeof(buf)) == 7);
+    TurnConfig e;
+    CHECK(e.load(buf, 7));
+    CHECK(e.degreesPerPill == 60);
+    CHECK(e.pauseUs == 2500000UL);
+    CHECK(e.stepIntervalUs == 2000);
+    CHECK(e.direction == -1);
+
+    // bad bytes change nothing
+    TurnConfig f;
+    CHECK(f.load(buf, 3) == false);
+    buf[0] = 0;
+    CHECK(f.load(buf, 7) == false);
+    buf[0] = 0xA7;
+    buf[1] = 7;   // 7 does not divide 360
+    CHECK(f.load(buf, 7) == false);
+    buf[1] = 30;
+    buf[6] = 9;
+    CHECK(f.load(buf, 7) == false);
+    CHECK(f.degreesPerPill == 30);
+
+    TurnConfig bad;
+    bad.degreesPerPill = 7;
+    CHECK(bad.isValid() == false);
+    bad = TurnConfig();
+    bad.stepIntervalUs = 100;
+    CHECK(bad.isValid() == false);
+    bad = TurnConfig();
+    bad.direction = 0;
+    CHECK(bad.isValid() == false);
+}
+
+void testSetConfig() {
+    FakeDrive drive(4096, 0, 100, 57);
+    CartridgeTurner t(&drive);
+    TurnConfig c;
+    c.degreesPerPill = 60;
+
+    CHECK(t.setConfig(c));
+    CHECK(t.start(1));
+    CHECK(t.setConfig(c) == false);   // not while turning
+    CHECK(runUntilDone(t));
+    CHECK(drive.total == 682);   // 60 degrees is a sixth of 4096
+
+    TurnConfig bad;
+    bad.degreesPerPill = 7;
+    CHECK(t.setConfig(bad) == false);
+    CHECK(t.getConfig().degreesPerPill == 60);
+}
+
 int main() {
     testParseAndFormat();
     testAddRules();
@@ -397,6 +564,13 @@ int main() {
     testTapBeforeArrivalAndFailedDose();
     testDispenserRefusalAndMissedDose();
     testHomeFaultAndRecover();
+    testCartridgeMoves();
+    testCartridgeDoesNotDrift();
+    testCartridgePausesAfterEachMove();
+    testCartridgeStopAndDirection();
+    testClearAndReuse();
+    testTurnConfigStorage();
+    testSetConfig();
 
     if (failures > 0) {
         printf("%d of %d checks FAILED\n", failures, checks);

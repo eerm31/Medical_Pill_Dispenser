@@ -25,8 +25,9 @@ def test_build_constants_match_the_firmware():
     assert _num(r"GRACE_MIN = (\d+)", js) == _num(r"#define GRACE_MIN (\d+)", header)
     assert _num(r"MAX_ENTRIES = (\d+)", js) == _num(r"#define MAX_ENTRIES (\d+)", header)
     assert _num(r"MAX_PILLS = (\d+)", js) == _num(r"#define MAX_PILLS (\d+)", header)
-    # SPIN_MS_PER_PILL is in milliseconds in the firmware, seconds in the viewer
-    assert _num(r"SPIN_S_PER_PILL = (\d+)", js) * 1000 == _num(r"#define SPIN_MS_PER_PILL (\d+)", mine)
+    # the firmware has the pause in milliseconds, the viewer in seconds
+    assert _num(r"DEGREES_PER_PILL = (\d+)", js) == _num(r"#define DEGREES_PER_PILL (\d+)", mine)
+    assert _num(r"PAUSE_S = (\d+)", js) * 1000 == _num(r"#define PAUSE_MS_AFTER_MOVE (\d+)", mine)
     assert _num(r"STEP_INTERVAL_US = (\d+)", js) == _num(r"#define STEP_INTERVAL_US (\d+)", mine)
     assert _num(r"STEPS_PER_REV = (\d+)", js) == _num(r"#define STEPS_PER_REV (\d+)", _read(ROOT / "electronics-ESP32" / "rotation-mechanism" / "firmware" / "config.h"))
 
