@@ -95,8 +95,6 @@
       if (!(d.pills >= 1 && d.pills <= MAX_PILLS && Math.floor(d.pills) === d.pills)) errors.push(label + ': pills must be a whole number from 1 to ' + MAX_PILLS + '.');
       if (d.recur && d.recur.num && d.recur.unit) {
         if (!(d.recur.num > 0 && d.recur.num <= 24)) errors.push(label + ': recurrence interval must be from 1 to 24.');
-        if (d.recur.unit === 's') errors.push(label + ': use minutes or hours (seconds are too fast for the dispenser).');
-        if (d.recur.unit === 'm' && d.recur.num < 1) errors.push(label + ': interval must be at least 1 minute.');
       }
     });
     return errors;
