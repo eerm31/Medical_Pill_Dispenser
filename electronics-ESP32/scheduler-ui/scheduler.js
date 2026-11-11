@@ -58,6 +58,27 @@
     return 'Every ' + recur.num + ' ' + units[recur.unit] + (recur.num > 1 ? 's' : '');
   }
 
+  // record timestamps for each future dose
+  function recordTimestamps() {
+    var now = new Date(), todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var nowMin = now.getHours() * 60 + now.getMinutes();
+    state.doses.forEach(function (d) {
+      if (!d.timestamps) d.timestamps = [];
+      var expanded = expandDose(d);
+      expanded.forEach(function (e) {
+        var eMin = parseTime(e.time);
+        // only record if time is in future (today onwards)
+        if (eMin !== null && eMin >= nowMin) {
+          var dateStr = pad(todayStart.getFullYear()) + '-' + pad(todayStart.getMonth() + 1) + '-' + pad(todayStart.getDate());
+          // check if this timestamp already exists
+          if (!d.timestamps.some(function (ts) { return ts.time === e.time && ts.date === dateStr; })) {
+            d.timestamps.push({ date: dateStr, time: e.time });
+          }
+        }
+      });
+    });
+  }
+
   var state = load();
   var expandedRows = {};  // track which rows are expanded
   function load() {
@@ -70,7 +91,8 @@
             name: String(d.name || '').slice(0, 40),
             time: String(d.time),
             pills: Number(d.pills),
-            recur: d.recur ? { num: Number(d.recur.num), unit: String(d.recur.unit) } : null
+            recur: d.recur ? { num: Number(d.recur.num), unit: String(d.recur.unit) } : null,
+            timestamps: Array.isArray(d.timestamps) ? d.timestamps : []  // array of {date, time} records
           };
         });
       }
@@ -121,7 +143,7 @@
       var rm = el('button', { type: 'button', class: 'remove', text: 'Remove', 'aria-label': 'Remove row ' + (i + 1) });
       
       name.addEventListener('input', function () { d.name = name.value; changed(); });
-      time.addEventListener('input', function () { d.time = time.value; changed(); });
+      time.addEventListener('input', function () { d.time = time.value; d.timestamps = []; changed(); });  // clear timestamps if time changes
       time.addEventListener('change', function () { sortDoses(); renderRows(); });
       pills.addEventListener('input', function () { d.pills = Number(pills.value); changed(); });
       expandBtn.addEventListener('click', function () {
@@ -137,8 +159,10 @@
       // expanded rows (shown only when expanded and if recurrence exists)
       if (isExpanded && d.recur && d.recur.num && d.recur.unit && expanded.length > 1) {
         expanded.forEach(function (e, j) {
+          var hasTimestamp = d.timestamps && d.timestamps.some(function (ts) { return ts.time === e.time; });
+          var tsLabel = hasTimestamp ? ' ✓' : '';
           var expandedRow = el('tr', { class: 'dose-expanded' }, [
-            el('td', { text: '├─ ' + e.time }),
+            el('td', { text: '├─ ' + e.time + tsLabel }),
             el('td', {}),
             el('td', { text: String(e.pills) }),
             el('td', {}),
@@ -308,6 +332,8 @@
     state.doses.forEach(function (d) { allExpanded = allExpanded.concat(expandDose(d)); });
     saving = { timer: window.setTimeout(function () { saveResult(false, 'The Arduino did not answer. Check the USB cable and press Connect.'); }, 6000 + 400 * allExpanded.length) };
     updateBar();
+    recordTimestamps();  // record timestamps for future doses
+    save();  // persist timestamps
     var chain = send('time ' + nowText());   // the board has no clock chip, so it gets the computer's time
     function next(cmd) { chain = chain.then(function () { return wait(180); }).then(function () { return send(cmd); }); }
     next('clear');
