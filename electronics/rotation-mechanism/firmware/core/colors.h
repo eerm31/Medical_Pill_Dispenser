@@ -1,26 +1,23 @@
-// Pill colours and the drum stations they sit at. ASSUMED / NOT_VALIDATED concept code, no clinical or dosing claim.
-#pragma once
-#include <stdint.h>
-#include <string.h>
+// colors.h
+// The four pill colours. Every colour is also a station on the drum, a quarter turn apart.
+// RED is the home station (position 0).
 
-namespace dispenser {
+#ifndef COLORS_H
+#define COLORS_H
 
-// Station order matches the simulation (docs/visualizer/rotation-controller.js): RED is the home station.
-enum Color : uint8_t { RED = 0, BLUE = 1, GREEN = 2, ORANGE = 3, COLOR_COUNT = 4, NO_COLOR = 255 };
+enum Color {
+    RED = 0,
+    BLUE = 1,
+    GREEN = 2,
+    ORANGE = 3,
+    COLOR_COUNT = 4,   // how many colours there are
+    NO_COLOR = 255     // means "no colour"
+};
 
-inline const char* colorName(Color c) {
-  static const char* const names[] = {"red", "blue", "green", "orange"};
-  return c < COLOR_COUNT ? names[c] : "none";
-}
+// Gives the name of a colour, for example RED -> "red".
+const char* colorName(Color c);
 
-inline bool colorFromName(const char* text, Color* out) {
-  for (uint8_t i = 0; i < COLOR_COUNT; i++) {
-    if (strcmp(text, colorName(static_cast<Color>(i))) == 0) {
-      *out = static_cast<Color>(i);
-      return true;
-    }
-  }
-  return false;
-}
+// Looks a colour up by its name. Returns false if the name is not a colour.
+bool colorFromName(const char* text, Color* result);
 
-}  // namespace dispenser
+#endif

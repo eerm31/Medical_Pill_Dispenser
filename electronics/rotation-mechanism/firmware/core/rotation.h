@@ -1,93 +1,125 @@
-// Automatic drum rotation: home search against the Hall sensor, then index to a colour station.
-// Port of the logic in docs/visualizer/rotation-controller.js (home search, counter-clockwise index, overshoot, interlock).
-// The motion is step based and non-blocking: call update() often, it issues at most one half-step per call.
-#pragma once
+// rotation.h
+// Controls the rotation of the drum. It finds the home position with the Hall sensor
+// and then turns the drum to one of the four colour stations.
+// Based on docs/visualizer/rotation-controller.js (not tested on real hardware yet).
+//
+// How the motion works: the code is "non-blocking". Call update() over and over (for example
+// in loop()). Each call makes at most one half-step, so the rest of the program keeps running.
+
+#ifndef ROTATION_H
+#define ROTATION_H
+
+#include <stdint.h>
 #include "colors.h"
 
-namespace dispenser {
+// ---------- hardware interfaces ----------
+// These are abstract classes. The real ESP32 code and the fake drum in the tests both fill them in.
 
-// One half-step of the stepper. dir = +1 is counter-clockwise (the direction used for homing and for the final approach).
 class StepperPort {
- public:
-  virtual ~StepperPort() {}
-  virtual void step(int dir) = 0;
-  virtual void release() = 0;  // coils off, so the ULN2003 and the motor do not heat up while idle
+public:
+    virtual ~StepperPort() {}
+    virtual void step(int dir) = 0;   // one half-step. dir = +1 is counter-clockwise, -1 is clockwise
+    virtual void release() = 0;       // switch all the coils off so nothing gets hot
 };
 
-// True while the magnet is over the sensor. The A3144 output is LOW at the magnet; the hardware layer inverts it.
 class HomeSensor {
- public:
-  virtual ~HomeSensor() {}
-  virtual bool active() = 0;
+public:
+    virtual ~HomeSensor() {}
+    virtual bool active() = 0;        // true while the magnet is over the sensor
 };
 
-enum RotState : uint8_t { ROT_UNHOMED = 0, ROT_HOMING, ROT_IDLE, ROT_MOVING, ROT_FAULT };
-enum RotFault : uint8_t { FAULT_NONE = 0, FAULT_HOME_NOT_FOUND };
+// ---------- states ----------
+enum RotState {
+    ROT_UNHOMED,   // position not known yet
+    ROT_HOMING,    // looking for the Hall sensor
+    ROT_IDLE,      // homed and standing still
+    ROT_MOVING,    // turning to a station
+    ROT_FAULT      // something went wrong (see RotFault)
+};
 
+enum RotFault {
+    FAULT_NONE,
+    FAULT_HOME_NOT_FOUND   // turned 125% of a turn and never saw the magnet
+};
+
+// ---------- settings ----------
 struct RotationConfig {
-  uint16_t stepsPerRev = 4096;       // 28BYJ-48 in half-step mode (2048 full steps x 2)
-  float homeOffsetDeg = 3.66f;       // from the Hall edge to the RED station
-  float overshootDeg = 3.0f;         // clockwise moves overshoot by this much and come back counter-clockwise
-  bool unidirectional = true;        // always arrive moving counter-clockwise (removes gear lash)
-  uint16_t searchLimitPercent = 125; // give up on the home search after this much of a turn
-  uint32_t startIntervalUs = 4000;   // first step interval, ramps down to minIntervalUs
-  uint32_t minIntervalUs = 1500;
-  uint16_t rampSteps = 120;
-  bool releaseWhenIdle = true;
+    int stepsPerRev;               // half-steps for one full turn (28BYJ-48: 2048 x 2 = 4096)
+    float homeOffsetDeg;           // degrees from the Hall edge to the RED station
+    float overshootDeg;            // clockwise moves go this far past the target and come back
+    bool unidirectional;           // always finish moving counter-clockwise (takes out gear lash)
+    int searchLimitPercent;        // give up the home search after this much of a turn
+    uint32_t startIntervalUs;      // time between steps at the start (slow)
+    uint32_t minIntervalUs;        // time between steps at full speed
+    int rampSteps;                 // how many steps the speed-up takes
+    bool releaseWhenIdle;          // coils off when the drum stands still
+
+    RotationConfig();              // fills in the default values
 };
 
+// ---------- the controller ----------
 class Rotation {
- public:
-  Rotation(StepperPort& stepper, HomeSensor& hall, const RotationConfig& config = RotationConfig());
+private:
+    // the jobs that update() can be busy with
+    enum Job {
+        JOB_NONE,
+        JOB_LEAVE_MAGNET,   // the drum started on the magnet, so first get off it
+        JOB_SEARCH,         // turn until the sensor sees the magnet
+        JOB_OFFSET,         // move from the sensor edge to the RED station
+        JOB_INDEX           // move to a colour station
+    };
 
-  // The guard that stands in for canRotate() of the simulation: return false while the dispenser must not rotate
-  // (a dispense is running, a cap is open, a lift is in progress). Checked when a move is requested.
-  void setInterlock(bool (*allowed)(void*), void* context);
+    StepperPort* stepper;
+    HomeSensor* hall;
+    RotationConfig cfg;
 
-  bool requestHome();            // false when busy or the interlock refuses
-  bool requestIndex(Color c);    // false when not homed, busy, faulted or the interlock refuses
-  void clearFault();             // a faulted drum must be homed again
-  void update(uint32_t nowUs);
+    bool (*interlock)(void*);   // returns false when turning is not allowed
+    void* interlockContext;
 
-  RotState state() const { return state_; }
-  RotFault fault() const { return fault_; }
-  bool busy() const { return state_ == ROT_HOMING || state_ == ROT_MOVING; }
-  int32_t position() const { return pos_; }  // steps counted from the RED station, -1 while unknown
-  Color atStation() const;                   // NO_COLOR while moving, unhomed or between stations
-  uint16_t stepsPerRev() const { return cfg_.stepsPerRev; }
+    RotState state;
+    RotFault fault;
+    Job job;
+    int pos;                // position in steps counted from RED, -1 when unknown
+    int seg[2];             // the (at most two) pieces of the current move
+    int segCount;
+    int segIndex;
+    int remaining;          // steps left in the current piece
+    int searched;           // steps taken during the home search
+    int stepsDone;          // steps taken in the current piece (used for the speed ramp)
+    int dir;                // +1 or -1
+    uint32_t nextUs;        // when the next step is due
+    bool timing;            // false until the first update() of a job
 
-  static int32_t stationSteps(Color c, uint16_t stepsPerRev);
-  // Splits a move from `from` to `to` on a circle of n steps into at most two signed segments. Returns the segment count.
-  static uint8_t planIndex(int32_t from, int32_t to, int32_t n, int32_t overshoot, bool unidirectional, int32_t seg[2]);
+    bool interlockAllows();
+    void beginSegment();
+    void finishHome();
+    void finishIndex();
+    uint32_t intervalUs();
 
- private:
-  enum Job : uint8_t { JOB_NONE = 0, JOB_LEAVE_MAGNET, JOB_SEARCH, JOB_OFFSET, JOB_INDEX };
+public:
+    Rotation(StepperPort* stepperPtr, HomeSensor* hallPtr, RotationConfig config = RotationConfig());
 
-  bool interlockOk() const { return !interlock_ || interlock_(context_); }
-  void beginSegment();
-  void finishHome();
-  void finishIndex();
-  uint32_t intervalUs() const;
+    // Stops the drum from turning while the dispenser is busy (the callback returns false).
+    void setInterlock(bool (*allowed)(void*), void* context);
 
-  StepperPort& stepper_;
-  HomeSensor& hall_;
-  RotationConfig cfg_;
-  bool (*interlock_)(void*);
-  void* context_;
+    bool requestHome();          // false if busy or the interlock says no
+    bool requestIndex(Color c);  // false if not homed, busy, in a fault or the interlock says no
+    void clearFault();           // after a fault the drum has to be homed again
+    void update(uint32_t nowUs); // call this as often as possible
 
-  RotState state_;
-  RotFault fault_;
-  Job job_;
-  int32_t pos_;
-  int32_t seg_[2];
-  uint8_t segCount_, segIndex_;
-  int32_t remaining_;      // steps left in the current index segment or home offset
-  int32_t searched_;       // steps taken during the home search
-  int32_t stepsDone_;      // steps since the current segment began (for the ramp)
-  int dir_;
-  Color target_;
-  uint32_t nextUs_;
-  bool timing_;
+    RotState getState() { return state; }
+    RotFault getFault() { return fault; }
+    bool isBusy() { return state == ROT_HOMING || state == ROT_MOVING; }
+    int getPosition() { return pos; }
+    int getStepsPerRev() { return cfg.stepsPerRev; }
+    Color atStation();           // NO_COLOR while moving, not homed or between stations
+
+    // Step position of a colour station, counted from RED.
+    static int stationSteps(Color c, int stepsPerRev);
+
+    // Plans a move on a circle of n steps. Writes at most two pieces into seg[] and returns how many.
+    // With unidirectional = true a clockwise move is split into "go past the target, then come back counter-clockwise".
+    static int planIndex(int from, int to, int n, int overshoot, bool unidirectional, int seg[2]);
 };
 
-}  // namespace dispenser
+#endif

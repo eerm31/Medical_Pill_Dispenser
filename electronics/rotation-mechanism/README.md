@@ -15,7 +15,7 @@ Port of `docs/visualizer/rotation-controller.js`.
 
 ```text
 firmware/
-  core/    portable C++11, no Arduino: colors.h, rotation.h/.cpp
+  core/    portable C++11, no Arduino: colors.h/.cpp, rotation.h/.cpp
   hw/      Arduino only: uln2003_stepper.h (stepper + Hall sensor)
   config.h pin plan and constants (matches docs/visualizer/wiring-spec.js)
   main.cpp serial console: home, index <colour>, status, recover
@@ -27,7 +27,7 @@ library.json, platformio.ini
 
 ```bash
 cd electronics/rotation-mechanism/test
-make     # runs 104 checks, then syntax-checks main.cpp against an Arduino stub
+make     # runs 162 checks, then syntax-checks main.cpp against an Arduino stub
 ```
 
 ## Build for the board

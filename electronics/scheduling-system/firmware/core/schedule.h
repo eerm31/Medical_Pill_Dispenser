@@ -1,82 +1,105 @@
-// Dose schedule: a clock, up to 8 entries (pill colour + HH:MM) and their status.
-// Port of docs/visualizer/schedule-controller.js. A due dose waits for a tap; the tap (not the clock) starts the dispense.
-// No heap, no randomness, no network time: the caller supplies the time of day.
-#pragma once
-#include <stddef.h>
+// schedule.h
+// The dose schedule: a clock and up to 8 scheduled doses (pill colour + time of day).
+// Based on docs/visualizer/schedule-controller.js (school project, not medical advice).
+//
+// A dose becomes DUE when the clock reaches its time. It is only dispensed after the user taps TAKE.
+// The clock alone never starts a dispense.
 
+#ifndef SCHEDULE_H
+#define SCHEDULE_H
+
+#include <stdint.h>
+#include <stddef.h>
 #include "core/colors.h"
 
-namespace dispenser {
+#define MAX_ENTRIES 8        // how many doses can be scheduled
+#define MAX_PILLS 5          // most pills in one dose
+#define GRACE_MIN 30         // minutes a due dose can wait before it counts as MISSED
+#define DAY_SECONDS 86400    // seconds in one day
 
-// Result of the verification subsystem for one dispense. Only VERIFIED counts as taken.
-enum Verdict : uint8_t { VERDICT_NONE = 0, VERIFIED, NO_PILL, MULTIPLE, COUNT_MISMATCH };
+// What the verification subsystem found after a dispense. Only VERIFIED counts as taken.
+enum Verdict {
+    VERDICT_NONE = 0,
+    VERIFIED,
+    NO_PILL,
+    MULTIPLE,
+    COUNT_MISMATCH
+};
 
-inline const char* verdictName(Verdict v) {
-  static const char* const names[] = {"none", "VERIFIED", "NO_PILL", "MULTIPLE", "COUNT_MISMATCH"};
-  return v <= COUNT_MISMATCH ? names[v] : "?";
-}
+const char* verdictName(Verdict v);
 
-enum EntryStatus : uint8_t { PENDING = 0, DUE, TAKING, TAKEN, MISSED, FAILED };
+enum EntryStatus {
+    PENDING,   // waiting for its time
+    DUE,       // time reached, waiting for the tap
+    TAKING,    // the tap happened, the pill is being dispensed
+    TAKEN,     // dispensed and verified
+    MISSED,    // nobody tapped within the grace time
+    FAILED     // dispensed but not verified
+};
 
 struct Entry {
-  uint8_t id;
-  Color color;
-  uint16_t minutes;  // minutes after midnight
-  EntryStatus status;
-  bool tomorrow;     // added after its time (plus grace) had already passed today
-  Verdict verdict;
+    uint8_t id;
+    Color color;
+    uint16_t minutes;     // time of day in minutes after midnight
+    uint8_t pills;        // how many pills to dispense (1 to MAX_PILLS)
+    EntryStatus status;
+    bool tomorrow;        // added after its time had passed today, so it counts for tomorrow
+    Verdict verdict;
 };
 
-enum AddResult : uint8_t { ADD_OK = 0, ADD_BAD_COLOR, ADD_BAD_TIME, ADD_FULL, ADD_DUPLICATE };
+enum AddResult {
+    ADD_OK,
+    ADD_BAD_COLOR,
+    ADD_BAD_TIME,
+    ADD_FULL,
+    ADD_DUPLICATE,
+    ADD_BAD_PILLS
+};
 
 class Scheduler {
- public:
-  static const uint8_t MAX_ENTRIES = 8;
-  static const uint16_t GRACE_MIN = 30;  // a dose that is not taken within 30 minutes becomes MISSED
-  static const uint32_t DAY_S = 86400;
+private:
+    Entry entries[MAX_ENTRIES];
+    int count;           // how many entries are used
+    uint8_t nextId;      // the id the next entry gets
+    uint32_t seconds;    // the clock: seconds since midnight
 
-  explicit Scheduler(uint32_t startSeconds = 8UL * 3600UL);
+    Entry* findEntry(uint8_t id);
+    void evaluate();     // updates PENDING -> DUE -> MISSED from the clock
+    void newDay();
+    static bool comesBefore(const Entry* a, const Entry* b);
 
-  // "H:MM" or "HH:MM", 00:00 to 23:59. Returns false for anything else.
-  static bool parseTime(const char* text, uint16_t* minutes);
-  static void formatTime(uint16_t minutes, char out[6]);
-  static const char* statusName(EntryStatus s);
+public:
+    Scheduler(uint32_t startSeconds = 8 * 3600);
 
-  AddResult add(Color color, uint16_t minutes, uint8_t* idOut = nullptr);
-  bool remove(uint8_t id);
+    // Reads "H:MM" or "HH:MM" (00:00 to 23:59). Returns false if the text is not a valid time.
+    static bool parseTime(const char* text, int* minutes);
+    static void formatTime(int minutes, char out[6]);
+    static const char* statusName(EntryStatus s);
 
-  // Time of day in seconds (0..86399), for example from an RTC. A value lower than the previous one means midnight passed.
-  void setClock(uint32_t secondsOfDay);
-  // Moves the clock forward (tests and the serial console); handles midnight.
-  void advanceSeconds(uint32_t seconds);
-  uint32_t clock() const { return seconds_; }
+    AddResult add(Color color, int minutes, uint8_t* idOut = NULL, int pills = 1);
+    bool remove(uint8_t id);
 
-  uint8_t count() const { return count_; }
-  const Entry* find(uint8_t id) const;
-  // Entries in time order (then colour order). Returns how many were written (at most MAX_ENTRIES).
-  uint8_t sorted(const Entry* out[MAX_ENTRIES]) const;
-  const Entry* due() const;   // earliest DUE entry, or nullptr
-  const Entry* next() const;  // earliest PENDING entry (today first), or nullptr
+    // Sets the clock, for example from an RTC. If the new time is earlier than the old one, midnight has passed.
+    void setClock(uint32_t secondsOfDay);
+    // Moves the clock forward (used by the tests and the serial console).
+    void advanceSeconds(uint32_t secondsToAdd);
+    uint32_t getClock() { return seconds; }
 
-  // Take flow. DUE -> TAKING -> TAKEN (only for VERIFIED) or FAILED.
-  bool beginTake(uint8_t id);
-  void abortTake(uint8_t id);
-  bool finishTake(uint8_t id, Verdict verdict);
+    int getCount() { return count; }
+    const Entry* find(uint8_t id);
+    // Writes pointers to all entries into out[], earliest first. Returns how many there are.
+    int sorted(const Entry* out[MAX_ENTRIES]);
+    const Entry* due();    // the earliest DUE entry, or NULL
+    const Entry* next();   // the next PENDING entry (today's first), or NULL
 
-  // Entries survive a power cycle: the caller stores these bytes (for example in NVS). Statuses are rebuilt from the clock.
-  size_t save(uint8_t* buf, size_t capacity) const;
-  bool load(const uint8_t* buf, size_t length);
+    // The take flow: DUE -> TAKING -> TAKEN (only if VERIFIED) or FAILED.
+    bool beginTake(uint8_t id);
+    void abortTake(uint8_t id);              // TAKING goes back to DUE
+    bool finishTake(uint8_t id, Verdict verdict);
 
- private:
-  Entry* findMutable(uint8_t id);
-  void evaluate();
-  void newDay();
-  static bool before(const Entry* a, const Entry* b);
-
-  Entry entries_[MAX_ENTRIES];
-  uint8_t count_;
-  uint8_t nextId_;
-  uint32_t seconds_;
+    // Saving the entries, so they survive a power cycle. The caller stores the bytes (for example in NVS).
+    size_t save(uint8_t* buffer, size_t capacity);
+    bool load(const uint8_t* buffer, size_t length);
 };
 
-}  // namespace dispenser
+#endif

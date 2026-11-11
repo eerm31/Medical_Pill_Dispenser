@@ -1,163 +1,285 @@
+// rotation.cpp
+
+#include <stddef.h>
 #include "rotation.h"
 
-namespace dispenser {
-
-static int32_t mod32(int32_t a, int32_t n) {
-  int32_t r = a % n;
-  return r < 0 ? r + n : r;
+// ---------- default settings ----------
+RotationConfig::RotationConfig() {
+    stepsPerRev = 4096;
+    homeOffsetDeg = 3.66f;
+    overshootDeg = 3.0f;
+    unidirectional = true;
+    searchLimitPercent = 125;
+    startIntervalUs = 4000;
+    minIntervalUs = 1500;
+    rampSteps = 120;
+    releaseWhenIdle = true;
 }
 
-Rotation::Rotation(StepperPort& stepper, HomeSensor& hall, const RotationConfig& config)
-    : stepper_(stepper), hall_(hall), cfg_(config), interlock_(nullptr), context_(nullptr),
-      state_(ROT_UNHOMED), fault_(FAULT_NONE), job_(JOB_NONE), pos_(-1), segCount_(0), segIndex_(0),
-      remaining_(0), searched_(0), stepsDone_(0), dir_(1), target_(NO_COLOR), nextUs_(0), timing_(false) {
-  seg_[0] = seg_[1] = 0;
+// % can give a negative result in C++, this one never does.
+static int positiveMod(int a, int n) {
+    int r = a % n;
+    if (r < 0) {
+        r = r + n;
+    }
+    return r;
+}
+
+// ---------- constructor ----------
+Rotation::Rotation(StepperPort* stepperPtr, HomeSensor* hallPtr, RotationConfig config) {
+    stepper = stepperPtr;
+    hall = hallPtr;
+    cfg = config;
+    interlock = NULL;
+    interlockContext = NULL;
+    state = ROT_UNHOMED;
+    fault = FAULT_NONE;
+    job = JOB_NONE;
+    pos = -1;
+    seg[0] = 0;
+    seg[1] = 0;
+    segCount = 0;
+    segIndex = 0;
+    remaining = 0;
+    searched = 0;
+    stepsDone = 0;
+    dir = 1;
+    nextUs = 0;
+    timing = false;
 }
 
 void Rotation::setInterlock(bool (*allowed)(void*), void* context) {
-  interlock_ = allowed;
-  context_ = context;
+    interlock = allowed;
+    interlockContext = context;
 }
 
-int32_t Rotation::stationSteps(Color c, uint16_t n) {
-  if (c >= COLOR_COUNT) return -1;
-  return mod32((static_cast<int32_t>(c) * n + 2) / 4, n);
+bool Rotation::interlockAllows() {
+    if (interlock == NULL) {
+        return true;   // no interlock set
+    }
+    return interlock(interlockContext);
 }
 
-// Same planner as planOnCircle() in the simulation: shortest way round; a clockwise result is split into
-// "go past the target, then come back counter-clockwise" when the move must end counter-clockwise.
-uint8_t Rotation::planIndex(int32_t from, int32_t to, int32_t n, int32_t overshoot, bool unidirectional, int32_t seg[2]) {
-  int32_t s = mod32(to - from, n);
-  if (s * 2 > n) s -= n;
-  if (s == 0) return 0;
-  if (s > 0 || !unidirectional) {
-    seg[0] = s;
-    return 1;
-  }
-  seg[0] = s - overshoot;
-  seg[1] = overshoot;
-  return 2;
+// ---------- stations and planning ----------
+int Rotation::stationSteps(Color c, int stepsPerRev) {
+    if (c >= COLOR_COUNT) {
+        return -1;
+    }
+    // the stations are a quarter turn apart
+    return positiveMod((c * stepsPerRev + 2) / 4, stepsPerRev);
 }
 
-Color Rotation::atStation() const {
-  if (state_ != ROT_IDLE || pos_ < 0) return NO_COLOR;
-  for (uint8_t c = 0; c < COLOR_COUNT; c++)
-    if (stationSteps(static_cast<Color>(c), cfg_.stepsPerRev) == pos_) return static_cast<Color>(c);
-  return NO_COLOR;
+int Rotation::planIndex(int from, int to, int n, int overshoot, bool unidirectional, int seg[2]) {
+    // s is the shortest way from "from" to "to" (positive = counter-clockwise)
+    int s = positiveMod(to - from, n);
+    if (s * 2 > n) {
+        s = s - n;
+    }
+
+    if (s == 0) {
+        return 0;   // already there
+    }
+
+    // counter-clockwise, or we do not care about the direction: one piece
+    if (s > 0 || unidirectional == false) {
+        seg[0] = s;
+        return 1;
+    }
+
+    // clockwise but we want to arrive counter-clockwise:
+    // go past the target and come back
+    seg[0] = s - overshoot;
+    seg[1] = overshoot;
+    return 2;
 }
 
+Color Rotation::atStation() {
+    if (state != ROT_IDLE || pos < 0) {
+        return NO_COLOR;
+    }
+    int i;
+    for (i = 0; i < COLOR_COUNT; i++) {
+        Color c = (Color)i;
+        if (stationSteps(c, cfg.stepsPerRev) == pos) {
+            return c;
+        }
+    }
+    return NO_COLOR;
+}
+
+// ---------- requests ----------
 bool Rotation::requestHome() {
-  if (busy() || !interlockOk()) return false;
-  state_ = ROT_HOMING;
-  fault_ = FAULT_NONE;
-  pos_ = -1;
-  searched_ = 0;
-  stepsDone_ = 0;
-  dir_ = 1;
-  job_ = hall_.active() ? JOB_LEAVE_MAGNET : JOB_SEARCH;  // on the magnet already: leave it, then find its edge
-  timing_ = false;
-  return true;
+    if (isBusy() || interlockAllows() == false) {
+        return false;
+    }
+
+    state = ROT_HOMING;
+    fault = FAULT_NONE;
+    pos = -1;
+    searched = 0;
+    stepsDone = 0;
+    dir = 1;
+    timing = false;
+
+    // if the magnet is already over the sensor we cannot see its edge, so leave it first
+    if (hall->active()) {
+        job = JOB_LEAVE_MAGNET;
+    } else {
+        job = JOB_SEARCH;
+    }
+    return true;
 }
 
 bool Rotation::requestIndex(Color c) {
-  if (c >= COLOR_COUNT || state_ != ROT_IDLE || !interlockOk()) return false;
-  int32_t n = cfg_.stepsPerRev, over = static_cast<int32_t>(cfg_.overshootDeg * n / 360.0f + 0.5f);
-  segCount_ = planIndex(pos_, stationSteps(c, cfg_.stepsPerRev), n, over, cfg_.unidirectional, seg_);
-  if (segCount_ == 0) return true;  // already there
-  target_ = c;
-  segIndex_ = 0;
-  state_ = ROT_MOVING;
-  job_ = JOB_INDEX;
-  timing_ = false;
-  beginSegment();
-  return true;
+    if (c >= COLOR_COUNT || state != ROT_IDLE || interlockAllows() == false) {
+        return false;
+    }
+
+    int n = cfg.stepsPerRev;
+    int overshoot = (int)(cfg.overshootDeg * n / 360.0f + 0.5f);
+    int target = stationSteps(c, n);
+
+    segCount = planIndex(pos, target, n, overshoot, cfg.unidirectional, seg);
+    if (segCount == 0) {
+        return true;   // already at the station, nothing to do
+    }
+
+    segIndex = 0;
+    state = ROT_MOVING;
+    job = JOB_INDEX;
+    timing = false;
+    beginSegment();
+    return true;
 }
 
 void Rotation::clearFault() {
-  if (state_ == ROT_FAULT) {
-    state_ = ROT_UNHOMED;
-    fault_ = FAULT_NONE;
-  }
+    if (state == ROT_FAULT) {
+        state = ROT_UNHOMED;
+        fault = FAULT_NONE;
+    }
 }
 
+// ---------- helpers for update() ----------
+// starts the piece of the move that segIndex points to
 void Rotation::beginSegment() {
-  int32_t s = seg_[segIndex_];
-  dir_ = s > 0 ? 1 : -1;
-  remaining_ = s > 0 ? s : -s;
-  stepsDone_ = 0;
+    int s = seg[segIndex];
+    if (s > 0) {
+        dir = 1;
+        remaining = s;
+    } else {
+        dir = -1;
+        remaining = -s;
+    }
+    stepsDone = 0;
 }
 
-// Trapezoid by step count: the interval falls from startIntervalUs to minIntervalUs over rampSteps and rises again at the end.
-uint32_t Rotation::intervalUs() const {
-  int32_t r = stepsDone_;
-  if (job_ == JOB_INDEX || job_ == JOB_OFFSET) r = r < remaining_ ? r : remaining_;
-  if (r > cfg_.rampSteps) r = cfg_.rampSteps;
-  uint32_t span = cfg_.startIntervalUs - cfg_.minIntervalUs;
-  return cfg_.startIntervalUs - span * static_cast<uint32_t>(r) / cfg_.rampSteps;
+// Time between two steps. It starts slow, gets faster and slows down again before the end.
+uint32_t Rotation::intervalUs() {
+    int r = stepsDone;   // steps since the start of this piece
+    if (job == JOB_INDEX || job == JOB_OFFSET) {
+        if (remaining < r) {
+            r = remaining;   // close to the end: use the steps that are left
+        }
+    }
+    if (r > cfg.rampSteps) {
+        r = cfg.rampSteps;
+    }
+    uint32_t span = cfg.startIntervalUs - cfg.minIntervalUs;
+    return cfg.startIntervalUs - span * (uint32_t)r / cfg.rampSteps;
 }
 
 void Rotation::finishHome() {
-  job_ = JOB_NONE;
-  pos_ = 0;  // the RED station
-  state_ = ROT_IDLE;
-  if (cfg_.releaseWhenIdle) stepper_.release();
+    job = JOB_NONE;
+    pos = 0;   // we are at the RED station now
+    state = ROT_IDLE;
+    if (cfg.releaseWhenIdle) {
+        stepper->release();
+    }
 }
 
 void Rotation::finishIndex() {
-  job_ = JOB_NONE;
-  state_ = ROT_IDLE;
-  if (cfg_.releaseWhenIdle) stepper_.release();
+    job = JOB_NONE;
+    state = ROT_IDLE;
+    if (cfg.releaseWhenIdle) {
+        stepper->release();
+    }
 }
 
+// ---------- the main function, called all the time ----------
 void Rotation::update(uint32_t nowUs) {
-  if (job_ == JOB_NONE) return;
-  if (!timing_) {
-    timing_ = true;
-    nextUs_ = nowUs;
-  }
-  if (static_cast<int32_t>(nowUs - nextUs_) < 0) return;
+    if (job == JOB_NONE) {
+        return;   // nothing to do
+    }
 
-  stepper_.step(dir_);
-  stepsDone_++;
-  int32_t limit = static_cast<int32_t>(cfg_.stepsPerRev) * cfg_.searchLimitPercent / 100;
+    if (timing == false) {
+        timing = true;
+        nextUs = nowUs;
+    }
 
-  switch (job_) {
-    case JOB_LEAVE_MAGNET:
-    case JOB_SEARCH:
-      searched_++;
-      if (job_ == JOB_LEAVE_MAGNET) {
-        if (!hall_.active()) job_ = JOB_SEARCH;
-      } else if (hall_.active()) {  // the edge: from here the RED station is homeOffsetDeg further on
-        remaining_ = static_cast<int32_t>(cfg_.homeOffsetDeg * cfg_.stepsPerRev / 360.0f + 0.5f);
-        stepsDone_ = 0;
-        job_ = JOB_OFFSET;
-        if (remaining_ == 0) finishHome();
-        break;
-      }
-      if (searched_ >= limit) {
-        job_ = JOB_NONE;
-        state_ = ROT_FAULT;
-        fault_ = FAULT_HOME_NOT_FOUND;
-        stepper_.release();
-      }
-      break;
-    case JOB_OFFSET:
-      if (--remaining_ <= 0) finishHome();
-      break;
-    case JOB_INDEX:
-      pos_ = mod32(pos_ + dir_, cfg_.stepsPerRev);
-      if (--remaining_ <= 0) {
-        if (++segIndex_ < segCount_) beginSegment();
-        else finishIndex();
-      }
-      break;
-    default:
-      break;
-  }
+    // Is it time for the next step? (The cast to int32_t also works when micros() wraps around.)
+    if ((int32_t)(nowUs - nextUs) < 0) {
+        return;
+    }
 
-  uint32_t interval = intervalUs();
-  nextUs_ += interval;
-  if (static_cast<int32_t>(nowUs - nextUs_) > static_cast<int32_t>(interval) * 4) nextUs_ = nowUs + interval;  // fell behind: do not burst
+    // make one step
+    stepper->step(dir);
+    stepsDone++;
+
+    int limit = cfg.stepsPerRev * cfg.searchLimitPercent / 100;
+
+    if (job == JOB_LEAVE_MAGNET || job == JOB_SEARCH) {
+        searched++;
+        bool foundEdge = false;
+
+        if (job == JOB_LEAVE_MAGNET) {
+            if (hall->active() == false) {
+                job = JOB_SEARCH;   // off the magnet, now look for its edge
+            }
+        } else {
+            if (hall->active()) {
+                foundEdge = true;
+            }
+        }
+
+        if (foundEdge) {
+            // the RED station is homeOffsetDeg further on
+            remaining = (int)(cfg.homeOffsetDeg * cfg.stepsPerRev / 360.0f + 0.5f);
+            stepsDone = 0;
+            job = JOB_OFFSET;
+            if (remaining == 0) {
+                finishHome();
+            }
+        } else if (searched >= limit) {
+            // searched too long, the sensor or magnet must be missing
+            job = JOB_NONE;
+            state = ROT_FAULT;
+            fault = FAULT_HOME_NOT_FOUND;
+            stepper->release();
+        }
+    } else if (job == JOB_OFFSET) {
+        remaining--;
+        if (remaining <= 0) {
+            finishHome();
+        }
+    } else if (job == JOB_INDEX) {
+        pos = positiveMod(pos + dir, cfg.stepsPerRev);
+        remaining--;
+        if (remaining <= 0) {
+            segIndex++;
+            if (segIndex < segCount) {
+                beginSegment();   // second piece of the move (the way back after an overshoot)
+            } else {
+                finishIndex();
+            }
+        }
+    }
+
+    // work out when the next step is due
+    uint32_t interval = intervalUs();
+    nextUs = nextUs + interval;
+
+    // if we fell far behind, do not try to catch up with a burst of steps
+    if ((int32_t)(nowUs - nextUs) > (int32_t)(interval * 4)) {
+        nextUs = nowUs + interval;
+    }
 }
-
-}  // namespace dispenser

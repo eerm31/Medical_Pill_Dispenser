@@ -34,17 +34,17 @@ def test_firmware_host_tests_pass(system):
 
 def test_schedule_constants_match_the_simulation():
     js, cpp = _read(VIS / "schedule-controller.js"), _read(SCHED / "firmware" / "core" / "schedule.h")
-    assert re.search(r"GRACE_MIN = (\d+)", js).group(1) == re.search(r"GRACE_MIN = (\d+)", cpp).group(1)
-    assert re.search(r"MAX_ENTRIES = (\d+)", js).group(1) == re.search(r"MAX_ENTRIES = (\d+)", cpp).group(1)
+    assert re.search(r"GRACE_MIN = (\d+)", js).group(1) == re.search(r"#define GRACE_MIN (\d+)", cpp).group(1)
+    assert re.search(r"MAX_ENTRIES = (\d+)", js).group(1) == re.search(r"#define MAX_ENTRIES (\d+)", cpp).group(1)
     colors = re.findall(r"'(\w+)'", re.search(r"COLORS = \[(.*?)\]", js).group(1))
-    types = _read(ROT / "firmware" / "core" / "colors.h")
-    assert colors == re.findall(r'"(\w+)"', re.search(r"names\[\] = \{(.*?)\}", types, re.S).group(1))
+    names = _read(ROT / "firmware" / "core" / "colors.cpp")
+    assert colors == [n for n in re.findall(r'return "(\w+)";', names) if n != "none"]
 
 
 def test_rotation_constants_match_the_simulation():
-    js, cpp = _read(VIS / "rotation-controller.js"), _read(ROT / "firmware" / "core" / "rotation.h")
+    js, cpp = _read(VIS / "rotation-controller.js"), _read(ROT / "firmware" / "core" / "rotation.cpp")
     for js_name, cpp_name in (("home_offset_deg", "homeOffsetDeg"), ("overshoot_deg", "overshootDeg")):
-        assert float(re.search(js_name + r": ([0-9.]+)", js).group(1)) == float(re.search(cpp_name + r" = ([0-9.]+)f", cpp).group(1))
+        assert float(re.search(js_name + r": ([0-9.]+)", js).group(1)) == float(re.search(cpp_name + r" = ([0-9.]+)f;", cpp).group(1))
     full_steps = int(re.search(r"steps_per_rev: (\d+)", js).group(1))
     assert int(re.search(r"stepsPerRev = (\d+)", cpp).group(1)) == 2 * full_steps  # the firmware counts half-steps
     assert int(re.search(r"home_search_limit_steps: (\d+)", js).group(1)) * 100 // full_steps == int(re.search(r"searchLimitPercent = (\d+)", cpp).group(1))

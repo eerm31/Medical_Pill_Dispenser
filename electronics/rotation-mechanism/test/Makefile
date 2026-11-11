@@ -1,18 +1,21 @@
-# Host tests for the rotation mechanism: make   (needs a C++11 compiler, no Arduino, no hardware)
+# Tests for the rotation mechanism. Run with: make
+# Needs a C++ compiler. No Arduino and no hardware.
 CXX ?= g++
 CXXFLAGS ?= -std=c++11 -Wall -Wextra -Werror -O1
 FW := ../firmware
+SOURCES := $(FW)/core/rotation.cpp $(FW)/core/colors.cpp test_main.cpp
 
 all: build/test_main check-firmware
 	./build/test_main
 
-# main.cpp and the hardware layer cannot run on a laptop, but they must at least compile against a stub of the Arduino core.
+# main.cpp and the hardware file need the Arduino library, so they cannot run on a laptop.
+# We only check that they compile, using a tiny fake Arduino.h from arduino_stub/.
 check-firmware:
 	$(CXX) -std=c++11 -Wall -Wextra -fsyntax-only -Iarduino_stub -I$(FW) $(FW)/main.cpp
 
-build/test_main: $(FW)/core/rotation.cpp test_main.cpp fake_drive.h $(wildcard $(FW)/core/*.h)
+build/test_main: $(SOURCES) fake_drive.h $(wildcard $(FW)/core/*.h)
 	mkdir -p build
-	$(CXX) $(CXXFLAGS) -I$(FW) $(FW)/core/rotation.cpp test_main.cpp -o $@
+	$(CXX) $(CXXFLAGS) -I$(FW) $(SOURCES) -o $@
 
 clean:
 	rm -rf build

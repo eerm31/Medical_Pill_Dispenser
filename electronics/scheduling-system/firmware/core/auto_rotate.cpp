@@ -1,146 +1,213 @@
+// auto_rotate.cpp
+
+#include <stddef.h>
 #include "auto_rotate.h"
 
-namespace dispenser {
-
-AutoRotate::AutoRotate(Scheduler& schedule, Rotation& rotation, Dispenser& dispenser, const AutoConfig& config)
-    : schedule_(schedule), rotation_(rotation), dispenser_(dispenser), cfg_(config), state_(AUTO_START),
-      takingId_(0), takeColor_(NO_COLOR), takeQueued_(false), message_("") {
-  rotation_.setInterlock(&AutoRotate::interlock, this);
+AutoConfig::AutoConfig() {
+    prePosition = true;
+    parkAfter = true;
+    parkColor = RED;
 }
 
-// The drum must not turn while a dose is being dispensed.
-bool AutoRotate::interlock(void* self) {
-  return static_cast<AutoRotate*>(self)->state_ != AUTO_DISPENSING;
+AutoRotate::AutoRotate(Scheduler* schedulePtr, Rotation* rotationPtr, Dispenser* dispenserPtr, AutoConfig config) {
+    schedule = schedulePtr;
+    rotation = rotationPtr;
+    dispenser = dispenserPtr;
+    cfg = config;
+    state = AUTO_START;
+    takingId = 0;
+    takeColor = NO_COLOR;
+    takePills = 1;
+    takeQueued = false;
+    message = "";
+
+    // the drum must not turn while a pill is being dispensed
+    rotation->setInterlock(interlockCheck, this);
 }
 
-const char* AutoRotate::stateName() const {
-  static const char* const names[] = {"START", "HOMING", "IDLE", "POSITIONING", "READY", "DISPENSING", "PARKING", "FAULT"};
-  return names[state_];
+bool AutoRotate::interlockCheck(void* self) {
+    AutoRotate* me = (AutoRotate*)self;
+    return me->state != AUTO_DISPENSING;
+}
+
+const char* AutoRotate::stateName() {
+    if (state == AUTO_START) {
+        return "START";
+    }
+    if (state == AUTO_HOMING) {
+        return "HOMING";
+    }
+    if (state == AUTO_IDLE) {
+        return "IDLE";
+    }
+    if (state == AUTO_POSITIONING) {
+        return "POSITIONING";
+    }
+    if (state == AUTO_READY) {
+        return "READY";
+    }
+    if (state == AUTO_DISPENSING) {
+        return "DISPENSING";
+    }
+    if (state == AUTO_PARKING) {
+        return "PARKING";
+    }
+    return "FAULT";
 }
 
 void AutoRotate::begin() {
-  if (state_ != AUTO_START) return;
-  if (rotation_.requestHome()) state_ = AUTO_HOMING;
-  else message_ = "home search refused";
+    if (state != AUTO_START) {
+        return;
+    }
+    if (rotation->requestHome()) {
+        state = AUTO_HOMING;
+    } else {
+        message = "home search refused";
+    }
 }
 
 void AutoRotate::recover() {
-  if (state_ != AUTO_FAULT) return;
-  rotation_.clearFault();
-  message_ = "";
-  state_ = AUTO_START;
-  begin();
+    if (state != AUTO_FAULT) {
+        return;
+    }
+    rotation->clearFault();
+    message = "";
+    state = AUTO_START;
+    begin();
 }
 
-void AutoRotate::toIdle() {
-  takeQueued_ = false;
-  state_ = AUTO_IDLE;
+void AutoRotate::goIdle() {
+    takeQueued = false;
+    state = AUTO_IDLE;
 }
 
+// Something went wrong with a dose that was being taken: put it back to DUE and remember why.
 void AutoRotate::failTake(const char* why) {
-  if (takeQueued_ || state_ == AUTO_DISPENSING) schedule_.abortTake(takingId_);  // the dose goes back to DUE
-  message_ = why;
-  takeQueued_ = false;
+    if (takeQueued || state == AUTO_DISPENSING) {
+        schedule->abortTake(takingId);
+    }
+    message = why;
+    takeQueued = false;
 }
 
 void AutoRotate::startDispense() {
-  takeQueued_ = false;
-  if (dispenser_.start(takeColor_)) {
-    state_ = AUTO_DISPENSING;
-    message_ = "";
-  } else {
-    schedule_.abortTake(takingId_);
-    message_ = "dispenser refused";
-    toIdle();
-  }
+    takeQueued = false;
+    if (dispenser->start(takeColor, takePills)) {
+        state = AUTO_DISPENSING;
+        message = "";
+    } else {
+        schedule->abortTake(takingId);
+        message = "dispenser refused";
+        goIdle();
+    }
 }
 
+// ---------- the tap on TAKE ----------
 bool AutoRotate::takePressed() {
-  if (state_ != AUTO_IDLE && state_ != AUTO_POSITIONING && state_ != AUTO_READY) {
-    message_ = "not ready";
+    // only possible when the drum is homed and not busy dispensing
+    if (state != AUTO_IDLE && state != AUTO_POSITIONING && state != AUTO_READY) {
+        message = "not ready";
+        return false;
+    }
+
+    const Entry* d = schedule->due();
+    if (d == NULL) {
+        message = "no dose is due";
+        return false;
+    }
+
+    takingId = d->id;
+    takeColor = d->color;
+    takePills = d->pills;
+    if (schedule->beginTake(takingId) == false) {
+        return false;
+    }
+    message = "";
+
+    // the drum is already at the right colour: dispense now
+    if (rotation->atStation() == takeColor) {
+        startDispense();
+        return state == AUTO_DISPENSING;
+    }
+
+    // the drum is already turning there (pre-positioning): the dispense starts when it arrives
+    if (state == AUTO_POSITIONING && rotation->isBusy()) {
+        takeQueued = true;
+        return true;
+    }
+
+    // otherwise start turning now
+    if (rotation->requestIndex(takeColor)) {
+        takeQueued = true;
+        state = AUTO_POSITIONING;
+        return true;
+    }
+
+    schedule->abortTake(takingId);
+    message = "drum cannot turn now";
     return false;
-  }
-  const Entry* d = schedule_.due();
-  if (!d) {
-    message_ = "no dose is due";
-    return false;
-  }
-  takingId_ = d->id;
-  takeColor_ = d->color;
-  if (!schedule_.beginTake(takingId_)) return false;
-  message_ = "";
-  if (rotation_.atStation() == takeColor_) {
-    startDispense();
-    return state_ == AUTO_DISPENSING;
-  }
-  if (state_ == AUTO_POSITIONING && rotation_.busy()) {  // already turning (pre-positioning): the dispense follows on arrival
-    takeQueued_ = true;
-    return true;
-  }
-  if (rotation_.requestIndex(takeColor_)) {
-    takeQueued_ = true;
-    state_ = AUTO_POSITIONING;
-    return true;
-  }
-  schedule_.abortTake(takingId_);
-  message_ = "drum cannot turn now";
-  return false;
 }
 
+// ---------- the state machine ----------
 void AutoRotate::update(uint32_t nowUs) {
-  rotation_.update(nowUs);
+    rotation->update(nowUs);
 
-  if (rotation_.state() == ROT_FAULT && state_ != AUTO_FAULT) {
-    failTake("rotation fault: home sensor not found");
-    state_ = AUTO_FAULT;
-    return;
-  }
-
-  switch (state_) {
-    case AUTO_HOMING:
-      if (rotation_.state() == ROT_IDLE) toIdle();
-      break;
-
-    case AUTO_IDLE: {
-      const Entry* d = schedule_.due();
-      if (!d) break;
-      if (rotation_.atStation() == d->color) state_ = AUTO_READY;
-      else if (cfg_.prePosition && rotation_.requestIndex(d->color)) state_ = AUTO_POSITIONING;
-      break;
+    // a rotation fault stops everything
+    if (rotation->getState() == ROT_FAULT && state != AUTO_FAULT) {
+        failTake("rotation fault: home sensor not found");
+        state = AUTO_FAULT;
+        return;
     }
 
-    case AUTO_POSITIONING:
-      if (rotation_.state() != ROT_IDLE) break;
-      if (takeQueued_) {
-        if (rotation_.atStation() == takeColor_) startDispense();
-        else { failTake("drum missed the station"); toIdle(); }
-      } else {
-        state_ = AUTO_IDLE;  // arrived; the next pass decides between READY and a new target
-      }
-      break;
+    if (state == AUTO_HOMING) {
+        if (rotation->getState() == ROT_IDLE) {
+            goIdle();
+        }
+    } else if (state == AUTO_IDLE) {
+        const Entry* d = schedule->due();
+        if (d != NULL) {
+            if (rotation->atStation() == d->color) {
+                state = AUTO_READY;
+            } else if (cfg.prePosition && rotation->requestIndex(d->color)) {
+                state = AUTO_POSITIONING;
+            }
+        }
+    } else if (state == AUTO_POSITIONING) {
+        if (rotation->getState() == ROT_IDLE) {
+            if (takeQueued) {
+                // the user already tapped, so dispense as soon as the drum has arrived
+                if (rotation->atStation() == takeColor) {
+                    startDispense();
+                } else {
+                    failTake("drum missed the station");
+                    goIdle();
+                }
+            } else {
+                state = AUTO_IDLE;   // arrived; the IDLE state decides what happens next
+            }
+        }
+    } else if (state == AUTO_READY) {
+        // go back to IDLE if the dose was missed or another colour is due first
+        const Entry* d = schedule->due();
+        if (d == NULL || rotation->atStation() != d->color) {
+            state = AUTO_IDLE;
+        }
+    } else if (state == AUTO_DISPENSING) {
+        Verdict verdict = VERDICT_NONE;
+        if (dispenser->finished(&verdict)) {
+            schedule->finishTake(takingId, verdict);
+            goIdle();   // the interlock opens again as soon as we leave DISPENSING
 
-    case AUTO_READY: {
-      const Entry* d = schedule_.due();
-      if (!d || rotation_.atStation() != d->color) state_ = AUTO_IDLE;  // the dose was missed or another one is due first
-      break;
+            // go back to the park station
+            if (cfg.parkAfter && rotation->atStation() != cfg.parkColor) {
+                if (rotation->requestIndex(cfg.parkColor)) {
+                    state = AUTO_PARKING;
+                }
+            }
+        }
+    } else if (state == AUTO_PARKING) {
+        if (rotation->getState() == ROT_IDLE) {
+            goIdle();
+        }
     }
-
-    case AUTO_DISPENSING: {
-      Verdict v = VERDICT_NONE;
-      if (!dispenser_.finished(&v)) break;
-      schedule_.finishTake(takingId_, v);
-      toIdle();  // the interlock lifts as soon as the dispense is over
-      if (cfg_.parkAfter && rotation_.atStation() != cfg_.parkColor && rotation_.requestIndex(cfg_.parkColor)) state_ = AUTO_PARKING;
-      break;
-    }
-
-    case AUTO_PARKING:
-      if (rotation_.state() == ROT_IDLE) toIdle();
-      break;
-
-    default:
-      break;
-  }
 }
-
-}  // namespace dispenser
