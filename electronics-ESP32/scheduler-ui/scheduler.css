@@ -84,3 +84,13 @@ button.remove:hover:not(:disabled) { background: var(--bad-soft); border-color: 
 .icon.busy { border: 3px solid var(--line); border-top-color: var(--primary); animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 button.big { min-width: 190px; min-height: 48px; font-size: 16px; }
+
+/* modal for editing timestamps */
+.modal { position: fixed; top: 0; right: 0; bottom: 0; left: 0; display: flex; align-items: center; justify-content: center; z-index: 1000; background: rgba(23, 48, 63, .4); }
+.modal-content { padding: 22px; border-radius: 14px; background: var(--surface); box-shadow: 0 10px 40px rgba(23, 48, 63, .2); max-width: 320px; }
+.modal-content h3 { margin: 0 0 16px; font-size: 18px; }
+.modal-content label { display: block; margin-bottom: 12px; }
+.modal-buttons { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+.modal-buttons button { flex: 1; }
+button.edit-ts { min-height: 32px; padding: 3px 10px; font-size: 13px; border-color: transparent; background: transparent; color: var(--primary); }
+button.edit-ts:hover:not(:disabled) { background: var(--primary-soft); color: var(--primary-dark); }

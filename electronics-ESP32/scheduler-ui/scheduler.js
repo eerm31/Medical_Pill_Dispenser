@@ -58,24 +58,24 @@
     return 'Every ' + recur.num + ' ' + units[recur.unit] + (recur.num > 1 ? 's' : '');
   }
 
-  // record timestamps for each future dose
-  function recordTimestamps() {
-    var now = new Date(), todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    var nowMin = now.getHours() * 60 + now.getMinutes();
+  // record a timestamp when Arduino confirms the dose was actually dispensed
+  function recordDispensedTimestamp(timeStr) {
+    var now = new Date();
+    var dateStr = pad(now.getFullYear()) + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+    // find any dose that matches this time and add/update timestamp
     state.doses.forEach(function (d) {
       if (!d.timestamps) d.timestamps = [];
       var expanded = expandDose(d);
-      expanded.forEach(function (e) {
-        var eMin = parseTime(e.time);
-        // only record if time is in future (today onwards)
-        if (eMin !== null && eMin >= nowMin) {
-          var dateStr = pad(todayStart.getFullYear()) + '-' + pad(todayStart.getMonth() + 1) + '-' + pad(todayStart.getDate());
-          // check if this timestamp already exists
-          if (!d.timestamps.some(function (ts) { return ts.time === e.time && ts.date === dateStr; })) {
-            d.timestamps.push({ date: dateStr, time: e.time });
-          }
+      var matched = expanded.some(function (e) { return e.time === timeStr; });
+      if (matched) {
+        // add or update timestamp for this time
+        var existing = d.timestamps.find(function (ts) { return ts.time === timeStr && ts.date === dateStr; });
+        if (!existing) {
+          d.timestamps.push({ date: dateStr, time: timeStr });
+          save();
+          renderRows();
         }
-      });
+      }
     });
   }
 
@@ -132,14 +132,13 @@
     body.textContent = '';
     state.doses.forEach(function (d, i) {
       var isExpanded = expandedRows[i];
-      var expanded = expandDose(d);
       
       // compact row (the main row shown always)
       var name = el('input', { type: 'text', value: d.name, maxlength: '40', placeholder: 'Medication name', 'aria-label': 'Medication name, row ' + (i + 1) });
       var time = el('input', { type: 'time', value: d.time, required: '', 'aria-label': 'Time, row ' + (i + 1) });
       var pills = el('input', { type: 'number', min: '1', max: String(MAX_PILLS), step: '1', value: String(d.pills), 'aria-label': 'Pills, row ' + (i + 1) });
       var recurLabel = el('span', { class: 'recur-label', text: recurText(d.recur) || '—' });
-      var expandBtn = el('button', { type: 'button', class: 'expand', 'aria-label': 'Toggle dose expansion, row ' + (i + 1), text: isExpanded ? '▼' : '▶' });
+      var expandBtn = el('button', { type: 'button', class: 'expand', 'aria-label': 'Toggle dose history, row ' + (i + 1), text: isExpanded ? '▼' : '▶' });
       var rm = el('button', { type: 'button', class: 'remove', text: 'Remove', 'aria-label': 'Remove row ' + (i + 1) });
       
       name.addEventListener('input', function () { d.name = name.value; changed(); });
@@ -156,17 +155,17 @@
       var compactRow = el('tr', { class: 'dose-compact' }, [el('td', {}, [name]), el('td', {}, [time]), el('td', {}, [pills]), el('td', {}, [recurLabel]), el('td', {}, [expandBtn]), el('td', {}, [rm])]);
       body.appendChild(compactRow);
       
-      // expanded rows (shown only when expanded and if recurrence exists)
-      if (isExpanded && d.recur && d.recur.num && d.recur.unit && expanded.length > 1) {
-        expanded.forEach(function (e, j) {
-          var hasTimestamp = d.timestamps && d.timestamps.some(function (ts) { return ts.time === e.time; });
-          var tsLabel = hasTimestamp ? ' ✓' : '';
+      // expanded rows (show only recorded/completed timestamps, not future doses)
+      if (isExpanded && d.timestamps && d.timestamps.length > 0) {
+        d.timestamps.forEach(function (ts, j) {
+          var editBtn = el('button', { type: 'button', class: 'edit-ts', text: 'Edit', 'aria-label': 'Edit timestamp for ' + ts.date + ' ' + ts.time });
+          editBtn.addEventListener('click', function () { showTimestampEditor(i, j); });
           var expandedRow = el('tr', { class: 'dose-expanded' }, [
-            el('td', { text: '├─ ' + e.time + tsLabel }),
-            el('td', {}),
-            el('td', { text: String(e.pills) }),
+            el('td', { text: '├─ ' + ts.date + ' ' + ts.time }),
             el('td', {}),
             el('td', {}),
+            el('td', {}),
+            el('td', { style: 'text-align: center;' }, [editBtn]),
             el('td', {})
           ]);
           body.appendChild(expandedRow);
@@ -176,6 +175,34 @@
     $('emptyMsg').hidden = state.doses.length > 0;
     $('doseTable').hidden = state.doses.length === 0;
     $('doseCount').textContent = state.doses.length + ' of ' + MAX_ENTRIES;
+  }
+
+  // timestamp editor modal
+  var editingDose = null, editingTimestamp = null;
+  
+  function showTimestampEditor(doseIdx, tsIdx) {
+    editingDose = doseIdx;
+    editingTimestamp = tsIdx;
+    var ts = state.doses[doseIdx].timestamps[tsIdx];
+    $('editTsDate').value = ts.date;
+    $('editTsTime').value = ts.time;
+    $('tsModal').hidden = false;
+  }
+  
+  function closeTimestampEditor() {
+    $('tsModal').hidden = true;
+    editingDose = null;
+    editingTimestamp = null;
+  }
+  
+  function saveTimestampEditor() {
+    if (editingDose === null || editingTimestamp === null) return;
+    var newDate = $('editTsDate').value, newTime = $('editTsTime').value;
+    if (!newDate || !newTime) { alert('Date and time are required.'); return; }
+    state.doses[editingDose].timestamps[editingTimestamp] = { date: newDate, time: newTime };
+    save();
+    renderRows();
+    closeTimestampEditor();
   }
 
   function changed() {
@@ -226,6 +253,8 @@
     if (/^clock /.test(line)) { sawClock = true; return; }
     m = /^saved (\d+) dose/.exec(line);
     if (m && saving) saveResult(true, 'Saved ' + m[1] + (m[1] === '1' ? ' dose' : ' doses') + ' to the Arduino. It turns the cartridge by itself at these times.');
+    m = /^dispensed (\d{2}:\d{2})/.exec(line);
+    if (m) recordDispensedTimestamp(m[1]);  // record when Arduino confirms a dose was dispensed
   }
   function feed(text) {
     lineBuf += text.replace(/\r/g, '');
@@ -332,8 +361,7 @@
     state.doses.forEach(function (d) { allExpanded = allExpanded.concat(expandDose(d)); });
     saving = { timer: window.setTimeout(function () { saveResult(false, 'The Arduino did not answer. Check the USB cable and press Connect.'); }, 6000 + 400 * allExpanded.length) };
     updateBar();
-    recordTimestamps();  // record timestamps for future doses
-    save();  // persist timestamps
+    save();  // persist state
     var chain = send('time ' + nowText());   // the board has no clock chip, so it gets the computer's time
     function next(cmd) { chain = chain.then(function () { return wait(180); }).then(function () { return send(cmd); }); }
     next('clear');
@@ -350,6 +378,9 @@
     changed();
     $('connectBtn').addEventListener('click', chooseAndConnect);
     $('saveBtn').addEventListener('click', saveToBoard);
+    $('tsSaveBtn').addEventListener('click', saveTimestampEditor);
+    $('tsCancelBtn').addEventListener('click', closeTimestampEditor);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('tsModal').hidden) closeTimestampEditor(); });
     $('addForm').addEventListener('submit', function (e) {
       e.preventDefault();
       var name = $('newName').value.trim(), t = $('newTime').value, p = Number($('newPills').value),
