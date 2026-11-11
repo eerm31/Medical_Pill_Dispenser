@@ -29,7 +29,7 @@
       </div>
 
       <table id="doseTable" class="schedule" hidden>
-        <thead><tr><th>Medication</th><th>Time</th><th>Pills</th><th><span class="sr">Remove</span></th></tr></thead>
+        <thead><tr><th>Medication</th><th>Time</th><th>Pills</th><th>Recurrence</th><th><span class="sr">Expand</span></th><th><span class="sr">Remove</span></th></tr></thead>
         <tbody id="doseRows"></tbody>
       </table>
       <p id="emptyMsg" class="empty">No medication added yet. Add the first one below.</p>
@@ -38,6 +38,11 @@
         <label>Medication<input id="newName" type="text" maxlength="40" placeholder="Medication name" autocomplete="off"></label>
         <label>Time<input id="newTime" type="time" required></label>
         <label>Pills<input id="newPills" type="number" min="1" max="5" step="1" value="1" required></label>
+        <fieldset class="recurrence-group">
+          <legend>Recurrence (optional)</legend>
+          <label>Every<input id="newRecurNum" type="number" min="1" max="24" step="1" placeholder="" class="recur-num"></label>
+          <label><select id="newRecurUnit" class="recur-unit"><option value="">No repeat</option><option value="h">Hours</option><option value="m">Minutes</option><option value="s">Seconds</option></select></label>
+        </fieldset>
         <button class="primary" type="submit">Add to schedule</button>
       </form>
       <p id="addMsg" class="hint" aria-live="polite"></p>

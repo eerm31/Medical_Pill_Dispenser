@@ -30,13 +30,49 @@
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   function nowText() { var d = new Date(); return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
 
+  // expand a dose with recurrence into multiple individual doses (24h window)
+  function expandDose(dose) {
+    if (!dose.recur || !dose.recur.num || !dose.recur.unit) return [dose];
+    var expanded = [], startMin = parseTime(dose.time);
+    if (startMin === null) return [dose];
+    var intervalMs = 0;
+    if (dose.recur.unit === 'h') intervalMs = dose.recur.num * 3600000;
+    else if (dose.recur.unit === 'm') intervalMs = dose.recur.num * 60000;
+    else if (dose.recur.unit === 's') intervalMs = dose.recur.num * 1000;
+    if (intervalMs <= 0) return [dose];
+    var now = new Date(), dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var startMs = dayStart.getTime() + startMin * 60000;
+    for (var offset = 0; offset < 86400000; offset += intervalMs) {
+      var ms = startMs + offset;
+      if (ms >= dayStart.getTime() + 86400000) break;  // stop after 24h
+      var d = new Date(ms);
+      var timeStr = pad(d.getHours()) + ':' + pad(d.getMinutes());
+      expanded.push({ name: dose.name, time: timeStr, pills: dose.pills, recur: null });
+    }
+    return expanded.length ? expanded : [dose];
+  }
+
+  function recurText(recur) {
+    if (!recur || !recur.num || !recur.unit) return '';
+    var units = { h: 'hour', m: 'min', s: 'sec' };
+    return 'Every ' + recur.num + ' ' + units[recur.unit] + (recur.num > 1 ? 's' : '');
+  }
+
   var state = load();
+  var expandedRows = {};  // track which rows are expanded
   function load() {
     var s = { doses: [] };
     try {
       var saved = JSON.parse(window.localStorage.getItem(STORE_KEY) || 'null');
       if (saved && Array.isArray(saved.doses)) {
-        s.doses = saved.doses.map(function (d) { return { name: String(d.name || '').slice(0, 40), time: String(d.time), pills: Number(d.pills) }; });
+        s.doses = saved.doses.map(function (d) {
+          return {
+            name: String(d.name || '').slice(0, 40),
+            time: String(d.time),
+            pills: Number(d.pills),
+            recur: d.recur ? { num: Number(d.recur.num), unit: String(d.recur.unit) } : null
+          };
+        });
       }
     } catch (e) { /* no storage, start empty */ }
     return s;
@@ -44,14 +80,22 @@
   function save() { try { window.localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ } }
 
   function check() {
-    var errors = [], seen = {};
-    if (state.doses.length > MAX_ENTRIES) errors.push('The board keeps at most ' + MAX_ENTRIES + ' doses.');
+    var errors = [], expanded = [], seen = {}, i;
+    // expand all doses first
+    for (i = 0; i < state.doses.length; i++) {
+      var doseExpanded = expandDose(state.doses[i]);
+      expanded = expanded.concat(doseExpanded);
+    }
+    if (expanded.length > MAX_ENTRIES) errors.push('After expansion, the schedule would have ' + expanded.length + ' doses, but the board keeps at most ' + MAX_ENTRIES + '.');
     state.doses.forEach(function (d, i) {
       var t = parseTime(d.time), label = 'Row ' + (i + 1);
       if (t === null) errors.push(label + ': choose a time.');
-      else if (seen[t]) errors.push(label + ': another dose already uses ' + d.time + '. Each time can be used once.');
+      else if (seen[t]) errors.push(label + ': another dose already uses ' + d.time + ' as a start time.');
       else seen[t] = true;
       if (!(d.pills >= 1 && d.pills <= MAX_PILLS && Math.floor(d.pills) === d.pills)) errors.push(label + ': pills must be a whole number from 1 to ' + MAX_PILLS + '.');
+      if (d.recur && d.recur.num && d.recur.unit) {
+        if (!(d.recur.num > 0 && d.recur.num <= 24)) errors.push(label + ': recurrence interval must be from 1 to 24.');
+      }
     });
     return errors;
   }
@@ -65,16 +109,45 @@
     var body = $('doseRows');
     body.textContent = '';
     state.doses.forEach(function (d, i) {
+      var isExpanded = expandedRows[i];
+      var expanded = expandDose(d);
+      
+      // compact row (the main row shown always)
       var name = el('input', { type: 'text', value: d.name, maxlength: '40', placeholder: 'Medication name', 'aria-label': 'Medication name, row ' + (i + 1) });
       var time = el('input', { type: 'time', value: d.time, required: '', 'aria-label': 'Time, row ' + (i + 1) });
       var pills = el('input', { type: 'number', min: '1', max: String(MAX_PILLS), step: '1', value: String(d.pills), 'aria-label': 'Pills, row ' + (i + 1) });
+      var recurText = el('span', { class: 'recur-label', text: recurText(d.recur) || '—' });
+      var expandBtn = el('button', { type: 'button', class: 'expand', 'aria-label': 'Toggle dose expansion, row ' + (i + 1), text: isExpanded ? '▼' : '▶' });
       var rm = el('button', { type: 'button', class: 'remove', text: 'Remove', 'aria-label': 'Remove row ' + (i + 1) });
+      
       name.addEventListener('input', function () { d.name = name.value; changed(); });
       time.addEventListener('input', function () { d.time = time.value; changed(); });
       time.addEventListener('change', function () { sortDoses(); renderRows(); });
       pills.addEventListener('input', function () { d.pills = Number(pills.value); changed(); });
-      rm.addEventListener('click', function () { state.doses.splice(i, 1); renderRows(); changed(); });
-      body.appendChild(el('tr', {}, [el('td', {}, [name]), el('td', {}, [time]), el('td', {}, [pills]), el('td', {}, [rm])]));
+      expandBtn.addEventListener('click', function () {
+        if (isExpanded) delete expandedRows[i];
+        else expandedRows[i] = true;
+        renderRows();
+      });
+      rm.addEventListener('click', function () { state.doses.splice(i, 1); delete expandedRows[i]; renderRows(); changed(); });
+      
+      var compactRow = el('tr', { class: 'dose-compact' }, [el('td', {}, [name]), el('td', {}, [time]), el('td', {}, [pills]), el('td', {}, [recurText]), el('td', {}, [expandBtn]), el('td', {}, [rm])]);
+      body.appendChild(compactRow);
+      
+      // expanded rows (shown only when expanded and if recurrence exists)
+      if (isExpanded && d.recur && d.recur.num && d.recur.unit && expanded.length > 1) {
+        expanded.forEach(function (e, j) {
+          var expandedRow = el('tr', { class: 'dose-expanded' }, [
+            el('td', { text: '├─ ' + e.time }),
+            el('td', {}),
+            el('td', { text: String(e.pills) }),
+            el('td', {}),
+            el('td', {}),
+            el('td', {})
+          ]);
+          body.appendChild(expandedRow);
+        });
+      }
     });
     $('emptyMsg').hidden = state.doses.length > 0;
     $('doseTable').hidden = state.doses.length === 0;
@@ -225,17 +298,20 @@
     });
   }
 
-  // clock, clear the old doses, the new doses, then keep it all in the board's memory
+  // clock, clear the old doses, the new doses (expanded), then keep it all in the board's memory
   function saveToBoard() {
     if (!connected || check().length || !state.doses.length) return;
     saveText = '';
     $('saveMsg').className = 'hint';
-    saving = { timer: window.setTimeout(function () { saveResult(false, 'The Arduino did not answer. Check the USB cable and press Connect.'); }, 6000 + 400 * state.doses.length) };
+    // expand all doses for saving
+    var allExpanded = [];
+    state.doses.forEach(function (d) { allExpanded = allExpanded.concat(expandDose(d)); });
+    saving = { timer: window.setTimeout(function () { saveResult(false, 'The Arduino did not answer. Check the USB cable and press Connect.'); }, 6000 + 400 * allExpanded.length) };
     updateBar();
     var chain = send('time ' + nowText());   // the board has no clock chip, so it gets the computer's time
     function next(cmd) { chain = chain.then(function () { return wait(180); }).then(function () { return send(cmd); }); }
     next('clear');
-    state.doses.slice().sort(function (a, b) { return parseTime(a.time) - parseTime(b.time); }).forEach(function (d) { next('add ' + d.time + ' ' + d.pills); });
+    allExpanded.slice().sort(function (a, b) { return parseTime(a.time) - parseTime(b.time); }).forEach(function (d) { next('add ' + d.time + ' ' + d.pills); });
     next('save');
   }
 
@@ -250,18 +326,23 @@
     $('saveBtn').addEventListener('click', saveToBoard);
     $('addForm').addEventListener('submit', function (e) {
       e.preventDefault();
-      var name = $('newName').value.trim(), t = $('newTime').value, p = Number($('newPills').value), msg = $('addMsg');
+      var name = $('newName').value.trim(), t = $('newTime').value, p = Number($('newPills').value),
+          recurNum = Number($('newRecurNum').value) || 0, recurUnit = $('newRecurUnit').value || '',
+          recur = (recurNum > 0 && recurUnit) ? { num: recurNum, unit: recurUnit } : null,
+          msg = $('addMsg');
       msg.className = 'hint';
       if (parseTime(t) === null) { msg.textContent = 'Choose a time.'; return; }
       if (!(p >= 1 && p <= MAX_PILLS && Math.floor(p) === p)) { msg.textContent = 'Pills must be a whole number from 1 to ' + MAX_PILLS + '.'; return; }
-      if (state.doses.length >= MAX_ENTRIES) { msg.textContent = 'The schedule is full (' + MAX_ENTRIES + ' doses).'; return; }
+      if (state.doses.length >= MAX_ENTRIES) { msg.textContent = 'The schedule is full (' + MAX_ENTRIES + ' entry rows).'; return; }
       if (state.doses.some(function (d) { return parseTime(d.time) === parseTime(t); })) { msg.textContent = 'A dose is already set at ' + t + '.'; return; }
       msg.textContent = '';
-      state.doses.push({ name: name, time: t, pills: p });
+      state.doses.push({ name: name, time: t, pills: p, recur: recur });
       sortDoses();
       $('newName').value = '';
       $('newTime').value = '';
       $('newPills').value = '1';
+      $('newRecurNum').value = '';
+      $('newRecurUnit').value = '';
       saveText = '';
       renderRows();
       changed();
