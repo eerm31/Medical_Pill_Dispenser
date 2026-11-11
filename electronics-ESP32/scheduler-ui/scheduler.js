@@ -139,6 +139,7 @@
       var pills = el('input', { type: 'number', min: '1', max: String(MAX_PILLS), step: '1', value: String(d.pills), 'aria-label': 'Pills, row ' + (i + 1) });
       var recurLabel = el('span', { class: 'recur-label', text: recurText(d.recur) || '—' });
       var expandBtn = el('button', { type: 'button', class: 'expand', 'aria-label': 'Toggle dose history, row ' + (i + 1), text: isExpanded ? '▼' : '▶' });
+      var editBtn = el('button', { type: 'button', class: 'edit-dose', text: 'Edit', 'aria-label': 'Edit dose settings, row ' + (i + 1) });
       var rm = el('button', { type: 'button', class: 'remove', text: 'Remove', 'aria-label': 'Remove row ' + (i + 1) });
       
       name.addEventListener('input', function () { d.name = name.value; changed(); });
@@ -150,41 +151,26 @@
         else expandedRows[i] = true;
         renderRows();
       });
+      editBtn.addEventListener('click', function () { showDoseEditor(i); });
       rm.addEventListener('click', function () { state.doses.splice(i, 1); delete expandedRows[i]; renderRows(); changed(); });
       
-      var compactRow = el('tr', { class: 'dose-compact' }, [el('td', {}, [name]), el('td', {}, [time]), el('td', {}, [pills]), el('td', {}, [recurLabel]), el('td', {}, [expandBtn]), el('td', {}, [rm])]);
+      var compactRow = el('tr', { class: 'dose-compact' }, [el('td', {}, [name]), el('td', {}, [time]), el('td', {}, [pills]), el('td', {}, [recurLabel]), el('td', {}, [expandBtn]), el('td', {}, [editBtn]), el('td', {}, [rm])]);
       body.appendChild(compactRow);
       
-      // expanded rows (show recorded/completed timestamps, or add button if none)
-      if (isExpanded) {
-        if (d.timestamps && d.timestamps.length > 0) {
-          d.timestamps.forEach(function (ts, j) {
-            var editBtn = el('button', { type: 'button', class: 'edit-ts', text: 'Edit', 'aria-label': 'Edit timestamp for ' + ts.date + ' ' + ts.time });
-            editBtn.addEventListener('click', function () { showTimestampEditor(i, j); });
-            var expandedRow = el('tr', { class: 'dose-expanded' }, [
-              el('td', { text: '├─ ' + ts.date + ' ' + ts.time }),
-              el('td', {}),
-              el('td', {}),
-              el('td', {}),
-              el('td', { style: 'text-align: center;' }, [editBtn]),
-              el('td', {})
-            ]);
-            body.appendChild(expandedRow);
-          });
-        } else {
-          // no timestamps yet: show "Add timestamp" button
-          var addTsBtn = el('button', { type: 'button', class: 'add-ts', text: '+ Add timestamp', 'aria-label': 'Add timestamp for row ' + (i + 1) });
-          addTsBtn.addEventListener('click', function () { showTimestampEditor(i, -1); });
-          var addTsRow = el('tr', { class: 'dose-expanded' }, [
-            el('td', { text: '├─ (no timestamps yet)' }),
+      // expanded rows (show recorded/completed timestamps from Arduino)
+      if (isExpanded && d.timestamps && d.timestamps.length > 0) {
+        d.timestamps.forEach(function (ts, j) {
+          var expandedRow = el('tr', { class: 'dose-expanded' }, [
+            el('td', { text: '├─ ✓ ' + ts.date + ' ' + ts.time }),
             el('td', {}),
             el('td', {}),
             el('td', {}),
-            el('td', { style: 'text-align: center;' }, [addTsBtn]),
+            el('td', {}),
+            el('td', {}),
             el('td', {})
           ]);
-          body.appendChild(addTsRow);
-        }
+          body.appendChild(expandedRow);
+        });
       }
     });
     $('emptyMsg').hidden = state.doses.length > 0;
@@ -233,6 +219,43 @@
     save();
     renderRows();
     closeTimestampEditor();
+  }
+
+  // dose editor modal (for editing scheduled pill time/interval)
+  var editingDoseIdx = null;
+
+  function showDoseEditor(doseIdx) {
+    editingDoseIdx = doseIdx;
+    var d = state.doses[doseIdx];
+    $('editDoseName').value = d.name;
+    $('editDoseTime').value = d.time;
+    $('editDosePills').value = String(d.pills);
+    $('editDoseRecurNum').value = d.recur && d.recur.num ? String(d.recur.num) : '';
+    $('editDoseRecurUnit').value = d.recur && d.recur.unit ? d.recur.unit : '';
+    $('doseModal').hidden = false;
+  }
+
+  function closeDoseEditor() {
+    $('doseModal').hidden = true;
+    editingDoseIdx = null;
+  }
+
+  function saveDoseEditor() {
+    if (editingDoseIdx === null) return;
+    var name = $('editDoseName').value.trim(), t = $('editDoseTime').value, p = Number($('editDosePills').value),
+        recurNum = Number($('editDoseRecurNum').value) || 0, recurUnit = $('editDoseRecurUnit').value || '';
+    if (parseTime(t) === null) { alert('Choose a valid time.'); return; }
+    if (!(p >= 1 && p <= MAX_PILLS && Math.floor(p) === p)) { alert('Pills must be 1 to ' + MAX_PILLS + '.'); return; }
+    var d = state.doses[editingDoseIdx];
+    d.name = name;
+    d.time = t;
+    d.pills = p;
+    d.recur = (recurNum > 0 && recurUnit) ? { num: recurNum, unit: recurUnit } : null;
+    save();
+    sortDoses();
+    renderRows();
+    changed();
+    closeDoseEditor();
   }
 
   function changed() {
@@ -408,9 +431,16 @@
     changed();
     $('connectBtn').addEventListener('click', chooseAndConnect);
     $('saveBtn').addEventListener('click', saveToBoard);
+    $('doseSaveBtn').addEventListener('click', saveDoseEditor);
+    $('doseCancelBtn').addEventListener('click', closeDoseEditor);
     $('tsSaveBtn').addEventListener('click', saveTimestampEditor);
     $('tsCancelBtn').addEventListener('click', closeTimestampEditor);
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !$('tsModal').hidden) closeTimestampEditor(); });
+    document.addEventListener('keydown', function (e) { 
+      if (e.key === 'Escape') {
+        if (!$('doseModal').hidden) closeDoseEditor();
+        if (!$('tsModal').hidden) closeTimestampEditor();
+      }
+    });
     $('addForm').addEventListener('submit', function (e) {
       e.preventDefault();
       var name = $('newName').value.trim(), t = $('newTime').value, p = Number($('newPills').value),

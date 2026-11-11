@@ -58,6 +58,8 @@ button.primary { border-color: var(--primary); background: var(--primary); color
 button.primary:hover:not(:disabled) { border-color: var(--primary-dark); background: var(--primary-dark); color: #fff; }
 button.remove { min-height: 34px; padding: 4px 12px; border-color: transparent; background: transparent; color: var(--muted); }
 button.remove:hover:not(:disabled) { background: var(--bad-soft); border-color: transparent; color: var(--bad); }
+button.edit-dose { min-height: 34px; padding: 4px 12px; border-color: transparent; background: transparent; color: var(--primary); font-weight: 600; }
+button.edit-dose:hover:not(:disabled) { background: var(--primary-soft); color: var(--primary-dark); }
 
 /* add row */
 .add-row { display: grid; grid-template-columns: minmax(150px, 2fr) minmax(120px, 1fr) 80px auto; gap: 12px; align-items: end; margin-top: 18px; padding: 14px; border: 1px dashed var(--line-strong); border-radius: 12px; background: #f9fbfc; }
@@ -85,14 +87,15 @@ button.remove:hover:not(:disabled) { background: var(--bad-soft); border-color: 
 @keyframes spin { to { transform: rotate(360deg); } }
 button.big { min-width: 190px; min-height: 48px; font-size: 16px; }
 
-/* modal for editing timestamps */
+/* modal for editing dose */
 .modal { position: fixed; top: 0; right: 0; bottom: 0; left: 0; display: flex; align-items: center; justify-content: center; z-index: 1000; background: rgba(23, 48, 63, .4); }
-.modal-content { padding: 22px; border-radius: 14px; background: var(--surface); box-shadow: 0 10px 40px rgba(23, 48, 63, .2); max-width: 320px; }
+.modal-content { padding: 22px; border-radius: 14px; background: var(--surface); box-shadow: 0 10px 40px rgba(23, 48, 63, .2); max-width: 360px; }
 .modal-content h3 { margin: 0 0 16px; font-size: 18px; }
 .modal-content label { display: block; margin-bottom: 12px; }
+.modal-content label input, .modal-content label select { width: 100%; }
+.modal-recurrence { display: grid; grid-template-columns: auto 80px auto; gap: 12px; align-items: end; margin: 0 0 16px; padding: 12px 0; border: none; }
+.modal-recurrence legend { display: none; }
+.modal-recurrence label { margin: 0; grid-column: auto; }
+.modal-recurrence input { width: 60px; }
 .modal-buttons { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
 .modal-buttons button { flex: 1; }
-button.edit-ts { min-height: 32px; padding: 3px 10px; font-size: 13px; border-color: transparent; background: transparent; color: var(--primary); }
-button.edit-ts:hover:not(:disabled) { background: var(--primary-soft); color: var(--primary-dark); }
-button.add-ts { min-height: 32px; padding: 6px 12px; font-size: 13px; border-color: var(--primary); background: transparent; color: var(--primary); font-weight: 600; }
-button.add-ts:hover:not(:disabled) { background: var(--primary-soft); }

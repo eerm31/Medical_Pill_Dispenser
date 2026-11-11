@@ -29,7 +29,7 @@
       </div>
 
       <table id="doseTable" class="schedule" hidden>
-        <thead><tr><th>Medication</th><th>Time</th><th>Pills</th><th>Recurrence</th><th><span class="sr">Expand</span></th><th><span class="sr">Remove</span></th></tr></thead>
+        <thead><tr><th>Medication</th><th>Time</th><th>Pills</th><th>Recurrence</th><th><span class="sr">Expand</span></th><th><span class="sr">Edit</span></th><th><span class="sr">Remove</span></th></tr></thead>
         <tbody id="doseRows"></tbody>
       </table>
       <p id="emptyMsg" class="empty">No medication added yet. Add the first one below.</p>
@@ -59,9 +59,27 @@
     <button id="saveBtn" class="primary big" type="button" disabled>Save schedule</button>
   </div>
 
+  <div id="doseModal" class="modal" hidden>
+    <div class="modal-content">
+      <h3>Edit Medication</h3>
+      <label>Medication name<input id="editDoseName" type="text" maxlength="40" required></label>
+      <label>Time<input id="editDoseTime" type="time" required></label>
+      <label>Pills<input id="editDosePills" type="number" min="1" max="5" step="1" required></label>
+      <fieldset class="modal-recurrence">
+        <legend>Recurrence (optional)</legend>
+        <label>Every<input id="editDoseRecurNum" type="number" min="1" max="24" step="1" class="recur-num"></label>
+        <label><select id="editDoseRecurUnit" class="recur-unit"><option value="">No repeat</option><option value="h">Hours</option><option value="m">Minutes</option><option value="s">Seconds</option></select></label>
+      </fieldset>
+      <div class="modal-buttons">
+        <button id="doseSaveBtn" type="button" class="primary">Save</button>
+        <button id="doseCancelBtn" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <div id="tsModal" class="modal" hidden>
     <div class="modal-content">
-      <h3>Edit Timestamp</h3>
+      <h3>Timestamp (for Arduino sensor)</h3>
       <label>Date<input id="editTsDate" type="date" required></label>
       <label>Time<input id="editTsTime" type="time" required></label>
       <div class="modal-buttons">
