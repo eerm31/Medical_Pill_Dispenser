@@ -52,7 +52,7 @@
   }
 
   function chart(b, wide) {
-    var B = BOARDS[b], svg = el('svg', { viewBox: wide ? '0 0 1410 1040' : '0 0 700 1850', role: 'img', 'aria-label': 'How the ' + B.name + ' dispenser works, step by step', xmlns: NS });
+    var B = BOARDS[b], svg = el('svg', { viewBox: wide ? '0 0 1410 1120' : '0 0 700 1930', role: 'img', 'aria-label': 'How the ' + B.name + ' dispenser works, step by step', xmlns: NS });
     var defs = el('defs', {}, svg);
     var mk = el('marker', { id: 'swArrow', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, defs);
     el('path', { d: 'M0 0 L10 5 L0 10 z', fill: '#8ea3bd' }, mk);
@@ -102,26 +102,26 @@
     place(0, wide ? -830 : 0);
     heading(1170, 'REFILLING THE CARTRIDGE');
     el('text', { x: 24, y: 1192, 'font-size': 12, fill: '#8795a8' }, g, 'Doses wait while a refill is open, then carry on');
-    var states = [['Ready', 'no refill going on'], ['Refill requested', 'cartridge locked, schedules wait'], ['First position', 'turns = dispensed - 1, often none'], ['Waiting for pills', 'press +, drop a pill, confirm it'], ['Saving', 'the new count is stored'], ['Done', 'count updated, schedules go on']];
+    var states = [['Ready', 'no refill going on'], ['Refill requested', 'cartridge locked, schedules wait'], ['First position', 'turn back 11 - left - 1 (0 if empty)'], ['Waiting for pills', 'press +, put a pill in, confirm it'], ['Saving', 'the new count is stored'], ['Turning back', 'only if it had pills before'], ['Done', 'schedules go on']];
     var steps = ['you press Fill', 'page asks for the turns', 'cartridge in position', 'you press Done', 'count saved'];
     states.forEach(function (s, i) {
       var y = 1250 + i * 76;
       node(g, i === states.length - 1 ? 'start' : 'state', X, y, W, 50, [s[0], s[1]]);
       if (i) arrow(g, [[X, y - 51], [X, y - 25]], steps[i - 1], X + 8, y - 34);
     });
-    // every confirmed pill turns the cartridge one step, then it waits for the next pill
-    node(g, 'io', SX, 1478, 240, 56, ['Turn one step', 'after each confirmed pill']);
-    arrow(g, [[X + W / 2, 1468], [SX - 120, 1468]], 'pill in', X + W / 2 + 22, 1460);
+    // the plus turns the cartridge one step, but only for the second pill on (the first goes into an empty hole)
+    node(g, 'io', SX, 1478, 240, 56, ['Turn one step', 'after each pill is in']);
+    arrow(g, [[X + W / 2, 1468], [SX - 120, 1468]], 'Yes, it is in', X + W / 2 + 8, 1460);
     arrow(g, [[SX - 120, 1488], [X + W / 2, 1488]]);
     node(g, 'bad', SX, 1578, 240, 76, ['Stopped', 'cancel, timeout or save error', 'counts stay; take pills out']);
     arrow(g, [[X + W / 2, 1498], [400, 1498], [400, 1578], [SX - 120, 1578]], '', 0, 0, true);
 
     // 4. what is kept, and this board
     place(0, wide ? -830 : 0);
-    heading(1700, 'KEPT AND BOARD NOTES');
-    node(g, 'store', X, 1760, W, 76, ['Kept when switched off', 'the schedule and settings', 'the last 10 doses']);
-    node(g, 'proc', SX, 1760, 240, 34 + (B.notes.length + 1) * 18, ['About this board'].concat(B.notes));
-    el('text', { x: 350, y: 1836, 'text-anchor': 'middle', 'font-size': 12, fill: '#8795a8' }, g, 'Yellow: question · purple: action · green: saved data · red: stopped');
+    heading(1776, 'KEPT AND BOARD NOTES');
+    node(g, 'store', X, 1836, W, 76, ['Kept when switched off', 'the schedule and settings', 'the last 10 doses']);
+    node(g, 'proc', SX, 1836, 240, 34 + (B.notes.length + 1) * 18, ['About this board'].concat(B.notes));
+    el('text', { x: 350, y: 1912, 'text-anchor': 'middle', 'font-size': 12, fill: '#8795a8' }, g, 'Yellow: question · purple: action · green: saved data · red: stopped');
     return svg;
   }
 

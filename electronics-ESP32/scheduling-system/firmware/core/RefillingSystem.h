@@ -3,10 +3,12 @@
 // It never touches the motor or the memory itself. It asks the board program through the small RefillHost interface,
 // and the board program asks it back (isRefillActive) before it starts to dispense.
 //
-// One refill goes: requestRefill -> startRefill(n) -> (the cartridge turns n moves of 30 degrees, in the direction it turns
-// to dispense, so the first empty position meets the filling hole; n is worked out by the person's page from the pills
-// dispensed since the last fill, and 0 means nothing turns because the hole is assumed empty) -> pillIn for every pill the
-// person confirms (one more move each, so the next pill meets a free position) -> updateRefillInventory -> finishRefill.
+// One refill goes: requestRefill -> startRefill(n) -> (the cartridge turns n moves of 30 degrees, in the direction set for
+// filling, so the first empty position meets the filling hole; n is worked out by the person's page from the pills
+// dispensed since the last fill, and 0 means nothing turns because the hole is assumed empty) -> moveNext before every pill
+// after the first (one move, so a free position meets the filling hole) -> updateRefillInventory -> finishRefill (which
+// turns a cartridge that already held pills back to where it was before the refill: the moves made against the
+// dispensing direction minus the moves made with it; an empty cartridge stays where it is).
 // cancelRefill ends it earlier. While it is active the cartridge belongs to the Refilling System.
 //
 // There is no position sensor in this build: the cartridge counts its own half-steps, so "positioned" means a move of
@@ -28,6 +30,7 @@ enum class RefillStatus {
     POSITIONING,          // the cartridge turns
     WAITING_FOR_REFILL,   // the move is done, waiting for the pills and their count
     SAVING_INVENTORY,     // the count is saved, waiting for "refill complete"
+    RETURNING,            // refill complete, the cartridge had pills: it turns back to the position it had before
     COMPLETED,
     CANCELLED,
     ERROR
@@ -50,7 +53,7 @@ enum class RefillError {
 class RefillHost {
 public:
     virtual bool cartridgeFree() = 0;                  // no dose is turning and no other move is going on
-    virtual bool moveSlots(int count) = 0;             // count moves of 30 degrees in the dispensing direction, false if refused
+    virtual bool moveSlots(int count, bool first) = 0;  // count moves of 30 degrees, false if refused; first: the moves before the first pill
     virtual bool moveDone() = 0;                       // the moves that were asked for have finished
     virtual int ringPills(int ring) = 0;
     virtual bool storePills(int ring, int pills) = 0;  // keeps the new count in the board's memory
@@ -67,7 +70,10 @@ private:
     int added;
     int updated;
     int movesAsked;        // moves asked to position the cartridge before the first pill (0 when nothing turned)
-    int pillsStaged;       // pills the person confirmed in this refill, each one turned the cartridge a move
+    int nextMoves;         // moves made between pills in this refill
+    int returnMoves;       // moves to make back to the first position after the refill
+    bool returnBack;       // those moves turn against the dispensing direction
+    bool returnStarted;
     uint32_t lastActionMs;
     bool restartTimer;     // the next update() starts the timeout again
 
@@ -79,7 +85,7 @@ public:
     void initializeRefillingSystem(RefillHost* hostPtr);
     bool requestRefill(int ringID);
     bool startRefill(int movesFirst = 0);   // movesFirst: 0 to REFILL_MAX_PILLS - 1 moves before the first pill
-    bool pillIn();   // one pill went in: the cartridge turns one move (false: not now, ask again)
+    bool moveNext();   // the person is ready for the next pill: the cartridge turns one move (false: not now, ask again)
     bool updateRefillInventory(int pillsAdded);
     bool finishRefill();
     bool cancelRefill();
@@ -96,7 +102,7 @@ public:
     int getPillsAdded() const { return added; }
     int getUpdatedPills() const { return updated; }
     int getMovesAsked() const { return movesAsked; }
-    int getPillsStaged() const { return pillsStaged; }
+    int getNextMoves() const { return nextMoves; }
 };
 
 #endif

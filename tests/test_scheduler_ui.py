@@ -56,12 +56,18 @@ def test_each_pill_is_confirmed_before_it_counts_and_the_schedule_waits_only_whi
     ui = BOARDS[board] / "scheduler-ui"
     refill, js = _read(ui / "refill.js"), _read(ui / "scheduler.js")
     assert "'+ Add'" not in refill and "aria-label': 'Add a pill'" in refill and "plusIcon()" in refill
-    assert "Did the pill go in?" in refill and "pending = true" in refill
-    assert "addBtn.disabled = !ready || pending" in refill   # locked until the person answers
+    assert "Did you put the pill in?" in refill and "phase = 'asking'" in refill
+    assert "addBtn.disabled = !ready || phase !== 'idle'" in refill   # locked until the person answers
+    assert "doneBtn.disabled = !ready || added < 1 || phase !== 'idle'" in refill   # Done needs a confirmed pill
     assert "UI.setRefilling(open)" in refill and "setRefilling:" in js
-    assert "UI.send('refill pill')" in refill and "count.textContent = String(added)" in refill   # the cartridge turns for each pill; the count is just the number
-    assert 'strcmp(sub, "pill") == 0' in _read(FIRMWARE_MAINS[board])
-    # the cartridge first turns (pills dispensed since the last fill - 1) times, and not at all for a new cartridge
+    # the plus waits 1 s and asks; the cartridge turns right after the Yes, not before the next plus
+    assert "if (added < room()) turnNext();" in refill and "}, 1000);" in refill and "dirty" not in refill
+    assert "RETURNING" in refill and "Putting the cartridge back" in refill   # after Done it waits for the cartridge to come back
+    assert "count.textContent = String(added)" in refill   # the count is just the number
+    assert 'strcmp(sub, "next") == 0' in _read(FIRMWARE_MAINS[board])
+    # the total is 11: dispensed = 11 - pills left, the cartridge turns (dispensed - 1) times first, none when it is empty
+    assert "var dispensed = pills === 0 ? 0 : Math.max(0, MAX - pills)" in refill and "MAX = 11" in refill
+    assert "UI.send('refill empty')" not in refill and "In the cartridge now" not in refill
     assert "UI.send('refill start ' + Math.max(0, dispensed - 1))" in refill
     assert "startRefill(value != NULL ? atoi(value) : 0)" in _read(FIRMWARE_MAINS[board])
 

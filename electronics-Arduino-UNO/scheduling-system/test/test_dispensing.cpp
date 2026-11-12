@@ -299,6 +299,8 @@ int main() {
     CHECK(hasLine(fmt("dose end #%d 22:00:00 INCOMPLETE 1/2 left 5", F).c_str(), mark));
     CHECK(hasLine(fmt("removed #%d", F).c_str(), mark));
     CHECK(schedule.getCount() == 0);
+    CHECK(schedule.ringPills(RED) == 0 && hasLine("ring 0 EMPTY", mark));   // the last schedule is gone: the ring starts from empty
+    command("pills 5");
     long pinsAfterRemove = g_pinWrites;
     runMs(20000);
     CHECK(g_pinWrites == pinsAfterRemove);
@@ -310,6 +312,7 @@ int main() {
     schedule.sorted(list);
     const int G = list[0]->id;
     command(fmt("rm %d", G).c_str());
+    command("pills 5");
     mark = Serial.lines.size();
     command("time 22:09:55");
     runMs(20000);
@@ -326,7 +329,7 @@ int main() {
     CHECK(hasLine(fmt("dose start #%d 23:00:00 1", H).c_str(), mark));
     command(fmt("rm %d", H).c_str());
     CHECK(hasLine(fmt("dose end #%d 23:00:00 INCOMPLETE 0/1 left 5", H).c_str(), mark));
-    CHECK(schedule.ringPills(RED) == 5);
+    CHECK(schedule.ringPills(RED) == 0);
 
     // ---- a repeating dose turns all its pills in a row (1 s apart); its interval counts from the last pill ----
     command("set 30 1000 1500 1");

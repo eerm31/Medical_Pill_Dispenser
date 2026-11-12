@@ -11,7 +11,10 @@ RefillingSystem::RefillingSystem() {
     added = 0;
     updated = 0;
     movesAsked = 0;
-    pillsStaged = 0;
+    nextMoves = 0;
+    returnMoves = 0;
+    returnBack = false;
+    returnStarted = false;
     lastActionMs = 0;
     restartTimer = true;
 }
@@ -25,7 +28,8 @@ void RefillingSystem::initializeRefillingSystem(RefillHost* hostPtr) {
 
 bool RefillingSystem::isRefillActive() const {
     return status == RefillStatus::REFILL_MODE || status == RefillStatus::POSITIONING ||
-           status == RefillStatus::WAITING_FOR_REFILL || status == RefillStatus::SAVING_INVENTORY;
+           status == RefillStatus::WAITING_FOR_REFILL || status == RefillStatus::SAVING_INVENTORY ||
+           status == RefillStatus::RETURNING;
 }
 
 // ends the refill: the lock goes away and the inventory stays as it is
@@ -56,7 +60,8 @@ bool RefillingSystem::requestRefill(int ringID) {
     added = 0;
     updated = previous;
     movesAsked = 0;
-    pillsStaged = 0;
+    nextMoves = 0;
+    returnStarted = false;
     restartTimer = true;
     status = RefillStatus::REFILL_MODE;
     return true;
@@ -78,7 +83,7 @@ bool RefillingSystem::startRefill(int movesFirst) {
         return true;
     }
     movesAsked = movesFirst;   // one request, one batch of moves: nothing here asks for a second batch
-    if (host->moveSlots(movesFirst) == false) {
+    if (host->moveSlots(movesFirst, true) == false) {
         error = RefillError::MOVE_REFUSED;
         release(RefillStatus::ERROR);
         return false;
@@ -87,26 +92,27 @@ bool RefillingSystem::startRefill(int movesFirst) {
     return true;
 }
 
-// The person says one pill went in. The cartridge turns one move so the next pill meets a free position.
-bool RefillingSystem::pillIn() {
+// The person is ready for the next pill: the cartridge turns one move so a free position meets the filling hole.
+// The first pill needs no move, so there is at most one move less than the ring has room for.
+bool RefillingSystem::moveNext() {
     if (status != RefillStatus::WAITING_FOR_REFILL) {
         error = RefillError::WRONG_STATE;
         return false;
     }
-    if (pillsStaged >= REFILL_MAX_PILLS - host->ringPills(ring)) {
-        error = RefillError::BAD_AMOUNT;   // the ring has no room for one more
+    if (nextMoves >= REFILL_MAX_PILLS - host->ringPills(ring) - 1) {
+        error = RefillError::BAD_AMOUNT;   // no room for another pill
         return false;
     }
     if (host->cartridgeFree() == false) {
         error = RefillError::CARTRIDGE_BUSY;   // still holding its last position: nothing changes, ask again in a moment
         return false;
     }
-    if (host->moveSlots(1) == false) {
+    if (host->moveSlots(1, false) == false) {
         error = RefillError::MOVE_REFUSED;
         release(RefillStatus::ERROR);
         return false;
     }
-    pillsStaged++;
+    nextMoves++;
     error = RefillError::NONE;
     restartTimer = true;
     status = RefillStatus::POSITIONING;
@@ -120,6 +126,20 @@ void RefillingSystem::update(uint32_t nowMs) {
     if (restartTimer) {
         lastActionMs = nowMs;
         restartTimer = false;
+    }
+    if (status == RefillStatus::RETURNING) {
+        if (returnStarted == false) {
+            if (host->cartridgeFree()) {   // the last move may still be holding its position
+                returnStarted = true;
+                if (host->moveSlots(returnMoves, returnBack) == false) {
+                    error = RefillError::MOVE_REFUSED;
+                    release(RefillStatus::ERROR);
+                }
+            }
+        } else if (host->moveDone()) {
+            release(RefillStatus::COMPLETED);
+        }
+        return;
     }
     if (status == RefillStatus::POSITIONING) {
         if (host->moveDone()) {
@@ -171,7 +191,17 @@ bool RefillingSystem::finishRefill() {
         return false;
     }
     error = RefillError::NONE;
-    release(RefillStatus::COMPLETED);
+    // Only a cartridge that already held pills goes back to where it started: the moves against the dispensing
+    // direction before the first pill minus the moves with it after each pill. An empty one stays where it is.
+    int net = nextMoves - movesAsked;
+    if (previous == 0 || net == 0) {
+        release(RefillStatus::COMPLETED);
+        return true;
+    }
+    returnMoves = net > 0 ? net : -net;
+    returnBack = net > 0;
+    returnStarted = false;
+    status = RefillStatus::RETURNING;
     return true;
 }
 

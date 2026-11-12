@@ -17,6 +17,8 @@
 #define PAUSE_MS_AFTER_MOVE 1000   // time between two pills of a dose, in milliseconds (the sketch never allows less)
 #define STEP_INTERVAL_US 1500      // time between motor steps, smaller = faster
 #define TURN_DIRECTION 1           // 1 or -1, swap it if the cartridge turns the wrong way
+#define REFILL_FIRST_DIRECTION -1  // the moves before the first pill: -1 turns against the dispensing direction (clockwise), 1 with it
+#define REFILL_DIRECTION 1         // the move after each pill: 1 turns with the dispensing direction (counter-clockwise), -1 against it
 
 struct PlannedDose {
     Color color;

@@ -159,6 +159,7 @@ const char* refillStatusText(RefillStatus s) {
         case RefillStatus::POSITIONING: return "POSITIONING";
         case RefillStatus::WAITING_FOR_REFILL: return "WAITING_FOR_REFILL";
         case RefillStatus::SAVING_INVENTORY: return "SAVING_INVENTORY";
+        case RefillStatus::RETURNING: return "RETURNING";
         case RefillStatus::COMPLETED: return "COMPLETED";
         case RefillStatus::CANCELLED: return "CANCELLED";
         case RefillStatus::ERROR: return "ERROR";
@@ -182,15 +183,16 @@ const char* refillErrorText(RefillError e) {
     return "NONE";
 }
 
-// The refill borrows the cartridge: the moves the page asks for before the first pill (none when nothing was dispensed),
-// then one more for every pill the person confirms. Its status is printed whenever it changes.
+// The refill borrows the cartridge: the moves the page asks for before the first pill (none for an empty cartridge), then
+// one before every pill after the first. The first ones turn in REFILL_FIRST_DIRECTION, the others in REFILL_DIRECTION. Its status is printed whenever it changes.
 class SketchRefillHost : public RefillHost {
 public:
     int asked = 0;   // moves of the batch in progress
     bool cartridgeFree() { return turnDoseId == 0 && turner.isBusy() == false; }
-    bool moveSlots(int count) {
+    bool moveSlots(int count, bool first) {
         asked = count;
-        return turner.start(count);
+        int dir = first ? REFILL_FIRST_DIRECTION : REFILL_DIRECTION;
+        return dir < 0 ? turner.startBack(count) : turner.start(count);
     }
     bool moveDone() { return turner.getPillsDone() >= asked; }   // finished moves, not a finished hold
     int ringPills(int r) { return schedule.ringPills((Color)r); }
@@ -240,8 +242,8 @@ void refillCommand(const char* sub, const char* value) {
         ok = refill.requestRefill(value != NULL ? atoi(value) : 0);
     } else if (strcmp(sub, "start") == 0) {
         ok = refill.startRefill(value != NULL ? atoi(value) : 0);   // moves to make before the first pill
-    } else if (strcmp(sub, "pill") == 0) {
-        ok = refill.pillIn();   // one pill went in: the cartridge turns one move
+    } else if (strcmp(sub, "next") == 0) {
+        ok = refill.moveNext();   // ready for the next pill: the cartridge turns one move
     } else if (strcmp(sub, "add") == 0 && value != NULL) {
         ok = refill.updateRefillInventory(atoi(value));
         if (ok) {
@@ -250,13 +252,13 @@ void refillCommand(const char* sub, const char* value) {
         }
     } else if (strcmp(sub, "finish") == 0) {
         ok = refill.finishRefill();
-        if (ok) {
+        if (ok && refill.getRefillStatus() == RefillStatus::COMPLETED) {
             printRefillResult("done");
         }
     } else if (strcmp(sub, "cancel") == 0) {
         ok = refill.cancelRefill();
     } else {
-        Serial.println("refill list | request <ring> | start [moves] | pill | add <pills> | finish | cancel | status");
+        Serial.println("refill list | request <ring> | start [moves] | next | add <pills> | finish | cancel | status");
         return;
     }
     if (ok == false) {
@@ -308,8 +310,12 @@ void handleCommand(char* line) {
             interruptDose(true);
         }
         if (schedule.remove(id)) {
+            if (schedule.getCount() == 0) {
+                schedule.setRingPills(RING, 0);   // nothing left to dose: the ring starts from empty again
+            }
             persist();
             Serial.printf("removed #%d\n", id);
+            printRing();
         } else {
             Serial.println("no such dose");
         }
@@ -444,7 +450,11 @@ void loop() {
     // the Refilling System follows its own move and its timeout; the board only prints what changed
     refill.update(millis());
     if (refill.getRefillStatus() != refillReported) {
+        bool wasReturning = refillReported == RefillStatus::RETURNING;
         printRefillStatus();
+        if (wasReturning && refill.getRefillStatus() == RefillStatus::COMPLETED) {
+            printRefillResult("done");   // the cartridge is back in its first position
+        }
     }
 
     // CHECK: If the active dose was deleted, abort the motor

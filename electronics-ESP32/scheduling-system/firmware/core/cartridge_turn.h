@@ -42,16 +42,19 @@ private:
     bool moving;            // true while turning, false while pausing
     bool needTime;          // true until update() has seen the clock for the first time in a move
     bool finishedFlag;      // set when a dose is complete, cleared by finished()
+    bool reverse;           // the moves in progress turn against the dispensing direction
     uint32_t nextStepUs;    // when the next half-step is due
     uint32_t moveStartUs;   // when the current move made its first half-step
     uint32_t pauseEndUs;    // when the pause ends
 
     void beginMove();
+    bool startMoves(int pills, bool back);
 
 public:
     CartridgeTurner(StepperPort* stepperPtr, TurnConfig config = TurnConfig());
 
     bool start(int pills);          // false if it is busy or pills is below 1
+    bool startBack(int moves);      // the same, but the moves turn against the dispensing direction (the slot counts down)
     void stop();                    // stops at once and switches the coils off, the dose does not count as finished
     void update(uint32_t nowUs);    // call this as often as possible
 

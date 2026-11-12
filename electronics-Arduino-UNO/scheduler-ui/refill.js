@@ -1,7 +1,9 @@
 (function () {
   'use strict';
   /* Fill layer: the small window that opens when the person presses Fill. It shows a plus button and Done.
-     Each plus waits for the person to confirm that the pill went in (a sensor will do this later), then counts it.
+     A plus waits a second, then asks whether the pill went in (a sensor will do this later); a Yes counts it, turns the
+     cartridge one move to the next position (none after the last pill) and lets Done be pressed. After Done, if the cartridge
+     already held pills, the board turns it back to where it was before the refill; then it answers "refill done".
      Whatever the count is when Done is pressed becomes the max of the ring (never more than 11).
      It talks to the board only with the "refill ..." commands and lines (the Refilling System on the board decides),
      and to the page only through window.UISystem. The refill history is kept here, in its own storage key. ASSUMED / NOT VALIDATED. */
@@ -10,7 +12,7 @@
 
   var MAX = 11;   // a ring holds at most 11 pills (the board enforces it too)
   var KEY = 'dispenser-ui-refill-' + UI.board.short;
-  var ACTIVE = { REFILL_MODE: 1, POSITIONING: 1, WAITING_FOR_REFILL: 1, SAVING_INVENTORY: 1 };
+  var ACTIVE = { REFILL_MODE: 1, POSITIONING: 1, WAITING_FOR_REFILL: 1, SAVING_INVENTORY: 1, RETURNING: 1 };
   var ERRORS = {
     NOT_IDLE: 'Another refill is already going on.',
     BAD_RING: 'That ring does not exist.',
@@ -56,8 +58,9 @@
 
   // ---------- state ----------
   var status = 'READY', open = false, ring = 0, startedMove = false, wasConnected = false;
-  var inRing = 0, added = 0, message = '', pending = false;   // pending: a pill was asked for and not yet confirmed
-  var moving = false;   // a pill was confirmed and the cartridge is turning to the next position; the board's move counts it
+  var inRing = 0, added = 0, message = '';
+  // one pill at a time: plus -> settling for 1 s -> asking -> (Yes) rotating to the next position -> idle
+  var phase = 'idle', settleTimer = null, retryTimer = null, retries = 0;
 
   // after a cancel with pills in the cartridge the window stays until the person says they are all out (kept over a reload)
   var TAKEOUT = 'dispenser-ui-takeout-' + UI.board.short;
@@ -73,7 +76,7 @@
   var info = el('p', { class: 'fill-info' });
   var count = el('div', { class: 'fill-count', 'aria-live': 'polite' });
   var addBtn = el('button', { type: 'button', class: 'fill-add', title: 'Add a pill', 'aria-label': 'Add a pill' }, [plusIcon()]);
-  var askText = el('p', { class: 'fill-ask', text: 'Drop one pill into the cartridge now. Did the pill go in?' });
+  var askText = el('p', { class: 'fill-ask', text: 'Did you put the pill in?' });
   var noBtn = el('button', { type: 'button', text: 'No, undo' });
   var yesBtn = el('button', { type: 'button', class: 'primary', text: 'Yes, it is in' });
   var ask = el('div', { class: 'fill-confirm', role: 'status', hidden: '' }, [askText, el('div', { class: 'modal-buttons' }, [noBtn, yesBtn])]);
@@ -106,15 +109,19 @@
       return;
     }
     var ready = status === 'WAITING_FOR_REFILL';
-    count.hidden = addBtn.hidden = !(ready || moving || status === 'POSITIONING');
-    ask.hidden = !(ready && pending && !moving);
-    doneBtn.disabled = !ready || added < 1 || pending || moving;
-    addBtn.disabled = !ready || pending || moving || added >= room();
+    count.hidden = addBtn.hidden = !(ready || status === 'POSITIONING' || status === 'RETURNING');
+    ask.hidden = !(ready && phase === 'asking');
+    doneBtn.disabled = !ready || added < 1 || phase !== 'idle';
+    addBtn.disabled = !ready || phase !== 'idle' || added >= room();
     count.textContent = String(added);
-    if (ready && moving) {
+    if (ready && phase === 'rotating') {
       info.textContent = 'Turning the cartridge to the next position. Please wait.';
+    } else if (ready && phase !== 'idle') {
+      info.textContent = 'Put one pill into the cartridge.';
     } else if (ready) {
-      info.textContent = added >= room() ? 'The cartridge is full. Press Done.' : 'Press the plus button, drop a pill into the cartridge, then confirm it. In the cartridge now: ' + inRing + '.';
+      info.textContent = added >= room() ? 'The cartridge is full. Press Done.' : 'Press the plus button, drop a pill into the cartridge, then confirm it.';
+    } else if (status === 'RETURNING') {
+      info.textContent = 'Putting the cartridge back where it started. Please wait.';
     } else if (status === 'POSITIONING') {
       info.textContent = 'The cartridge is turning. Please wait.';
     } else if (status === 'ERROR') {
@@ -124,11 +131,11 @@
     }
     note.textContent = message;
     // the cartridge cannot be called back while it turns, or after the count is saved
-    var stuck = status === 'POSITIONING' || status === 'SAVING_INVENTORY' || moving;
+    var stuck = status === 'POSITIONING' || status === 'SAVING_INVENTORY' || status === 'RETURNING' || phase === 'rotating';
     var closing = status === 'ERROR' || (message !== '' && !ACTIVE[status]);
     cancelBtn.textContent = closing ? 'Close' : 'Cancel';
     cancelBtn.disabled = stuck;
-    if (pending) { if (!ask.contains(document.activeElement)) yesBtn.focus(); }
+    if (phase === 'asking') { if (!ask.contains(document.activeElement)) yesBtn.focus(); }
     else if (ready && document.activeElement !== addBtn && document.activeElement !== doneBtn) addBtn.focus();
   }
 
@@ -136,19 +143,42 @@
     open = false;
     startedMove = false;
     added = 0;
-    pending = false;
-    moving = false;
+    phase = 'idle';
+    window.clearTimeout(settleTimer);
+    window.clearTimeout(retryTimer);
     message = '';
     render();
   }
 
-  addBtn.addEventListener('click', function () { if (!pending && !moving && added < room()) { pending = true; render(); } });
-  // the board turns the cartridge one move; the pill counts when that move is over (see onStatus)
-  yesBtn.addEventListener('click', function () { if (pending) { pending = false; moving = true; message = ''; UI.send('refill pill'); render(); } });
-  noBtn.addEventListener('click', function () { pending = false; render(); });
+  // a pill goes in one pass: plus, a pause of a second, then the person is asked whether the pill went in
+  function settle() {
+    phase = 'settling';
+    window.clearTimeout(settleTimer);
+    settleTimer = window.setTimeout(function () { if (phase === 'settling') { phase = 'asking'; render(); } }, 1000);
+    render();
+  }
+  // the pill is in: the cartridge turns one move so the next free position meets the filling hole
+  function turnNext() {
+    phase = 'rotating';
+    UI.send('refill next');
+    render();
+  }
+  addBtn.addEventListener('click', function () {
+    if (phase !== 'idle' || added >= room()) return;
+    message = '';
+    settle();
+  });
+  yesBtn.addEventListener('click', function () {
+    if (phase !== 'asking') return;
+    added++;
+    retries = 0;
+    if (added < room()) turnNext();   // after the last pill there is no next position
+    else { phase = 'idle'; render(); }
+  });
+  noBtn.addEventListener('click', function () { if (phase === 'asking') { phase = 'idle'; render(); } });
   cancelBtn.addEventListener('click', function () {
     // pills may already be in the cartridge: the window stays until the person confirms they are all out
-    if (status === 'WAITING_FOR_REFILL' || added > 0 || pending) setTakeOut({ n: pending ? 0 : added });
+    if (status === 'WAITING_FOR_REFILL' || added > 0 || phase !== 'idle') setTakeOut({ n: phase === 'idle' ? added : 0 });
     if (ACTIVE[status]) UI.send('refill cancel');   // the board answers CANCELLED
     if (takeOut) render();
     else if (!ACTIVE[status]) close();   // otherwise that answer closes the layer
@@ -167,14 +197,19 @@
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && open && !takeOut && !cancelBtn.disabled) cancelBtn.click(); });
 
+  // dispensed = 11 - pills left; the cartridge turns back (dispensed - 1) times first, against the doses.
+  // An empty cartridge needs no calculation: nothing turns (the filling hole is assumed to be empty)
+  function startMoves(pills) {
+    var dispensed = pills === 0 ? 0 : Math.max(0, MAX - pills);
+    UI.send('refill start ' + Math.max(0, dispensed - 1));
+  }
   // the person pressed Fill on a saved schedule (or in the empty state)
   document.addEventListener('ui:refill', function (e) {
     if (open) return;
     ring = e.detail && e.detail.ring >= 0 ? e.detail.ring : 0;
     inRing = UI.ringPills() === null ? 0 : UI.ringPills();
     added = 0;
-    pending = false;
-    moving = false;
+    phase = 'idle';
     message = '';
     open = true;
     render();
@@ -190,13 +225,14 @@
       UI.setRingMax(+m[4]);   // whatever the count was when the fill was confirmed is the max
       close();
     } else if ((m = /^refill error (\w+)$/.exec(line))) {
-      if (moving) {   // the board did not turn for that pill: it is not counted, ask again
-        moving = false;
-        pending = true;
-        message = m[1] === 'CARTRIDGE_BUSY' ? 'The cartridge is still settling. Press Yes again in a moment.' : (ERRORS[m[1]] || 'The board refused this step.');
-      } else {
-        message = ERRORS[m[1]] || 'The board refused this step.';
+      if (m[1] === 'CARTRIDGE_BUSY' && phase === 'rotating' && retries < 10) {   // still holding its last position: ask again shortly
+        retries++;
+        window.clearTimeout(retryTimer);
+        retryTimer = window.setTimeout(function () { if (phase === 'rotating') turnNext(); }, 1000);
+        return;
       }
+      message = ERRORS[m[1]] || 'The board refused this step.';
+      if (phase === 'rotating') phase = 'idle';   // it did not turn: the pill count is not affected, Done still works
       render();
     }
   });
@@ -205,8 +241,8 @@
     var before = status;
     status = s;
     if (ringId >= 0) inRing = pills;
-    if (moving && s === 'WAITING_FOR_REFILL' && before === 'POSITIONING') { moving = false; added++; }   // the cartridge has turned: the pill counts
-    else if (s !== 'POSITIONING' && s !== 'WAITING_FOR_REFILL') moving = false;
+    if (phase === 'rotating' && s === 'WAITING_FOR_REFILL' && before === 'POSITIONING') { phase = 'idle'; }   // it has turned: ready for the next pill
+    else if (phase === 'rotating' && s !== 'POSITIONING' && s !== 'WAITING_FOR_REFILL') phase = 'idle';
     if (takeOut) {   // after a cancel: only make sure the board really cancels; the window waits for the person
       if (s === 'REFILL_MODE' || s === 'WAITING_FOR_REFILL') UI.send('refill cancel');
       if (s === 'CANCELLED' && before !== s) addRecord(ring, inRing, 0, inRing, 'CANCELLED');
@@ -215,10 +251,7 @@
     }
     if (s === 'REFILL_MODE' && open && !startedMove) {
       startedMove = true;
-      // pills dispensed since the last fill = pills at that fill - pills left; the cartridge turns that many minus one first,
-      // and not at all for a new or empty cartridge (the filling hole is assumed to be empty)
-      var dispensed = UI.ringMax() === null ? 0 : Math.max(0, UI.ringMax() - pills);
-      UI.send('refill start ' + Math.max(0, dispensed - 1));
+      startMoves(pills);
     } else if (s === 'REFILL_MODE' && !open) {
       UI.send('refill cancel');   // a refill left open by an earlier page: do not turn the cartridge now
     } else if (s === 'WAITING_FOR_REFILL' && !open) {

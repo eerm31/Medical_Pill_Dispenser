@@ -358,8 +358,8 @@
     if (!list.length) return;
     var names = list.map(function (d) { return '"' + (d.name || text12(d.time)) + '"'; }).join(', ');
     var need = Math.max.apply(null, list.map(function (d) { return d.pills; }));
-    $('pauseWarnTitle').textContent = 'Not enough pills: ' + (list.length === 1 ? 'schedule paused' : 'schedules paused');
-    $('pauseWarnText').textContent = names + (list.length === 1 ? ' needs ' : ' need up to ') + need + (need === 1 ? ' pill' : ' pills') + ' for a dose, but the cartridge has ' + state.ring.pills + '. It starts again by itself after you fill the cartridge.';
+    $('pauseWarnTitle').textContent = list.length === 1 ? 'Schedule paused' : 'Schedules paused';
+    $('pauseWarnText').textContent = names + (list.length === 1 ? ' needs ' : ' need up to ') + need + (need === 1 ? ' pill' : ' pills') + ' per dose, the cartridge has ' + state.ring.pills + '.';
     $('pauseFillBtn').disabled = !connected;
   }
 
@@ -384,14 +384,13 @@
         pillsCell.appendChild(el('span', { class: 'badge st-completed', text: 'FULL' }));
       } else {
         // the refill starts here (see refill.js); the button shimmers while this schedule is paused
-        var fillBtn = el('button', { type: 'button', class: 'fill-btn' + (paused ? ' shimmer' : ''), text: 'Fill', 'aria-label': 'Fill the cartridge for ' + d.name });
+        var fillBtn = el('button', { type: 'button', class: 'fill-btn', text: 'Fill', 'aria-label': 'Fill the cartridge for ' + d.name });
         fillBtn.disabled = !connected;
         fillBtn.addEventListener('click', function () { document.dispatchEvent(new CustomEvent('ui:refill', { detail: { ring: 0 } })); });
         pillsCell.appendChild(fillBtn);
       }
       var statusCell = el('td', {}, [statusLabel]);
       if (onHold) statusCell.appendChild(el('div', { class: 'warn-line', text: 'Paused while the cartridge is filled. It continues when you finish.' }));
-      else if (paused) statusCell.appendChild(el('div', { class: 'warn-line', text: 'Not enough pills: ' + state.ring.pills + ' in the cartridge, ' + d.pills + ' needed per dose.' }));
       var live = liveLine(d);
       if (live) statusCell.appendChild(live);
       
@@ -803,6 +802,7 @@
       if (result !== 'sent') closeOpenRecord(d);   // when the board answers, its own "dose end" line closes the row
       var i = state.savedDoses.indexOf(d);
       if (i >= 0) archiveDeletedSchedule(d, i);
+      if (state.savedDoses.length === 0) { state.ring = { pills: 0 }; state.ringMax = null; save(); renderRows(); }   // no schedule left: the board empties its count too
       if (result === 'sent') notify(true, '"' + d.name + '" was stopped on the Arduino and will not be dispensed any more.');
       else if (result === 'queued') notify(false, 'The Arduino is not connected. It will stop "' + d.name + '" as soon as this page connects.');
       else notify(false, 'Could not find "' + d.name + '" on the Arduino. Connect it and save the schedule again to replace what the board has.');
@@ -874,7 +874,6 @@
     isConnected: function () { return connected; },
     savedScheduleCount: function () { return state.savedDoses.length; },
     ringPills: function () { return state.ring.pills; },
-    ringMax: function () { return state.ringMax; },
     // a confirmed fill: the count that was put in is the new max of the ring
     setRingMax: function (n) { state.ringMax = Number(n); save(); renderRows(); },
     ask: askConfirm,

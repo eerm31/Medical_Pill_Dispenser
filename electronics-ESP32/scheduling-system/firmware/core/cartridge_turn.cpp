@@ -78,6 +78,7 @@ CartridgeTurner::CartridgeTurner(StepperPort* stepperPtr, TurnConfig config) {
     moving = false;
     needTime = false;
     finishedFlag = false;
+    reverse = false;
     nextStepUs = 0;
     moveStartUs = 0;
     pauseEndUs = 0;
@@ -96,23 +97,34 @@ bool CartridgeTurner::setConfig(const TurnConfig& config) {
 // Starts the next move. The half-steps of a move are worked out from the slot number, so the moves add up to
 // exactly stepsPerRev after a full turn (341 + 341 + 342 + ... = 4096) and the cartridge never drifts.
 void CartridgeTurner::beginMove() {
-    long from = (long)slot * cfg.stepsPerRev / slots;
-    long to = (long)(slot + 1) * cfg.stepsPerRev / slots;
+    // a move against the dispensing direction covers the same half-steps as the forward move out of the slot before it
+    int first = reverse ? (slot + slots - 1) % slots : slot;
+    long from = (long)first * cfg.stepsPerRev / slots;
+    long to = (long)(first + 1) * cfg.stepsPerRev / slots;
     stepsLeft = to - from;
     moving = true;
     needTime = true;
 }
 
-bool CartridgeTurner::start(int pills) {
+bool CartridgeTurner::startMoves(int pills, bool back) {
     if (busy || pills < 1) {
         return false;
     }
+    reverse = back;
     pillsLeft = pills;
     pillsDone = 0;
     finishedFlag = false;
     busy = true;
     beginMove();
     return true;
+}
+
+bool CartridgeTurner::start(int pills) {
+    return startMoves(pills, false);
+}
+
+bool CartridgeTurner::startBack(int moves) {
+    return startMoves(moves, true);
 }
 
 void CartridgeTurner::stop() {
@@ -148,7 +160,7 @@ void CartridgeTurner::update(uint32_t nowUs) {
             return;
         }
 
-        stepper->step(cfg.direction);
+        stepper->step(reverse ? -cfg.direction : cfg.direction);
         stepsLeft--;
         nextStepUs = nextStepUs + cfg.stepIntervalUs;
 
@@ -159,7 +171,7 @@ void CartridgeTurner::update(uint32_t nowUs) {
 
         if (stepsLeft <= 0) {
             // move finished: the pill is released. The next move starts pauseUs after this one started, coils stay on meanwhile
-            slot = (slot + 1) % slots;
+            slot = reverse ? (slot + slots - 1) % slots : (slot + 1) % slots;
             pillsLeft--;
             pillsDone++;
             moving = false;
