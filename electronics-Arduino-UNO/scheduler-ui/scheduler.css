@@ -41,6 +41,7 @@ td:last-child, th:last-child { text-align: right; }
 tr.dose-compact td { padding: 10px 8px; }
 tr.dose-expanded { background: #f9fbfc; }
 tr.dose-expanded td:first-child { padding-left: 24px; color: var(--muted); font-size: 14px; }
+tr.dose-expanded td { text-align: left; }
 .recur-label { color: var(--muted); font-size: 13px; font-weight: 500; }
 button.expand { min-height: 34px; padding: 4px 10px; border-color: transparent; background: transparent; color: var(--primary); font-weight: 700; user-select: none; }
 button.expand:hover:not(:disabled) { background: var(--primary-soft); color: var(--primary-dark); }
@@ -99,3 +100,40 @@ button.big { min-width: 190px; min-height: 48px; font-size: 16px; }
 .modal-recurrence input { width: 60px; }
 .modal-buttons { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
 .modal-buttons button { flex: 1; }
+
+/* live clock, inventory and dosage history */
+.card + .card { margin-top: 18px; }
+.live-clock { margin-left: auto; color: var(--primary-dark); font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.ring-text { margin-bottom: 0; font-size: 16px; font-weight: 600; }
+.ring-set { display: flex; gap: 12px; align-items: end; }
+.ring-set input { width: 90px; }
+#ringMsg { margin-top: 8px; }
+.count.bad { background: var(--bad-soft); color: var(--bad); }
+.status-label.finished { color: var(--ok); font-weight: 700; }
+.badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: .03em; }
+.st-completed { background: #e2f4ec; color: var(--ok); }
+.st-failed { background: var(--bad-soft); color: var(--bad); }
+.st-incomplete { background: var(--warn-soft); color: var(--warn); }
+.st-finished { background: var(--ok); color: #fff; }
+.st-deleted { background: var(--bad); color: #fff; }
+.st-dispensing { background: var(--primary-soft); color: var(--primary-dark); }
+.st-latest { margin-left: 8px; background: var(--primary); color: #fff; }
+tr.latest td { background: #f4fafb; }
+#historyTable { font-size: 13.5px; }
+#historyTable th { padding: 8px 5px; font-size: 11px; letter-spacing: 0; }
+#historyTable td { padding: 8px 5px; }
+.badge { white-space: nowrap; }
+.st-latest { margin-left: 6px; }
+#clearHistoryBtn { margin-top: 14px; }
+.pills-left { font-weight: 700; white-space: nowrap; }
+.pills-left.none { color: var(--bad); }
+.live-line { margin-top: 2px; color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.live-line.live { color: var(--primary-dark); font-weight: 600; }
+.live-dot { color: var(--ok); animation: blink 1s ease-in-out infinite; }
+@keyframes blink { 50% { opacity: .25; } }
+.confirm { border-top: 5px solid var(--bad); }
+.confirm-text { color: var(--muted); line-height: 1.5; }
+button.danger { border-color: var(--bad); background: var(--bad); color: #fff; }
+button.danger:hover:not(:disabled) { border-color: #8c1d17; background: #8c1d17; color: #fff; }
+.card:has(#historyTable) { overflow-x: auto; }
+@media (max-width: 720px) { .live-clock { flex-basis: 100%; margin-left: 0; text-align: left; font-size: 17px; } .top { flex-wrap: wrap; } }

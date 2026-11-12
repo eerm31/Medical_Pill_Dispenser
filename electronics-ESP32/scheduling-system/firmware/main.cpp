@@ -12,6 +12,8 @@
 #include "core/cartridge_turn.h"
 #include "hw/uln2003_stepper.h"
 #include "hw/eeprom_store.h"
+#include "core/dose_log.h"
+#include "core/RefillingSystem.h"
 #include "my_schedule.h"
 
 Uln2003Stepper stepper;
@@ -36,7 +38,63 @@ uint32_t clockBaseMs = 0;
 uint32_t clockBaseSeconds = 8 * 3600;
 uint32_t lastSecond = 0;
 
-uint8_t turnDoseId = 0;   // the dose that is being dispensed, 0 for a test move
+uint8_t turnDoseId = 0;     // the dose that is being dispensed, 0 when none (or a test move)
+uint16_t turnMinutes = 0;   // its scheduled time
+uint32_t turnStarted = 0;   // the clock when it started
+uint8_t turnPills = 0;      // pills the dose needs
+uint8_t turnReported = 0;   // pills of the dose already confirmed
+bool testMove = false;      // true while a "step" test move is turning
+
+// the time between two pills is never shorter than this
+#define MIN_PILL_INTERVAL_MS 5000UL
+
+// The single ring of this board is RED. Its pill count is shared by all doses and only goes down when a pill is confirmed.
+#define RING RED
+
+// EMPTY is about the pills in the ring. A FINISHED dose is a different thing: the ring can still hold pills.
+void printRing() {
+    int pills = schedule.ringPills(RING);
+    Serial.printf("ring %d %s\n", pills, pills == 0 ? "EMPTY" : "READY");
+}
+
+const char* logStatusText(uint8_t status) {
+    if (status == LOG_COMPLETED) {
+        return "COMPLETED";
+    }
+    if (status == LOG_INCOMPLETE) {
+        return "INCOMPLETE";
+    }
+    if (status == LOG_FAILED) {
+        return "FAILED";
+    }
+    return "FINISHED";
+}
+
+// "dose end #id HH:MM:SS RESULT done/needed left N": the UI System turns this into a line of the dosage history.
+// The event also goes into the log in the board's memory, which keeps only the last LOG_MAX events.
+void reportDoseEnd(uint8_t id, uint16_t minutes, LogStatus status, int done, int needed) {
+    uint32_t now = schedule.getClock();
+    LogRecord r = {id, (uint8_t)status, (uint8_t)done, (uint8_t)needed, (uint32_t)minutes * 60, status == LOG_FINISHED ? now : turnStarted, now};
+    logAdd(store, LOG_ADDRESS, r);
+    Serial.printf("dose end #%d %02d:%02d:00 %s %d/%d left %d\n", id, minutes / 60, minutes % 60, logStatusText(status), done, needed, schedule.ringPills(RING));
+}
+
+// "log N" and then one line per kept event, oldest first
+void printLog() {
+    Serial.printf("log %d\n", logCount(store, LOG_ADDRESS));
+    LogRecord r;
+    for (int i = 0; logGet(store, LOG_ADDRESS, i, &r); i++) {
+        Serial.printf("log #%d %02lu:%02lu:%02lu %02lu:%02lu:%02lu %02lu:%02lu:%02lu %s %d/%d\n", r.id,
+                      (unsigned long)(r.scheduled / 3600), (unsigned long)(r.scheduled % 3600 / 60), (unsigned long)(r.scheduled % 60),
+                      (unsigned long)(r.started / 3600), (unsigned long)(r.started % 3600 / 60), (unsigned long)(r.started % 60),
+                      (unsigned long)(r.ended / 3600), (unsigned long)(r.ended % 3600 / 60), (unsigned long)(r.ended % 60),
+                      logStatusText(r.status), r.done, r.needed);
+    }
+}
+
+void reportFinished(uint8_t id, uint16_t minutes) {
+    Serial.printf("schedule FINISHED #%d %02d:%02d:00\n", id, minutes / 60, minutes % 60);
+}
 
 // prints the clock, all the doses and the turn settings (the UI System reads these lines)
 void printList() {
@@ -60,10 +118,11 @@ void printList() {
     TurnConfig c = turner.getConfig();
     Serial.printf("turn %d %lu %lu %d\n", c.degreesPerPill, (unsigned long)(c.pauseUs / 1000),
                   (unsigned long)c.stepIntervalUs, c.direction);
+    printRing();
 }
 
-// keeps the schedule and the turn settings in the board's memory
-void saveToMemory() {
+// keeps the schedule, the ring count and the turn settings in the board's memory (the ring count is stored with the doses)
+void persist() {
     uint8_t scheduleBytes[SCHEDULE_BYTES];
     uint8_t settingsBytes[SETTINGS_BYTES];
 
@@ -71,7 +130,131 @@ void saveToMemory() {
     store.write(SCHEDULE_ADDRESS, scheduleBytes, n);
     size_t m = turner.getConfig().save(settingsBytes, sizeof(settingsBytes));
     store.write(SETTINGS_ADDRESS, settingsBytes, m);
+}
+
+void saveToMemory() {
+    persist();
     Serial.printf("saved %d dose(s)\n", schedule.getCount());
+}
+
+// Stops the cartridge. A dose with no pill out goes back to DUE, one with some pills out is INCOMPLETE and never restarts.
+void interruptDose(bool dropped = false) {
+    turner.stop();
+    if (turnDoseId != 0) {
+        uint8_t id = turnDoseId;
+        turnDoseId = 0;
+        schedule.abortTake(id, turnReported);
+        if (turnReported > 0 || dropped) {
+            reportDoseEnd(id, turnMinutes, LOG_INCOMPLETE, turnReported, turnPills);
+        }
+    }
+    testMove = false;
+}
+
+// ---------- the Refilling System: this is all the board program knows about it ----------
+const char* refillStatusText(RefillStatus s) {
+    switch (s) {
+        case RefillStatus::READY: return "READY";
+        case RefillStatus::REFILL_MODE: return "REFILL_MODE";
+        case RefillStatus::POSITIONING: return "POSITIONING";
+        case RefillStatus::WAITING_FOR_REFILL: return "WAITING_FOR_REFILL";
+        case RefillStatus::SAVING_INVENTORY: return "SAVING_INVENTORY";
+        case RefillStatus::COMPLETED: return "COMPLETED";
+        case RefillStatus::CANCELLED: return "CANCELLED";
+        case RefillStatus::ERROR: return "ERROR";
+    }
+    return "ERROR";
+}
+
+const char* refillErrorText(RefillError e) {
+    switch (e) {
+        case RefillError::NONE: return "NONE";
+        case RefillError::NOT_IDLE: return "NOT_IDLE";
+        case RefillError::BAD_RING: return "BAD_RING";
+        case RefillError::RING_FULL: return "RING_FULL";
+        case RefillError::CARTRIDGE_BUSY: return "CARTRIDGE_BUSY";
+        case RefillError::WRONG_STATE: return "WRONG_STATE";
+        case RefillError::BAD_AMOUNT: return "BAD_AMOUNT";
+        case RefillError::MOVE_REFUSED: return "MOVE_REFUSED";
+        case RefillError::STORE_FAILED: return "STORE_FAILED";
+        case RefillError::TIMEOUT: return "TIMEOUT";
+    }
+    return "NONE";
+}
+
+// The refill borrows the cartridge for ONE move; its status is printed whenever it changes.
+class SketchRefillHost : public RefillHost {
+public:
+    bool cartridgeFree() { return turnDoseId == 0 && turner.isBusy() == false; }
+    bool moveOneSlot() { return turner.start(1); }
+    bool moveDone() { return turner.getPillsDone() >= 1; }   // a finished move, not a finished hold
+    int ringPills(int r) { return schedule.ringPills((Color)r); }
+    bool storePills(int r, int pills) {
+        if (schedule.setRingPills((Color)r, pills) == false) {
+            return false;
+        }
+        persist();
+        return true;
+    }
+    int cartridgeSlot() { return turner.getSlot(); }
+};
+SketchRefillHost refillHost;
+RefillingSystem refill;
+static_assert(REFILL_MAX_PILLS == RING_CAPACITY, "the refill limit and the ring capacity must be the same");
+RefillStatus refillReported = RefillStatus::READY;
+
+void printRefillStatus() {
+    int r = refill.getRefillRing();
+    Serial.printf("refill status %s ring %d pills %d", refillStatusText(refill.getRefillStatus()), r, r >= 0 ? refillHost.ringPills(r) : 0);
+    if (refill.getRefillStatus() == RefillStatus::WAITING_FOR_REFILL) {
+        Serial.printf(" slot %d", refillHost.cartridgeSlot());   // counted by the motor, no sensor has measured it
+    }
+    Serial.println();
+    refillReported = refill.getRefillStatus();
+}
+
+void printRefillResult(const char* word) {
+    Serial.printf("refill %s ring %d prev %d added %d new %d\n", word, refill.getRefillRing(), refill.getPreviousPills(),
+                  refill.getPillsAdded(), refill.getUpdatedPills());
+}
+
+void refillCommand(const char* sub, const char* value) {
+    bool ok = true;
+    if (sub == NULL || strcmp(sub, "status") == 0) {
+        printRefillStatus();
+        return;
+    }
+    if (strcmp(sub, "list") == 0) {
+        for (int r = 0; r < REFILL_RING_COUNT; r++) {
+            Serial.printf("refill ring %d %d %d\n", r, refillHost.ringPills(r), REFILL_MAX_PILLS);
+        }
+        printRefillStatus();
+        return;
+    }
+    if (strcmp(sub, "request") == 0) {
+        ok = refill.requestRefill(value != NULL ? atoi(value) : 0);
+    } else if (strcmp(sub, "start") == 0) {
+        ok = refill.startRefill();
+    } else if (strcmp(sub, "add") == 0 && value != NULL) {
+        ok = refill.updateRefillInventory(atoi(value));
+        if (ok) {
+            printRefillResult("saved");
+            printRing();
+        }
+    } else if (strcmp(sub, "finish") == 0) {
+        ok = refill.finishRefill();
+        if (ok) {
+            printRefillResult("done");
+        }
+    } else if (strcmp(sub, "cancel") == 0) {
+        ok = refill.cancelRefill();
+    } else {
+        Serial.println("refill list | request <ring> | start | add <pills> | finish | cancel | status");
+        return;
+    }
+    if (ok == false) {
+        Serial.printf("refill error %s\n", refillErrorText(refill.getRefillError()));
+    }
 }
 
 // runs one command that was typed in the serial monitor or sent by the UI System
@@ -89,7 +272,7 @@ void handleCommand(char* line) {
     }
 
     if (strcmp(command, "help") == 0) {
-        Serial.println("time HH:MM | add HH:MM [pills] | rm <id> | clear | save | set <deg> <pauseMs> <stepUs> <dir> | list | step | stop");
+        Serial.println("time HH:MM | add HH:MM [pills] | rm <id> | clear | save | pills <0-11> | log [clear] | set <deg> <pauseMs> <stepUs> <dir> | list | step | stop");
     } else if (strcmp(command, "time") == 0 && arg1 != NULL && Scheduler::parseTime(arg1, &minutes)) {
         clockBaseSeconds = (uint32_t)minutes * 60;
         clockBaseMs = millis();
@@ -112,41 +295,72 @@ void handleCommand(char* line) {
             Serial.println("could not add");
         }
     } else if (strcmp(command, "rm") == 0 && arg1 != NULL) {
-        if (schedule.remove(atoi(arg1))) {
-            Serial.println("removed");
+        // the schedule is deleted: its dose stops at once (pills already out stay counted) and it never comes back
+        uint8_t id = (uint8_t)atoi(arg1);
+        if (id != 0 && id == turnDoseId) {
+            interruptDose(true);
+        }
+        if (schedule.remove(id)) {
+            persist();
+            Serial.printf("removed #%d\n", id);
         } else {
-            Serial.println("no such entry");
+            Serial.println("no such dose");
         }
     } else if (strcmp(command, "clear") == 0) {
+        if (turnDoseId != 0) {
+            interruptDose(true);   // the dose that is turning would lose its entry; the pills already out stay counted
+        }
         schedule.clear();
         Serial.println("cleared");
     } else if (strcmp(command, "save") == 0) {
         saveToMemory();
+    } else if (strcmp(command, "refill") == 0) {
+        refillCommand(arg1, arg2);
+    } else if (strcmp(command, "pills") == 0 && arg1 != NULL) {
+        // how many pills are in the ring now (after loading or refilling it)
+        if (turner.isBusy() || refill.isRefillActive()) {
+            Serial.println("the cartridge is turning or being refilled, try again when it is done");
+        } else if (schedule.setRingPills(RING, atoi(arg1))) {
+            persist();
+            printRing();
+        } else {
+            Serial.printf("pills must be 0 to %d\n", RING_CAPACITY);
+        }
     } else if (strcmp(command, "set") == 0 && arg1 != NULL && arg2 != NULL && arg3 != NULL && arg4 != NULL) {
         TurnConfig c = turner.getConfig();
         c.degreesPerPill = atoi(arg1);
         c.pauseUs = (uint32_t)atoi(arg2) * 1000UL;
         c.stepIntervalUs = (uint32_t)atoi(arg3);
         c.direction = atoi(arg4);
-        if (turner.setConfig(c)) {
+        if (c.pauseUs < MIN_PILL_INTERVAL_MS * 1000UL) {
+            Serial.println("the time between pills must be at least 5000 ms");
+        } else if (turner.setConfig(c)) {
             Serial.println("settings ok");
         } else {
             Serial.println("bad settings (or the cartridge is turning)");
         }
     } else if (strcmp(command, "list") == 0) {
         printList();
+    } else if (strcmp(command, "log") == 0) {
+        if (arg1 != NULL && strcmp(arg1, "clear") == 0) {
+            logClear(store, LOG_ADDRESS);
+        }
+        printLog();
     } else if (strcmp(command, "step") == 0) {
         // one move to check the motor and its direction
-        if (turner.start(1)) {
+        if (refill.isRefillActive()) {
+            Serial.println("a refill is going on");
+        } else if (turner.start(1)) {
             turnDoseId = 0;
+            testMove = true;
             Serial.println("test move");
         }
     } else if (strcmp(command, "stop") == 0) {
         if (turner.isBusy()) {
-            turner.stop();
-            if (turnDoseId != 0) {
-                schedule.abortTake(turnDoseId);   // the dose goes back to DUE and starts again
+            if (refill.getRefillStatus() == RefillStatus::POSITIONING) {
+                refill.motorFault();   // the move was cut short, so the position is not known any more
             }
+            interruptDose();
             Serial.println("stopped");
         }
     } else {
@@ -188,6 +402,9 @@ void setup() {
 
     TurnConfig saved = turner.getConfig();
     if (saved.load(settingsBytes, sizeof(settingsBytes))) {
+        if (saved.pauseUs < MIN_PILL_INTERVAL_MS * 1000UL) {
+            saved.pauseUs = MIN_PILL_INTERVAL_MS * 1000UL;   // settings saved by an older program had a shorter pause
+        }
         turner.setConfig(saved);
     }
 
@@ -198,6 +415,7 @@ void setup() {
         loadDefaultDoses();
     }
 
+    refill.initializeRefillingSystem(&refillHost);   // a restart always comes up READY: an unfinished refill leaves the pill counts as they were
     Serial.println("scheduling system ready (type help)");
     printList();
 }
@@ -216,26 +434,73 @@ void loop() {
     // keep the cartridge turning
     turner.update(micros());
 
-    // a dose is due and the cartridge is free: start it
-    if (turner.isBusy() == false) {
-        const Entry* d = schedule.due();
-        if (d != NULL && schedule.beginTake(d->id)) {
-            Serial.printf("dose #%d: %d pill(s)\n", d->id, d->pills);
-            turnDoseId = d->id;
-            turner.start(d->pills);
+    // the Refilling System follows its own move and its timeout; the board only prints what changed
+    refill.update(millis());
+    if (refill.getRefillStatus() != refillReported) {
+        printRefillStatus();
+    }
+
+    // CHECK: If the active dose was deleted, abort the motor
+    if (turnDoseId != 0 && turner.isBusy()) {
+        const Entry* d = schedule.find(turnDoseId);
+        if (d != NULL && d->status == EntryStatus::DELETED) {
+            interruptDose();
+            Serial.println("dose was deleted - motor stopped");
         }
     }
 
-    // the cartridge has finished all the moves of a dose
-    if (turner.finished()) {
-        if (turnDoseId != 0) {
-            // there is no sensor, so we just trust that the pills came out
-            schedule.finishTake(turnDoseId, VERIFIED);
-            Serial.println("dose done");
-        } else {
-            Serial.println("test move done");
+    // a dose is due and the cartridge is free: start it (never while a refill has the cartridge)
+    if (turner.isBusy() == false && refill.isRefillActive() == false) {
+        const Entry* d = schedule.due();
+        if (d != NULL) {
+            uint8_t id = d->id;
+            uint16_t scheduled = d->minutes;
+            uint8_t needed = d->pills;
+            if (schedule.beginTake(id)) {
+                turnDoseId = id;
+                turnMinutes = scheduled;
+                turnStarted = schedule.getClock();
+                turnPills = needed;
+                turnReported = 0;
+                testMove = false;
+                Serial.printf("dose start #%d %02d:%02d:00 %d\n", id, scheduled / 60, scheduled % 60, needed);
+                turner.start(needed);
+            } else {
+                // the ring cannot give the whole dose: nothing turns and the dose is not tried again
+                reportDoseEnd(id, scheduled, LOG_FINISHED, 0, needed);
+                reportFinished(id, scheduled);
+            }
         }
-        turnDoseId = 0;
+    }
+
+    // a pill counts when its move is over, one by one; the dose is complete with its last pill
+    while (turnDoseId != 0 && turnReported < turner.getPillsDone()) {
+        turnReported++;
+        schedule.confirmPill(turnDoseId);
+        persist();   // the count must survive a power cut
+        Serial.printf("pill #%d %d/%d left %d\n", turnDoseId, turnReported, turnPills, schedule.ringPills(RING));
+
+        if (turnReported >= turnPills) {
+            // there is no sensor, so a finished move is the only sign that the pill came out
+            uint8_t id = turnDoseId;
+            turnDoseId = 0;
+            schedule.finishTake(id, VERIFIED);
+            reportDoseEnd(id, turnMinutes, LOG_COMPLETED, turnPills, turnPills);
+            const Entry* e = schedule.find(id);
+            if (e != NULL && schedule.dosesLeft(e) < 1) {
+                reportFinished(id, turnMinutes);
+            }
+            persist();
+            printRing();
+        }
+    }
+
+    // the cartridge has stopped holding its position after the last move
+    if (turner.finished()) {
+        if (testMove) {
+            Serial.println("test move done");
+            testMove = false;
+        }
     }
 
     // read the serial monitor, one character at a time

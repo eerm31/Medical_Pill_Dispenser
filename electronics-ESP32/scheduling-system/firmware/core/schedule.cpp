@@ -23,20 +23,29 @@ const char* verdictName(Verdict v) {
 }
 
 const char* Scheduler::statusName(EntryStatus s) {
-    if (s == PENDING) {
+    if (s == EntryStatus::PENDING) {
         return "PENDING";
     }
-    if (s == DUE) {
+    if (s == EntryStatus::DUE) {
         return "DUE";
     }
-    if (s == TAKING) {
+    if (s == EntryStatus::TAKING) {
         return "TAKING";
     }
-    if (s == TAKEN) {
+    if (s == EntryStatus::TAKEN) {
         return "TAKEN";
     }
-    if (s == MISSED) {
+    if (s == EntryStatus::MISSED) {
         return "MISSED";
+    }
+    if (s == EntryStatus::INCOMPLETE) {
+        return "INCOMPLETE";
+    }
+    if (s == EntryStatus::FINISHED) {
+        return "FINISHED";
+    }
+    if (s == EntryStatus::DELETED) {
+        return "DELETED";
     }
     return "FAILED";
 }
@@ -49,6 +58,10 @@ Scheduler::Scheduler(uint32_t startSeconds) {
     count = 0;
     nextId = 1;
     seconds = startSeconds % DAY_SECONDS;
+    int c;
+    for (c = 0; c < COLOR_COUNT; c++) {
+        ring[c] = 0;   // a ring holds only what a refill put in (at most RING_CAPACITY)
+    }
 }
 
 // ---------- time text ----------
@@ -68,8 +81,12 @@ bool Scheduler::parseTime(const char* text, int* minutes) {
         return false;
     }
 
-    // the minutes have exactly 2 digits and nothing comes after them
-    if (strlen(colon + 1) != 2) {
+    // the minutes have exactly 2 digits; ":SS" may follow (the UI System sends it) and nothing after that
+    size_t rest = strlen(colon + 1);
+    if (rest != 2 && rest != 5) {
+        return false;
+    }
+    if (rest == 5 && (colon[3] != ':' || isDigit(colon[4]) == false || isDigit(colon[5]) == false || (colon[4] - '0') * 10 + (colon[5] - '0') > 59)) {
         return false;
     }
 
@@ -127,7 +144,7 @@ AddResult Scheduler::add(Color color, int minutes, uint8_t* idOut, int pills) {
     e->color = color;
     e->minutes = (uint16_t)minutes;
     e->pills = (uint8_t)pills;
-    e->status = PENDING;
+    e->status = EntryStatus::PENDING;
     e->verdict = VERDICT_NONE;
 
     // if the time (plus the grace time) is already over today, the dose is for tomorrow
@@ -178,19 +195,22 @@ void Scheduler::evaluate() {
         uint32_t start = (uint32_t)e->minutes * 60;
         uint32_t end = (uint32_t)(e->minutes + GRACE_MIN) * 60;
 
-        if (e->status == PENDING && seconds >= start && seconds <= end) {
-            e->status = DUE;
-        } else if ((e->status == PENDING || e->status == DUE) && seconds > end) {
-            e->status = MISSED;
+        if (e->status == EntryStatus::PENDING && seconds >= start && seconds <= end) {
+            e->status = EntryStatus::DUE;
+        } else if ((e->status == EntryStatus::PENDING || e->status == EntryStatus::DUE) && seconds > end) {
+            e->status = EntryStatus::MISSED;
         }
     }
 }
 
-// a new day: everything starts again
+// a new day: everything starts again, except a dose the ring can no longer give and a dose that is being dispensed
 void Scheduler::newDay() {
     int i;
     for (i = 0; i < count; i++) {
-        entries[i].status = PENDING;
+        if (entries[i].status == EntryStatus::FINISHED || entries[i].status == EntryStatus::DELETED || entries[i].status == EntryStatus::TAKING) {
+            continue;
+        }
+        entries[i].status = EntryStatus::PENDING;
         entries[i].tomorrow = false;
         entries[i].verdict = VERDICT_NONE;
     }
@@ -267,7 +287,7 @@ const Entry* Scheduler::due() {
     const Entry* best = NULL;
     int i;
     for (i = 0; i < count; i++) {
-        if (entries[i].status == DUE) {
+        if (entries[i].status == EntryStatus::DUE) {
             if (best == NULL || comesBefore(&entries[i], best)) {
                 best = &entries[i];
             }
@@ -282,7 +302,7 @@ const Entry* Scheduler::next() {
     int i;
     for (i = 0; i < count; i++) {
         Entry* e = &entries[i];
-        if (e->status != PENDING) {
+        if (e->status != EntryStatus::PENDING) {
             continue;
         }
         if (e->tomorrow) {
@@ -303,31 +323,80 @@ const Entry* Scheduler::next() {
 }
 
 // ---------- the take flow ----------
-bool Scheduler::beginTake(uint8_t id) {
-    Entry* e = findEntry(id);
-    if (e == NULL || e->status != DUE) {
+int Scheduler::ringPills(Color c) {
+    return c < COLOR_COUNT ? ring[c] : 0;
+}
+
+int Scheduler::dosesLeft(const Entry* e) {
+    return e->pills > 0 ? ring[e->color] / e->pills : 0;   // never rounds up to a partial dose
+}
+
+bool Scheduler::setRingPills(Color c, int pills) {
+    if (c >= COLOR_COUNT || pills < 0 || pills > RING_CAPACITY) {
         return false;
     }
-    e->status = TAKING;
+    ring[c] = (uint8_t)pills;
+
+    // a refill gives a FINISHED dose its turn again, but never for a time that is already reached today:
+    // that dose may have been given just now, and a refill must not trigger it a second time
+    int i;
+    for (i = 0; i < count; i++) {
+        Entry* e = &entries[i];
+        if (e->color == c && e->status == EntryStatus::FINISHED && dosesLeft(e) > 0) {
+            e->status = EntryStatus::PENDING;
+            e->tomorrow = (seconds >= (uint32_t)e->minutes * 60);
+        }
+    }
+    evaluate();
     return true;
 }
 
-void Scheduler::abortTake(uint8_t id) {
+bool Scheduler::beginTake(uint8_t id) {
     Entry* e = findEntry(id);
-    if (e != NULL && e->status == TAKING) {
-        e->status = DUE;
+    if (e == NULL || e->status != EntryStatus::DUE) {
+        return false;
+    }
+
+    // not enough pills for the whole dose: no partial dose and no turning of the cartridge
+    if (dosesLeft(e) < 1) {
+        e->status = EntryStatus::FINISHED;
+        e->verdict = VERDICT_NONE;
+        return false;
+    }
+
+    e->status = EntryStatus::TAKING;
+    return true;
+}
+
+// The caller confirms a pill after it has really come out. This is the only place the ring count goes down.
+bool Scheduler::confirmPill(uint8_t id) {
+    Entry* e = findEntry(id);
+    if (e == NULL || e->status != EntryStatus::TAKING || ring[e->color] == 0) {
+        return false;
+    }
+    ring[e->color]--;
+    return true;
+}
+
+void Scheduler::abortTake(uint8_t id, int pillsDone) {
+    Entry* e = findEntry(id);
+    if (e != NULL && e->status == EntryStatus::TAKING) {
+        e->status = pillsDone > 0 ? EntryStatus::INCOMPLETE : EntryStatus::DUE;
     }
 }
 
 bool Scheduler::finishTake(uint8_t id, Verdict verdict) {
     Entry* e = findEntry(id);
-    if (e == NULL || e->status != TAKING) {
+    if (e == NULL || e->status != EntryStatus::TAKING) {
         return false;
     }
     if (verdict == VERIFIED) {
-        e->status = TAKEN;
+        e->status = EntryStatus::TAKEN;
+        if (dosesLeft(e) < 1) {
+            e->status = EntryStatus::FINISHED;
+        }
     } else {
-        e->status = FAILED;
+        e->status = EntryStatus::FAILED;
     }
     e->verdict = verdict;
     return true;
@@ -335,8 +404,9 @@ bool Scheduler::finishTake(uint8_t id, Verdict verdict) {
 
 // ---------- saving and loading ----------
 // Data format: magic byte, count, nextId, then 5 bytes per entry: id, colour, minutes (low byte), minutes (high byte), pills.
+// After the entries come COLOR_COUNT bytes: the pills left in each ring (older data has other bytes there and is ignored).
 size_t Scheduler::save(uint8_t* buffer, size_t capacity) {
-    size_t needed = 3 + (size_t)count * 5;
+    size_t needed = 3 + (size_t)count * 5 + COLOR_COUNT;
     if (capacity < needed) {
         return 0;   // the buffer is too small
     }
@@ -353,6 +423,9 @@ size_t Scheduler::save(uint8_t* buffer, size_t capacity) {
         p[2] = (uint8_t)(entries[i].minutes & 0xFF);
         p[3] = (uint8_t)(entries[i].minutes >> 8);
         p[4] = entries[i].pills;
+    }
+    for (i = 0; i < COLOR_COUNT; i++) {
+        buffer[3 + count * 5 + i] = ring[i];
     }
     return needed;
 }
@@ -380,18 +453,29 @@ bool Scheduler::load(const uint8_t* buffer, size_t length) {
         loaded[i].color = (Color)p[1];
         loaded[i].minutes = (uint16_t)minutes;
         loaded[i].pills = p[4];
-        loaded[i].status = PENDING;
+        loaded[i].status = EntryStatus::PENDING;
         loaded[i].verdict = VERDICT_NONE;
         loaded[i].tomorrow = false;
     }
 
     count = newCount;
     nextId = buffer[2];
+    if (length >= needed + COLOR_COUNT) {
+        for (i = 0; i < COLOR_COUNT; i++) {
+            if (buffer[needed + i] <= RING_CAPACITY) {
+                ring[i] = buffer[needed + i];
+            }
+        }
+    }
     for (i = 0; i < count; i++) {
         entries[i] = loaded[i];
         // entries whose time is long gone count for tomorrow
         uint32_t endOfGrace = (uint32_t)(entries[i].minutes + GRACE_MIN) * 60;
         entries[i].tomorrow = (seconds > endOfGrace);
+        // a dose the ring cannot give in full stays FINISHED after a restart
+        if (dosesLeft(&entries[i]) < 1) {
+            entries[i].status = EntryStatus::FINISHED;
+        }
     }
     evaluate();
     return true;

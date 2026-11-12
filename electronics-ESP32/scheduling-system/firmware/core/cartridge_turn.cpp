@@ -79,6 +79,7 @@ CartridgeTurner::CartridgeTurner(StepperPort* stepperPtr, TurnConfig config) {
     needTime = false;
     finishedFlag = false;
     nextStepUs = 0;
+    moveStartUs = 0;
     pauseEndUs = 0;
 }
 
@@ -139,6 +140,7 @@ void CartridgeTurner::update(uint32_t nowUs) {
         if (needTime) {
             needTime = false;
             nextStepUs = nowUs;   // the first half-step of a move is made right away
+            moveStartUs = nowUs;
         }
 
         // is it time for the next half-step? (the int32_t cast also works when micros() wraps around)
@@ -156,12 +158,12 @@ void CartridgeTurner::update(uint32_t nowUs) {
         }
 
         if (stepsLeft <= 0) {
-            // move finished: the pill is released, wait a moment with the coils still on so the cartridge holds its place
+            // move finished: the pill is released. The next move starts pauseUs after this one started, coils stay on meanwhile
             slot = (slot + 1) % slots;
             pillsLeft--;
             pillsDone++;
             moving = false;
-            pauseEndUs = nowUs + cfg.pauseUs;
+            pauseEndUs = moveStartUs + cfg.pauseUs;
         }
     } else {
         if ((int32_t)(nowUs - pauseEndUs) < 0) {

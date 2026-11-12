@@ -8,13 +8,17 @@
      Works offline from file://. The same file is used for both boards; the board settings come from window.SCHEDULER_BOARD.
      Keep the constants and commands equal to the firmware (tests/test_scheduler_ui.py compares them). ASSUMED / NOT VALIDATED. */
   var BOARD = window.SCHEDULER_BOARD;
-  var MAX_ENTRIES = 8, MAX_PILLS = 5;
+  var MAX_ENTRIES = 12, MAX_PILLS = 5, RING_CAPACITY = 11, HISTORY_MAX = 10;
   var STORE_KEY = 'dispenser-ui-system-' + BOARD.short;
 
   function $(id) { return document.getElementById(id); }
   function el(tag, attrs, kids) {
     var n = document.createElement(tag), k;
-    for (k in (attrs || {})) { if (k === 'text') n.textContent = attrs[k]; else n.setAttribute(k, attrs[k]); }
+    for (k in (attrs || {})) { 
+      if (k === 'text') n.textContent = attrs[k]; 
+      else if (k === 'hidden') { if (attrs[k]) n.setAttribute('hidden', ''); else n.removeAttribute('hidden'); }
+      else n.setAttribute(k, attrs[k]); 
+    }
     (kids || []).forEach(function (c) { n.appendChild(c); });
     return n;
   }
@@ -22,31 +26,67 @@
 
   // ---------- rules (same as schedule.cpp) ----------
   function parseTime(text) {
-    var m = /^(\d{1,2}):(\d{2})$/.exec(String(text || ''));
+    var m = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(String(text || ''));
     if (!m) return null;
-    var h = +m[1], min = +m[2];
-    return h > 23 || min > 59 ? null : h * 60 + min;
+    var h = +m[1], min = +m[2], sec = m[3] ? +m[3] : 0;
+    return h > 23 || min > 59 || sec > 59 ? null : h * 3600 + min * 60 + sec;
   }
   function pad(n) { return (n < 10 ? '0' : '') + n; }
-  function nowText() { var d = new Date(); return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+  function formatTimeHMS(seconds) {
+    var h = Math.floor(seconds / 3600) % 24;
+    var m = Math.floor((seconds % 3600) / 60);
+    var s = seconds % 60;
+    return pad(h) + ':' + pad(m) + ':' + pad(s);
+  }
+  function nowText() { var d = new Date(); return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()); }
+
+  // ---------- 12-hour display (times are stored as 24-hour HH:MM:SS and only shown as AM/PM) ----------
+  var MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  function ampm(h, m, s, withSeconds) {
+    return (h % 12 || 12) + ':' + pad(m) + (withSeconds ? ':' + pad(s) : '') + ' ' + (h >= 12 ? 'PM' : 'AM');
+  }
+  // "20:05" or "20:05:09" -> "8:05 PM" / "8:05:09 PM"
+  function text12(text, withSeconds) {
+    var t = parseTime(text);
+    if (t === null) return String(text || '');
+    return ampm(Math.floor(t / 3600), Math.floor((t % 3600) / 60), t % 60, withSeconds);
+  }
+  function dateKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function shortDate(key) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(key || ''));
+    return m ? MONTHS[+m[2] - 1].slice(0, 3) + ' ' + (+m[3]) : String(key || '');
+  }
+  // "2026-11-12" + "08:00:12" -> "Nov 12, 8:00:12 AM"
+  function stampText(date, time) { return shortDate(date) + ', ' + text12(time, true); }
+  function msText(ms) { var d = new Date(ms); return shortDate(dateKey(d)) + ', ' + ampm(d.getHours(), d.getMinutes(), d.getSeconds(), true); }
+  function liveClockText(d) {
+    return MONTHS[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear() + ' \u2014 ' + ampm(d.getHours(), d.getMinutes(), d.getSeconds(), true);
+  }
+  function elapsedText(sinceMs) { return Math.max(0, Math.floor((Date.now() - sinceMs) / 1000)) + ' s'; }
+  function tickClock() {
+    var d = new Date();
+    $('liveClock').textContent = liveClockText(d);
+    Array.prototype.forEach.call(document.querySelectorAll('.live-elapsed'), function (n) { n.textContent = elapsedText(Number(n.getAttribute('data-since'))); });
+    window.setTimeout(tickClock, 1000 - (d.getTime() % 1000) + 5);   // next whole second of the real system clock
+  }
 
   // expand a dose with recurrence into multiple individual doses (24h window)
   function expandDose(dose) {
     if (!dose.recur || !dose.recur.num || !dose.recur.unit) return [dose];
-    var expanded = [], startMin = parseTime(dose.time);
-    if (startMin === null) return [dose];
+    var expanded = [], startSec = parseTime(dose.time);
+    if (startSec === null) return [dose];
     var intervalMs = 0;
     if (dose.recur.unit === 'h') intervalMs = dose.recur.num * 3600000;
     else if (dose.recur.unit === 'm') intervalMs = dose.recur.num * 60000;
     else if (dose.recur.unit === 's') intervalMs = dose.recur.num * 1000;
     if (intervalMs <= 0) return [dose];
     var now = new Date(), dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    var startMs = dayStart.getTime() + startMin * 60000;
+    var startMs = dayStart.getTime() + startSec * 1000;
     for (var offset = 0; offset < 86400000; offset += intervalMs) {
       var ms = startMs + offset;
       if (ms >= dayStart.getTime() + 86400000) break;  // stop after 24h
       var d = new Date(ms);
-      var timeStr = pad(d.getHours()) + ':' + pad(d.getMinutes());
+      var timeStr = formatTimeHMS((ms - dayStart.getTime()) / 1000);
       expanded.push({ name: dose.name, time: timeStr, pills: dose.pills, recur: null });
     }
     return expanded.length ? expanded : [dose];
@@ -58,43 +98,216 @@
     return 'Every ' + recur.num + ' ' + units[recur.unit] + (recur.num > 1 ? 's' : '');
   }
 
-  // record a timestamp when Arduino confirms the dose was actually dispensed
-  function recordDispensedTimestamp(timeStr) {
-    var now = new Date();
-    var dateStr = pad(now.getFullYear()) + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
-    // find any dose that matches this time and add/update timestamp
-    state.doses.forEach(function (d) {
+  // does this dose (or one of its repeats) have the scheduled time "secs" (seconds since midnight)?
+  function doseAt(d, secs) {
+    return parseTime(d.time) === secs || expandDose(d).some(function (e) { return parseTime(e.time) === secs; });
+  }
+  function savedIndexFor(fwId, secs) {
+    var i;
+    if (fwId) for (i = 0; i < state.savedDoses.length; i++) if (state.savedDoses[i].fwId === fwId) return i;
+    for (i = 0; i < state.savedDoses.length; i++) if (state.savedDoses[i].fwId == null && doseAt(state.savedDoses[i], secs)) return i;
+    return -1;
+  }
+  // the board numbers its doses; a schedule keeps that number so a repeating dose, whose time moves, is still found
+  function mapBoardDose(id, secs) {
+    for (var i = 0; i < state.savedDoses.length; i++) {
+      var d = state.savedDoses[i];
+      if (d.fwId == null && parseTime(d.time) === secs) { d.fwId = id; save(); return; }
+    }
+  }
+
+  // the board confirmed a step of a dose: remember the real time on the table row of that dose
+  function recordDispensedTimestamp(fwId, scheduledSecs, actualMs, label) {
+    var actual = new Date(actualMs), hit = savedIndexFor(fwId, scheduledSecs);
+    var dateStr = dateKey(actual), timeStr = pad(actual.getHours()) + ':' + pad(actual.getMinutes()) + ':' + pad(actual.getSeconds());
+    var targets = hit >= 0 ? [state.savedDoses[hit]] : state.doses.filter(function (d) { return doseAt(d, scheduledSecs); });
+    targets.forEach(function (d) {
       if (!d.timestamps) d.timestamps = [];
-      var expanded = expandDose(d);
-      var matched = expanded.some(function (e) { return e.time === timeStr; });
-      if (matched) {
-        // add or update timestamp for this time
-        var existing = d.timestamps.find(function (ts) { return ts.time === timeStr && ts.date === dateStr; });
-        if (!existing) {
-          d.timestamps.push({ date: dateStr, time: timeStr });
-          save();
-          renderRows();
-        }
-      }
+      d.timestamps.push({ date: dateStr, time: timeStr, label: label });
     });
   }
+  function stampLine(ts) { return '\u251c\u2500 ' + (ts.label || '\u2713') + '  ' + stampText(ts.date, ts.time); }
+
+  // the line under a saved schedule's status: a dose that is turning right now (with a ticking time), else the last real dispensing
+  function liveLine(d) {
+    for (var i = state.history.length - 1; i >= 0; i--) {
+      var r = state.history[i];
+      if (r.status !== 'DISPENSING' || !r.startedAt || Date.now() - r.startedAt > 120000) continue;   // an old open record is a missed end line
+      if (d.fwId != null ? r.fwId === d.fwId : doseAt(d, parseTime(r.scheduled))) {
+        return el('div', { class: 'live-line live' }, [
+          el('span', { class: 'live-dot', text: '\u25cf ' }),
+          el('span', { text: 'Dispensing ' + r.dispensed + '/' + r.required + ' \u00b7 ' }),
+          el('span', { class: 'live-elapsed', 'data-since': String(r.startedAt), text: elapsedText(r.startedAt) })
+        ]);
+      }
+    }
+    var last = null;
+    (d.timestamps || []).forEach(function (ts) { if (/^Completed/.test(ts.label || '')) last = ts; });
+    return last ? el('div', { class: 'live-line', text: 'Last dispensed ' + stampText(last.date, last.time) }) : null;
+  }
+  // a ▶/▼ button that opens or closes the rows kept in "open" under key "key"
+  function expandToggle(open, key, what) {
+    var isOpen = !!open[key];
+    var b = el('button', { type: 'button', class: 'expand', 'aria-label': 'Show all timestamps, ' + what, 'aria-expanded': isOpen ? 'true' : 'false', text: isOpen ? '\u25bc' : '\u25b6' });
+    b.addEventListener('click', function () {
+      if (isOpen) delete open[key];
+      else open[key] = true;
+      renderRows();
+    });
+    return b;
+  }
+
+  // ---------- dosage history: one record per dispensing and one for every schedule that ends (FINISHED or DELETED) ----------
+  var DONE = { COMPLETED: 1, INCOMPLETE: 1, FAILED: 1, FINISHED: 1, DELETED: 1 };
+  var END_LABEL = { COMPLETED: 'Completed', INCOMPLETE: 'Stopped', FAILED: 'Failed' };
+  var lastRequired = 1;   // pills of the last dose the board reported
+  function openRecord(fwId) {
+    for (var i = state.history.length - 1; i >= 0; i--) {
+      if (state.history[i].fwId === fwId && state.history[i].status === 'DISPENSING') return state.history[i];
+    }
+    return null;
+  }
+  function newRecord(fwId, sched, required, status) {
+    var now = Date.now(), i = savedIndexFor(fwId, sched), n = ++state.seq;
+    var rec = {
+      id: 'dose-' + now + '-' + n, n: n, fwId: fwId, scheduledDate: dateKey(new Date(now)), scheduled: formatTimeHMS(sched),
+      name: i >= 0 ? state.savedDoses[i].name : '', required: required, dispensed: 0,
+      startedAt: null, completedAt: null, endedAt: null, status: status, events: [], timestamps: []
+    };
+    state.history.push(rec);
+    while (state.history.length > HISTORY_MAX) state.history.shift();   // like the board, keep only the last 10
+    return rec;
+  }
+  function historyStart(fwId, sched, required) {
+    var stale = openRecord(fwId);
+    if (stale) { stale.status = 'INCOMPLETE'; stale.endedAt = Date.now(); }   // the board started this id again
+    var now = Date.now(), rec = newRecord(fwId, sched, required, 'DISPENSING');
+    rec.startedAt = now;
+    rec.events.push({ label: 'Started', ms: now });
+    recordDispensedTimestamp(fwId, sched, now, 'Started');
+    save();
+    renderRows();
+  }
+  function historyPill(fwId, done, left) {
+    var rec = openRecord(fwId), now = Date.now();
+    if (rec) {
+      var label = 'Pill ' + done + '/' + rec.required + ' out';
+      rec.dispensed = done;
+      rec.events.push({ label: label, ms: now });
+      recordDispensedTimestamp(fwId, parseTime(rec.scheduled), now, label);
+    }
+    setRing(left);
+  }
+  function historyEnd(fwId, sched, status, done, required, left) {
+    lastRequired = required;
+    if (status === 'FINISHED') { setRing(left); return; }   // the "schedule FINISHED" line that follows makes the FINISHED row
+    var rec = openRecord(fwId) || newRecord(fwId, sched, required, status), now = Date.now();
+    var label = END_LABEL[status] + (status === 'COMPLETED' ? '' : ' (' + done + '/' + required + ')');
+    rec.status = status;
+    rec.dispensed = done;
+    rec.required = required;
+    rec.endedAt = now;
+    if (status === 'COMPLETED') rec.completedAt = now;   // only a full dose has a completion time
+    rec.events.push({ label: label, ms: now });
+    recordDispensedTimestamp(fwId, sched, now, label);
+    setRing(left);
+  }
+  // a schedule ends: its row keeps every timestamp the schedule collected, and the schedule leaves the saved table
+  function endSchedule(status, label, dose, index, sched, required) {
+    var now = Date.now(), rec = newRecord(0, sched, required, status);
+    if (dose) rec.name = dose.name;
+    rec.endedAt = now;
+    rec.events.push({ label: label, ms: now });
+    rec.timestamps = dose ? (dose.timestamps || []).slice() : [];
+    if (index >= 0) state.savedDoses.splice(index, 1);
+    expandedSaved = {};
+    save();
+    renderRows();
+  }
+  function historyFinished(fwId, sched) {
+    var i = savedIndexFor(fwId, sched);
+    endSchedule('FINISHED', 'Finished', i >= 0 ? state.savedDoses[i] : null, i, sched, i >= 0 ? state.savedDoses[i].pills : lastRequired);
+  }
+  function archiveDeletedSchedule(dose, index) {
+    endSchedule('DELETED', 'Deleted', dose, index, parseTime(dose.time) || 0, dose.pills);
+  }
+  function setRing(pills) {
+    var n = Number(pills);
+    state.ring = { pills: n };
+    if (state.ringMax === null || n > state.ringMax) state.ringMax = n;   // a bigger count than the known max raises it
+    save();
+    renderRows();
+  }
+  // the max of the ring is the count when the last fill was confirmed (never above RING_CAPACITY); before any fill it shows the limit
+  function ringMaxShown() { return state.ringMax > 0 ? Math.max(state.ringMax, state.ring.pills || 0) : RING_CAPACITY; }
 
   var state = load();
   var expandedRows = {};  // track which rows are expanded
+  var expandedSaved = {}, expandedHistory = {};
+  var scheduleIsSaved = false;
   function load() {
-    var s = { doses: [] };
+    var s = { doses: [], savedDoses: [], history: [], seq: 0, ring: { pills: null }, ringMax: null, pendingRm: [] };
     try {
       var saved = JSON.parse(window.localStorage.getItem(STORE_KEY) || 'null');
-      if (saved && Array.isArray(saved.doses)) {
-        s.doses = saved.doses.map(function (d) {
-          return {
-            name: String(d.name || '').slice(0, 40),
-            time: String(d.time),
-            pills: Number(d.pills),
-            recur: d.recur ? { num: Number(d.recur.num), unit: String(d.recur.unit) } : null,
-            timestamps: Array.isArray(d.timestamps) ? d.timestamps : []  // array of {date, time} records
-          };
-        });
+      if (saved) {
+        if (Array.isArray(saved.doses)) {
+          s.doses = saved.doses.map(function (d) {
+            return {
+              name: String(d.name || '').slice(0, 40),
+              time: String(d.time),
+              pills: Number(d.pills),
+              fwId: d.fwId == null ? null : Number(d.fwId),
+              recur: d.recur ? { num: Number(d.recur.num), unit: String(d.recur.unit) } : null,
+              timestamps: Array.isArray(d.timestamps) ? d.timestamps : []
+            };
+          });
+        }
+        if (Array.isArray(saved.savedDoses)) {
+          s.savedDoses = saved.savedDoses.map(function (d) {
+            return {
+              name: String(d.name || '').slice(0, 40),
+              time: String(d.time),
+              pills: Number(d.pills),
+              fwId: d.fwId == null ? null : Number(d.fwId),
+              recur: d.recur ? { num: Number(d.recur.num), unit: String(d.recur.unit) } : null,
+              timestamps: Array.isArray(d.timestamps) ? d.timestamps : []
+            };
+          });
+        }
+        if (Array.isArray(saved.history)) {
+          s.history = saved.history.map(function (r) {
+            var num = function (v) { return v === null || v === undefined ? null : Number(v); };
+            return {
+              id: String(r.id), n: Number(r.n) || 0, fwId: Number(r.fwId), scheduledDate: String(r.scheduledDate), scheduled: String(r.scheduled),
+              name: String(r.name || '').slice(0, 40), required: Number(r.required), dispensed: Number(r.dispensed),
+              startedAt: num(r.startedAt), completedAt: num(r.completedAt), endedAt: num(r.endedAt),
+              status: DONE[r.status] ? r.status : 'DISPENSING',
+              events: Array.isArray(r.events) ? r.events.map(function (e) { return { label: String(e.label), ms: Number(e.ms) }; }) : [],
+              timestamps: Array.isArray(r.timestamps) ? r.timestamps : []
+            };
+          });
+        }
+        // the old separate Data Logs table becomes FINISHED / DELETED rows of the history
+        if (Array.isArray(saved.dataLogs)) {
+          saved.dataLogs.forEach(function (d, i) {
+            var deleted = d.status === 'DELETED', day = String((deleted ? d.deletedDate : d.completedDate) || '');
+            var ms = Date.parse(day + 'T00:00:00') || Date.now();
+            s.history.push({
+              id: 'log-' + ms + '-' + i, n: 0, fwId: 0, scheduledDate: day, scheduled: formatTimeHMS(parseTime(d.time) || 0),
+              name: String(d.name || '').slice(0, 40), required: Number(d.pills), dispensed: 0,
+              startedAt: null, completedAt: null, endedAt: ms, status: deleted ? 'DELETED' : 'FINISHED',
+              events: [], timestamps: Array.isArray(d.timestamps) ? d.timestamps : []
+            });
+          });
+        }
+        s.history.sort(function (a, b) { return (a.startedAt || a.endedAt || 0) - (b.startedAt || b.endedAt || 0); });
+        s.seq = Number(saved.seq) || 0;
+        s.history.forEach(function (r) { s.seq = Math.max(s.seq, r.n); });
+        s.history.forEach(function (r) { if (!r.n) r.n = ++s.seq; });
+        while (s.history.length > HISTORY_MAX) s.history.shift();
+        if (saved.ring && saved.ring.pills !== null && saved.ring.pills !== undefined) s.ring = { pills: Number(saved.ring.pills) };
+        if (saved.ringMax !== null && saved.ringMax !== undefined) s.ringMax = Number(saved.ringMax);
+        if (Array.isArray(saved.pendingRm)) s.pendingRm = saved.pendingRm.map(Number);
       }
     } catch (e) { /* no storage, start empty */ }
     return s;
@@ -102,17 +315,11 @@
   function save() { try { window.localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ } }
 
   function check() {
-    var errors = [], expanded = [], seen = {}, i;
-    // expand all doses first
-    for (i = 0; i < state.doses.length; i++) {
-      var doseExpanded = expandDose(state.doses[i]);
-      expanded = expanded.concat(doseExpanded);
-    }
-    if (expanded.length > MAX_ENTRIES) errors.push('After expansion, the schedule would have ' + expanded.length + ' doses, but the board keeps at most ' + MAX_ENTRIES + '.');
+    var errors = [], seen = {}, i;
     state.doses.forEach(function (d, i) {
       var t = parseTime(d.time), label = 'Row ' + (i + 1);
       if (t === null) errors.push(label + ': choose a time.');
-      else if (seen[t]) errors.push(label + ': another dose already uses ' + d.time + ' as a start time.');
+      else if (seen[t]) errors.push(label + ': another dose already uses ' + text12(d.time) + ' as a start time.');
       else seen[t] = true;
       if (!(d.pills >= 1 && d.pills <= MAX_PILLS && Math.floor(d.pills) === d.pills)) errors.push(label + ': pills must be a whole number from 1 to ' + MAX_PILLS + '.');
       if (d.recur && d.recur.num && d.recur.unit) {
@@ -126,8 +333,82 @@
     state.doses.sort(function (a, b) { return (parseTime(a.time) === null ? 9999 : parseTime(a.time)) - (parseTime(b.time) === null ? 9999 : parseTime(b.time)); });
   }
 
-  // ---------- the schedule table ----------
+  // ---------- render both the saved and to-be-added tables ----------
   function renderRows() {
+    // Render SAVED doses table
+    var savedBody = $('savedRows');
+    savedBody.textContent = '';
+    state.savedDoses.forEach(function (d, i) {
+      var recurLabel = el('span', { class: 'recur-label', text: recurText(d.recur) || '—' });
+      // complete doses the ring can still give = floor(pills in ring / pills per dose); never a partial dose
+      var left = state.ring.pills === null ? null : Math.floor(state.ring.pills / d.pills);
+      var isFinished = left === 0;
+      var statusLabel = el('span', { class: 'status-label ' + (isFinished ? 'finished' : ''), text: left === null ? '—' : (isFinished ? 'FINISHED' : left + (left === 1 ? ' dose left' : ' doses left')) });
+      var pillsLeft = el('span', { class: 'pills-left' + (state.ring.pills === 0 ? ' none' : ''), text: state.ring.pills === null ? '—' : state.ring.pills + ' / ' + ringMaxShown() });
+      var pillsCell = el('td', { class: 'pills-cell' }, [pillsLeft]);
+      if (state.ring.pills !== null && state.ring.pills >= RING_CAPACITY) {
+        pillsCell.appendChild(el('span', { class: 'badge st-completed', text: 'FULL' }));
+      } else {
+        // the refill starts here (see refill.js); the button shimmers when this dose cannot be given any more
+        var fillBtn = el('button', { type: 'button', class: 'fill-btn' + (isFinished ? ' shimmer' : ''), text: 'Fill', 'aria-label': 'Fill the cartridge for ' + d.name });
+        fillBtn.disabled = !connected;
+        fillBtn.addEventListener('click', function () { document.dispatchEvent(new CustomEvent('ui:refill', { detail: { ring: 0 } })); });
+        pillsCell.appendChild(fillBtn);
+      }
+      var statusCell = el('td', {}, [statusLabel]);
+      var live = liveLine(d);
+      if (live) statusCell.appendChild(live);
+      
+      var editBtn = el('button', { type: 'button', class: 'edit-dose', text: 'Edit', 'aria-label': 'Edit saved dose ' + (i + 1) });
+      editBtn.addEventListener('click', function () {
+        // move dose from savedDoses back to doses for editing
+        var dose = state.savedDoses.splice(i, 1)[0];
+        // reset timestamps when moving to edit (user can review in history but they're cleared for re-save)
+        dose.timestamps = [];
+        state.doses.push(dose);
+        sortDoses();
+        save();
+        renderRows();
+      });
+      
+      var deleteBtn = el('button', { type: 'button', class: 'remove', text: 'Remove', 'aria-label': 'Remove saved dose ' + (i + 1) });
+      deleteBtn.addEventListener('click', function () {
+        askConfirm('Delete this schedule?', '"' + d.name + '" at ' + text12(d.time) + ' will be deleted and its dosing on the Arduino stops at once. This cannot be undone. It stays in the history with the status DELETED.', 'Delete schedule', function () {
+          deleteSavedDose(d);
+        });
+      });
+      
+      var compactRow = el('tr', { class: 'dose-compact' }, [
+        el('td', { text: d.name }),
+        el('td', { text: text12(d.time) }),
+        el('td', { text: String(d.pills) }),
+        el('td', {}, [recurLabel]),
+        pillsCell,
+        statusCell,
+        el('td', {}, [expandToggle(expandedSaved, i, 'saved dose ' + (i + 1))]),
+        el('td', {}, [editBtn]),
+        el('td', {}, [deleteBtn])
+      ]);
+      savedBody.appendChild(compactRow);
+      
+      // every timestamp of this schedule, until it is FINISHED or DELETED
+      if (expandedSaved[i]) {
+        var stamps = d.timestamps && d.timestamps.length ? d.timestamps.map(stampLine) : ['No timestamps yet.'];
+        stamps.forEach(function (text) {
+          savedBody.appendChild(el('tr', { class: 'dose-expanded' }, [el('td', { colspan: '9', text: text })]));
+        });
+      }
+    });
+    $('savedEmptyMsg').hidden = state.savedDoses.length > 0;
+    // with no schedule the same Fill button is the prompt, shimmering until the cartridge has pills
+    var emptyFill = $('emptyFillBtn');
+    emptyFill.hidden = state.savedDoses.length > 0 || (state.ring.pills !== null && state.ring.pills >= RING_CAPACITY);
+    emptyFill.disabled = !connected;
+    emptyFill.className = 'fill-btn' + (state.ring.pills === null || state.ring.pills === 0 ? ' shimmer' : '');
+    $('savedTable').hidden = state.savedDoses.length === 0;
+    $('savedCount').textContent = state.savedDoses.length + ' saved';
+    
+    // Render TO-BE-ADDED doses table
     var body = $('doseRows');
     body.textContent = '';
     state.doses.forEach(function (d, i) {
@@ -157,25 +438,82 @@
       var compactRow = el('tr', { class: 'dose-compact' }, [el('td', {}, [name]), el('td', {}, [time]), el('td', {}, [pills]), el('td', {}, [recurLabel]), el('td', {}, [expandBtn]), el('td', {}, [editBtn]), el('td', {}, [rm])]);
       body.appendChild(compactRow);
       
-      // expanded rows (show recorded/completed timestamps from Arduino)
-      if (isExpanded && d.timestamps && d.timestamps.length > 0) {
-        d.timestamps.forEach(function (ts, j) {
-          var expandedRow = el('tr', { class: 'dose-expanded' }, [
-            el('td', { text: '├─ ✓ ' + ts.date + ' ' + ts.time }),
-            el('td', {}),
-            el('td', {}),
-            el('td', {}),
-            el('td', {}),
-            el('td', {}),
-            el('td', {})
-          ]);
-          body.appendChild(expandedRow);
+      // expanded rows with timestamps (live from Arduino) - show when expanded
+      if (isExpanded) {
+        var addStamps = d.timestamps && d.timestamps.length ? d.timestamps.map(stampLine) : ['No timestamps yet.'];
+        addStamps.forEach(function (text) {
+          body.appendChild(el('tr', { class: 'dose-expanded' }, [el('td', { colspan: '7', text: text })]));
         });
       }
     });
     $('emptyMsg').hidden = state.doses.length > 0;
     $('doseTable').hidden = state.doses.length === 0;
-    $('doseCount').textContent = state.doses.length + ' of ' + MAX_ENTRIES;
+    $('doseCount').textContent = state.doses.length + ' to add';
+    
+    renderHistory();
+    renderInventory();
+    fireChange();
+  }
+
+  // ---------- dosage history (the only log): newest first, every row opens to show its timestamps ----------
+  var STATUS_CLASS = { COMPLETED: 'st-completed', FAILED: 'st-failed', INCOMPLETE: 'st-incomplete', FINISHED: 'st-finished', DELETED: 'st-deleted', DISPENSING: 'st-dispensing' };
+  function historyDetails(r) {
+    var lines = (r.events || []).map(function (e) { return e.label + '  ' + msText(e.ms); });
+    (r.timestamps || []).forEach(function (ts) { lines.push(stampLine(ts)); });
+    return lines.length ? lines : ['No timestamps were recorded.'];
+  }
+  function renderHistory() {
+    var rows = state.history.slice().sort(function (a, b) { return (b.startedAt || b.endedAt || 0) - (a.startedAt || a.endedAt || 0); });
+    var body = $('historyRows');
+    body.textContent = '';
+    rows.forEach(function (r, i) {
+      var ended = r.status === 'FINISHED' || r.status === 'DELETED';
+      var label = [el('span', { text: 'Dose ' + r.n })];
+      if (r.name) label.push(el('span', { class: 'recur-label', text: ' ' + r.name }));
+      if (i === 0) label.push(el('span', { class: 'badge st-latest', text: 'Latest' }));
+      body.appendChild(el('tr', { class: 'dose-compact' + (i === 0 ? ' latest' : '') }, [
+        el('td', {}, [expandToggle(expandedHistory, r.id, 'dosage ' + r.n)]),
+        el('td', {}, label),
+        el('td', { text: stampText(r.scheduledDate, r.scheduled) }),
+        el('td', { text: r.startedAt ? msText(r.startedAt) : '—' }),
+        el('td', { text: r.completedAt ? msText(r.completedAt) : '—' }),
+        el('td', { text: r.status === 'DELETED' ? '—' : r.dispensed + '/' + r.required }),
+        el('td', {}, [el('span', { class: 'badge ' + STATUS_CLASS[r.status], text: r.status })])
+      ]));
+      if (expandedHistory[r.id]) {
+        historyDetails(r).forEach(function (text) {
+          body.appendChild(el('tr', { class: 'dose-expanded' }, [el('td', { colspan: '7', text: text })]));
+        });
+      }
+    });
+    $('historyTable').hidden = rows.length === 0;
+    $('historyEmptyMsg').hidden = rows.length > 0;
+    $('clearHistoryBtn').hidden = rows.length === 0;
+    $('historyCount').textContent = rows.length + ' of ' + HISTORY_MAX;
+  }
+
+  // ---------- cartridge inventory: EMPTY is about the pills, FINISHED is about the doses ----------
+  function renderInventory() {
+    var pills = state.ring.pills, badge = $('ringState');
+    badge.textContent = pills === null ? 'unknown' : (pills === 0 ? 'EMPTY' : 'READY');
+    badge.className = 'count ' + (pills === 0 ? 'bad' : '');
+    $('ringText').textContent = pills === null ? 'The pill count has not been read from the Arduino yet.' :
+      pills + ' of ' + ringMaxShown() + (ringMaxShown() === 1 ? ' pill' : ' pills') + ' left in the cartridge.';
+  }
+  
+  // a styled yes/no dialog for things that cannot be undone; the focus starts on Cancel
+  var confirmAction = null;
+  function askConfirm(title, text, yesLabel, onYes) {
+    confirmAction = onYes;
+    $('confirmTitle').textContent = title;
+    $('confirmText').textContent = text;
+    $('confirmYesBtn').textContent = yesLabel;
+    $('confirmModal').hidden = false;
+    $('confirmNoBtn').focus();
+  }
+  function closeConfirm() {
+    $('confirmModal').hidden = true;
+    confirmAction = null;
   }
 
   // timestamp editor modal
@@ -259,6 +597,7 @@
   }
 
   function changed() {
+    scheduleIsSaved = false;  // mark as needing re-save after any edit
     save();
     var errors = check(), box = $('problems');
     box.textContent = '';
@@ -278,6 +617,7 @@
     $('connectBtn').hidden = !showConnect;
     connected = kind === 'ok';
     updateBar();
+    renderRows();   // the Fill buttons depend on the connection (renderRows also tells the other page parts)
   }
 
   // the Save button and the line under the status
@@ -296,6 +636,16 @@
 
   function saveResult(ok, text) {
     if (saving) { window.clearTimeout(saving.timer); saving = null; }
+    if (ok) {
+      // Move saved doses to the savedDoses table; the board numbers them again, so ask which number each one got
+      state.doses.forEach(function (d) { d.fwId = null; });
+      state.savedDoses = state.doses.slice();
+      state.doses = [];
+      state.pendingRm = [];   // the board cleared everything, so a waiting removal has nothing left to remove
+      scheduleIsSaved = true;
+      renderRows();
+      send('list');
+    }
     saveText = text;
     $('saveMsg').className = 'hint ' + (ok ? 'good' : 'badtext');
     updateBar();
@@ -303,11 +653,22 @@
 
   function parseLine(line) {
     var m;
+    lineListeners.forEach(function (fn) { fn(line); });
     if (/^clock /.test(line)) { sawClock = true; return; }
     m = /^saved (\d+) dose/.exec(line);
     if (m && saving) saveResult(true, 'Saved ' + m[1] + (m[1] === '1' ? ' dose' : ' doses') + ' to the Arduino. It turns the cartridge by itself at these times.');
-    m = /^dispensed (\d{2}:\d{2})/.exec(line);
-    if (m) recordDispensedTimestamp(m[1]);  // record when Arduino confirms a dose was dispensed
+    m = /^dose start #(\d+) (\d{2}:\d{2}:\d{2}) (\d+)$/.exec(line);
+    if (m) { historyStart(+m[1], parseTime(m[2]), +m[3]); return; }
+    m = /^pill #(\d+) (\d+)\/\d+ left (\d+)$/.exec(line);
+    if (m) { historyPill(+m[1], +m[2], +m[3]); return; }
+    m = /^dose end #(\d+) (\d{2}:\d{2}:\d{2}) (COMPLETED|INCOMPLETE|FAILED|FINISHED) (\d+)\/(\d+) left (\d+)$/.exec(line);
+    if (m) { historyEnd(+m[1], parseTime(m[2]), m[3], +m[4], +m[5], +m[6]); return; }
+    m = /^ring (\d+) (EMPTY|READY)$/.exec(line);
+    if (m) { setRing(+m[1]); return; }
+    m = /^schedule FINISHED #(\d+) (\d{2}:\d{2}:\d{2})/.exec(line);
+    if (m) { historyFinished(+m[1], parseTime(m[2])); return; }   // the board cannot give this dose in full any more
+    m = /^\s+#(\d+) (\d{2}:\d{2})(?::(\d{2}))? x\d+ /.exec(line);
+    if (m) mapBoardDose(+m[1], parseTime(m[2] + ':' + (m[3] || '00')));   // a line of the board's "list"
   }
   function feed(text) {
     lineBuf += text.replace(/\r/g, '');
@@ -372,7 +733,7 @@
       if (seen) return true;
       return send('list').then(function () { return waitForClock(2500); });
     }).then(function (ok) {
-      if (ok) { setConn('ok', BOARD.name + ' connected', false); return; }
+      if (ok) { setConn('ok', BOARD.name + ' connected', false); flushBoardQueue(); return; }
       return closePort().then(function () { setConn('bad', 'Something answered on the USB port, but not the dispenser program. ' + BOARD.uploadHelp, true); });
     }).catch(function (e) {
       return closePort().then(function () {
@@ -382,6 +743,51 @@
   }
 
   function notFound() { setConn('bad', 'Arduino not connected. ' + BOARD.plugHelp, true); }
+
+  // ---------- deleting a schedule also stops it on the board ----------
+  function notify(good, text) {
+    saveText = text;
+    $('saveMsg').className = 'hint ' + (good ? 'good' : 'badtext');
+    updateBar();
+  }
+  // "rm <number>" makes the board stop that dose at once (also while it is turning) and forget it
+  function sendRm(id) {
+    if (connected) return send('rm ' + id).then(function () { return 'sent'; });
+    if (state.pendingRm.indexOf(id) < 0) state.pendingRm.push(id);
+    save();
+    return Promise.resolve('queued');
+  }
+  function stopOnBoard(d) {
+    if (d.fwId != null) return sendRm(d.fwId);
+    if (!connected) return Promise.resolve('unknown');
+    return send('list').then(function () { return wait(400); }).then(function () { return d.fwId != null ? sendRm(d.fwId) : 'unknown'; });
+  }
+  function closeOpenRecord(d) {
+    state.history.forEach(function (r) {
+      if (r.status !== 'DISPENSING' || !(d.fwId != null ? r.fwId === d.fwId : doseAt(d, parseTime(r.scheduled)))) return;
+      r.status = 'INCOMPLETE';
+      r.endedAt = Date.now();
+      r.events.push({ label: 'Stopped (' + r.dispensed + '/' + r.required + ')', ms: r.endedAt });
+    });
+  }
+  function deleteSavedDose(d) {
+    stopOnBoard(d).then(function (result) {
+      if (result !== 'sent') closeOpenRecord(d);   // when the board answers, its own "dose end" line closes the row
+      var i = state.savedDoses.indexOf(d);
+      if (i >= 0) archiveDeletedSchedule(d, i);
+      if (result === 'sent') notify(true, '"' + d.name + '" was stopped on the Arduino and will not be dispensed any more.');
+      else if (result === 'queued') notify(false, 'The Arduino is not connected. It will stop "' + d.name + '" as soon as this page connects.');
+      else notify(false, 'Could not find "' + d.name + '" on the Arduino. Connect it and save the schedule again to replace what the board has.');
+    });
+  }
+  // after a reconnect: learn the board's numbers and send the removals that were waiting
+  function flushBoardQueue() {
+    var ids = state.pendingRm.slice();
+    state.pendingRm = [];
+    save();
+    send('list');
+    ids.forEach(function (id) { send('rm ' + id); });
+  }
 
   function startUp() {
     if (!('serial' in navigator)) {
@@ -404,28 +810,56 @@
     });
   }
 
-  // clock, clear the old doses, the new doses (expanded), then keep it all in the board's memory
+  // calculate recurrence interval in seconds
+  function recurToSeconds(recur) {
+    if (!recur || !recur.num || !recur.unit) return 0;
+    if (recur.unit === 'h') return recur.num * 3600;
+    if (recur.unit === 'm') return recur.num * 60;
+    if (recur.unit === 's') return recur.num;
+    return 0;
+  }
+
+  // clock, clear the old doses, the new doses (with recurrence), then keep it all in the board's memory
   function saveToBoard() {
     if (!connected || check().length || !state.doses.length) return;
     saveText = '';
     $('saveMsg').className = 'hint';
-    // expand all doses for saving
-    var allExpanded = [];
-    state.doses.forEach(function (d) { allExpanded = allExpanded.concat(expandDose(d)); });
-    saving = { timer: window.setTimeout(function () { saveResult(false, 'The Arduino did not answer. Check the USB cable and press Connect.'); }, 6000 + 400 * allExpanded.length) };
+    saving = { timer: window.setTimeout(function () { saveResult(false, 'The Arduino did not answer. Check the USB cable and press Connect.'); }, 6000 + 400 * state.doses.length) };
     updateBar();
     save();  // persist state
     var chain = send('time ' + nowText());   // the board has no clock chip, so it gets the computer's time
-    function next(cmd) { chain = chain.then(function () { return wait(180); }).then(function () { return send(cmd); }); }
+    function next(cmd) { chain = chain.then(function () { return wait(30); }).then(function () { return send(cmd); }); }
     next('clear');
-    allExpanded.slice().sort(function (a, b) { return parseTime(a.time) - parseTime(b.time); }).forEach(function (d) { next('add ' + d.time + ' ' + d.pills); });
+    state.doses.slice().sort(function (a, b) { return parseTime(a.time) - parseTime(b.time); }).forEach(function (d) { 
+      var recurSec = recurToSeconds(d.recur);
+      next('add ' + d.time + ' ' + d.pills + ' ' + recurSec);
+    });
     next('save');
   }
+
+  // ---------- the small interface the separate pages (refill.js) use: the board, the dialog and the saved schedules ----------
+  var lineListeners = [], changeListeners = [];
+  function fireChange() { changeListeners.forEach(function (fn) { fn(); }); }
+  window.UISystem = {
+    board: BOARD,
+    send: function (cmd) { return send(cmd); },
+    isConnected: function () { return connected; },
+    savedScheduleCount: function () { return state.savedDoses.length; },
+    ringPills: function () { return state.ring.pills; },
+    // a confirmed fill: the count that was put in is the new max of the ring
+    setRingMax: function (n) { state.ringMax = Number(n); save(); renderRows(); },
+    ask: askConfirm,
+    stampText: msText,
+    onLine: function (fn) { lineListeners.push(fn); },
+    onChange: function (fn) { changeListeners.push(fn); }
+  };
 
   // ---------- wiring ----------
   function init() {
     $('boardName').textContent = BOARD.name;
     document.title = 'UI System \u00b7 ' + BOARD.name;
+    tickClock();
+    $('emptyFillBtn').addEventListener('click', function () { document.dispatchEvent(new CustomEvent('ui:refill', { detail: { ring: 0 } })); });
     sortDoses();
     renderRows();
     changed();
@@ -435,8 +869,24 @@
     $('doseCancelBtn').addEventListener('click', closeDoseEditor);
     $('tsSaveBtn').addEventListener('click', saveTimestampEditor);
     $('tsCancelBtn').addEventListener('click', closeTimestampEditor);
+    $('clearHistoryBtn').addEventListener('click', function () {
+      askConfirm('Clear the dosage history?', 'All dosage history rows and their timestamps will be removed from this page. This cannot be undone.', 'Clear history', function () {
+        state.history = [];
+        expandedHistory = {};
+        save();
+        renderRows();
+      });
+    });
+    $('confirmYesBtn').addEventListener('click', function () {
+      var run = confirmAction;
+      closeConfirm();
+      if (run) run();
+    });
+    $('confirmNoBtn').addEventListener('click', closeConfirm);
+    $('confirmModal').addEventListener('click', function (e) { if (e.target === $('confirmModal')) closeConfirm(); });
     document.addEventListener('keydown', function (e) { 
       if (e.key === 'Escape') {
+        if (!$('confirmModal').hidden) closeConfirm();
         if (!$('doseModal').hidden) closeDoseEditor();
         if (!$('tsModal').hidden) closeTimestampEditor();
       }

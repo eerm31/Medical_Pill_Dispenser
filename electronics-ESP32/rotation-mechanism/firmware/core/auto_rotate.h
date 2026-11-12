@@ -5,7 +5,7 @@
 #ifndef AUTO_ROTATE_H
 #define AUTO_ROTATE_H
 
-#include "rotation.h"
+#include "core/rotation.h"
 #include "schedule.h"
 
 // The dispensing mechanism (pin, blades, tongue) and the verification are not part of this folder.

@@ -16,7 +16,7 @@ struct TurnConfig {
     int stepsPerRev;            // half-steps for one full turn of the cartridge (28BYJ-48: 4096)
     int degreesPerPill;         // one pill = one move of this many degrees (30 degrees = 12 windows)
     uint32_t stepIntervalUs;    // time between two half-steps (smaller = faster)
-    uint32_t pauseUs;           // wait after every move so the pill can fall
+    uint32_t pauseUs;           // time from the start of one move to the start of the next (one pill every pauseUs)
     int direction;              // +1 or -1
 
     TurnConfig();               // fills in the default values
@@ -43,6 +43,7 @@ private:
     bool needTime;          // true until update() has seen the clock for the first time in a move
     bool finishedFlag;      // set when a dose is complete, cleared by finished()
     uint32_t nextStepUs;    // when the next half-step is due
+    uint32_t moveStartUs;   // when the current move made its first half-step
     uint32_t pauseEndUs;    // when the pause ends
 
     void beginMove();

@@ -13,7 +13,7 @@ BOARDS = {
     "esp32": ROOT / "electronics-ESP32",
 }
 FIRMWARE_MAINS = {
-    "uno": BOARDS["uno"] / "scheduling-system" / "scheduling-system.ino",
+    "uno": BOARDS["uno"] / "scheduling-system" / "src" / "scheduling-system.ino",
     "esp32": BOARDS["esp32"] / "scheduling-system" / "firmware" / "main.cpp",
 }
 SCHEDULE_H = BOARDS["esp32"] / "scheduling-system" / "firmware" / "core" / "schedule.h"

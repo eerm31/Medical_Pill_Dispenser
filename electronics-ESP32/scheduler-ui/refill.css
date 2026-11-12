@@ -1,0 +1,23 @@
+/* Fill button and the small fill layer: big, plain, for people who are not used to screens. */
+.pills-cell { white-space: nowrap; }
+.fill-btn { min-height: 34px; margin-left: 8px; padding: 4px 16px; border-color: var(--primary); background: var(--primary); color: #fff; font-weight: 700; }
+.fill-btn:hover:not(:disabled) { border-color: var(--primary-dark); background: var(--primary-dark); color: #fff; }
+#emptyFillBtn { display: block; margin: 14px auto 0; min-height: 52px; padding: 8px 40px; font-size: 18px; }
+
+/* the prompt: a light sweeps across the button while a fill is needed */
+.fill-btn.shimmer:not(:disabled) {
+  background: linear-gradient(110deg, var(--primary) 35%, #7fe0ee 50%, var(--primary) 65%);
+  background-size: 250% 100%;
+  animation: shimmer 1.6s linear infinite;
+  box-shadow: 0 0 0 3px rgba(11, 114, 133, .25);
+}
+@keyframes shimmer { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+@media (prefers-reduced-motion: reduce) { .fill-btn.shimmer:not(:disabled) { animation: none; } }
+
+/* the layer */
+.fill-layer { min-width: 300px; text-align: center; }
+.fill-info { margin-bottom: 14px; color: var(--muted); line-height: 1.5; }
+.fill-count { margin-bottom: 14px; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.fill-add { width: 100%; min-height: 72px; margin-bottom: 8px; border-color: var(--ok); background: var(--ok); color: #fff; font-size: 26px; font-weight: 700; }
+.fill-add:hover:not(:disabled) { border-color: #146644; background: #146644; color: #fff; }
+.fill-layer .modal-buttons button { min-height: 52px; font-size: 17px; }
