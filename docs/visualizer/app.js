@@ -757,9 +757,9 @@
       sliderCrank:sliderCrankDiagnostic(s),clearanceChecks:checks,conflicts:conflicts
     };
   }
-  function wiringSuffix(name){var W=window.DispenserWiringSpec;if(!W)return '';if(name.indexOf('micro servos')!==-1)return ' · GPIO '+W.signals.filter(function(s){return /^servo/.test(s.fn);}).map(function(s){return s.gpio+' ('+s.to.split('.')[0].toUpperCase()+')';}).join(', ');if(name.indexOf('stepper')!==-1)return ' · driven through the ULN2003';var comp=W.components.filter(function(c){return c.viewer_label===name||name.indexOf(c.viewer_label)===0;})[0];if(!comp)return '';var gpios=W.signals.filter(function(s){return s.from.indexOf(comp.id+'.')===0||s.to.indexOf(comp.id+'.')===0;}).map(function(s){return s.gpio;}).sort(function(a,b){return a-b;});if(comp.id==='esp32')gpios=W.signals.map(function(s){return s.gpio;}).sort(function(a,b){return a-b;});return gpios.length?' · GPIO '+gpios.join(', '):'';}
+  function wiringSuffix(name){var W=window.DispenserWiringSpec;if(!W)return '';if(name.indexOf('micro servos')!==-1)return ' · GPIO '+W.signals.filter(function(s){return /^servo/.test(s.fn);}).map(function(s){return s.gpio+' ('+s.to.split('.')[0].toUpperCase()+')';}).join(', ');if(name.indexOf('stepper')!==-1)return ' · driven through the ULN2003';var comp=W.components.filter(function(c){return c.viewer_label===name||name.indexOf(c.viewer_label)===0;})[0];if(!comp)return '';var gpios=W.signals.filter(function(s){return s.from.indexOf(comp.id+'.')===0||s.to.indexOf(comp.id+'.')===0;}).map(function(s){return s.gpio;}).sort(function(a,b){return a-b;});if(comp.id==='esp32')gpios=W.signals.map(function(s){return s.gpio;}).sort(function(a,b){return a-b;});return gpios.length?' · '+(W.pin_prefix||'GPIO')+' '+gpios.join(', '):'';}
   // The scene area shows the 3D mechanism, the 3D wiring harness or the 2D wiring diagram; the demo state stays the same.
-  var viewMode='mechanism',lastWiringStyle='wiring3d',wiringFrame=document.getElementById('wiringFrame'),wiringHud=document.getElementById('wiringHud'),wiringModelInst=null,lastWiringHud=0,lastWiringFeed=0,wiringSaved=null,hudRows={};
+  var viewMode='mechanism',lastWiringStyle=(window.DispenserWiringSpec&&window.DispenserWiringSpec.in_place===false)?'wiringlayout':'wiring3d',wiringFrame=document.getElementById('wiringFrame'),wiringHud=document.getElementById('wiringHud'),wiringModelInst=null,lastWiringHud=0,lastWiringFeed=0,wiringSaved=null,hudRows={};
   function wiringApi(){var look=window.DispenserReferenceLook;return look&&(viewMode==='wiringlayout'?look.wiringLayout:look.wiring)||null;}
   function wiringApis(){var look=window.DispenserReferenceLook;return look?[look.wiring,look.wiringLayout].filter(Boolean):[];}
   function buildWiringHud(){
@@ -767,13 +767,13 @@
     var colors={};api.colors().forEach(function(c){colors[c.id]=c.color;});
     W.signals.slice().sort(function(a,b){return a.gpio-b.gpio;}).forEach(function(s){
       var li=document.createElement('li'),sw=document.createElement('i'),g=document.createElement('b'),n=document.createElement('span'),v=document.createElement('em');
-      sw.style.background=colors[s.id]||'#cbd7e6';g.textContent='GPIO'+s.gpio;n.textContent=s.id;li.title=s.role;v.textContent='';
+      sw.style.background=colors[s.id]||'#cbd7e6';g.textContent=(W.pin_prefix||'GPIO')+s.gpio;n.textContent=s.id;li.title=s.role;v.textContent='';
       li.appendChild(sw);li.appendChild(g);li.appendChild(n);li.appendChild(v);list.appendChild(li);hudRows[s.id]={li:li,v:v,fn:s.fn,group:s.group};
     });
     [['wireSignal','signal'],['wireMotor','motor'],['wirePower','power']].forEach(function(p){document.getElementById(p[0]).addEventListener('change',function(e){wiringApis().forEach(function(a){a.setClass(p[1],e.target.checked);});});});
     ['pointerdown','pointerup','pointermove','touchstart','wheel'].forEach(function(name){wiringHud.addEventListener(name,function(event){event.stopPropagation();});});
     var hudToggle=document.getElementById('wiringHudToggle');
-    function collapseHud(on){wiringHud.classList.toggle('collapsed',on);hudToggle.setAttribute('aria-expanded',on?'false':'true');hudToggle.innerHTML=on?'&#9656;':'&#9662;';hudToggle.title=on?'Expand':'Collapse';hudToggle.setAttribute('aria-label',on?'Expand wiring panel':'Collapse wiring panel');}
+    function collapseHud(on){wiringHud.classList.toggle('collapsed',on);hudToggle.setAttribute('aria-expanded',on?'false':'true');hudToggle.innerHTML=on?'&#9656;':'&#9662;';hudToggle.title=on?'Expand':'Collapse';hudToggle.setAttribute('aria-label',on?'Expand hardware panel':'Collapse hardware panel');}
     hudToggle.addEventListener('click',function(){collapseHud(!wiringHud.classList.contains('collapsed'));});
     collapseHud(host.clientWidth<640);
     if(pinTableBuilt)applyWiringGroups();
@@ -810,7 +810,7 @@
         var row=document.createElement('label'),box=document.createElement('input'),main=document.createElement('span'),name=document.createElement('strong'),note=document.createElement('small'),meta=document.createElement('span'),dot=document.createElement('i');
         row.className='sys-row';box.type='checkbox';box.checked=true;box.value=g.id;box.autocomplete='off';
         main.className='sys-main';name.textContent=g.label;note.textContent=g.note;main.appendChild(name);main.appendChild(note);
-        meta.className='sys-meta';meta.textContent=gpios.length?'GPIO '+span(gpios):'+5 V · GND';row.title=sigs.length+' signal'+(sigs.length===1?'':'s')+(links.length?' and a '+links.length+'-wire motor cable':'');
+        meta.className='sys-meta';meta.textContent=gpios.length?(W.pin_prefix||'GPIO')+' '+span(gpios):'+5 V · GND';row.title=sigs.length+' signal'+(sigs.length===1?'':'s')+(links.length?' and a '+links.length+'-wire motor cable':'');
         dot.className='sys-dot';dot.title='lights up while the system is active';
         row.appendChild(box);row.appendChild(main);row.appendChild(meta);row.appendChild(dot);chips.appendChild(row);
         box.addEventListener('change',applyWiringGroups);sysDots[g.id]=dot;
@@ -828,7 +828,7 @@
       var head=document.createElement('tr'),hd=document.createElement('td');head.className='grp';hd.colSpan=4;hd.textContent=c.label+(c.external?' (external)':'');head.appendChild(hd);body.appendChild(head);pinRows.push({tr:head,group:c.group,header:true});
       c.pins.forEach(function(p){
       var pid=c.id+'.'+p.id,e=ends[pid]&&ends[pid][0],tr=document.createElement('tr'),sigCls='sig',sig,conn;
-      if(p.gpio!==undefined){sig='GPIO'+p.gpio;sigCls+=' gpio';}
+      if(p.gpio!==undefined){sig=(W.pin_prefix||'GPIO')+p.gpio;sigCls+=' gpio';}
       else if(p.net){sig=NET[p.net]||p.net;sigCls+=p.net==='5V'?' v5':p.net==='GND'?' gnd':'';}
       else sig=e?e.id:'—';
       if(e){var o=pinOf[e.o];conn=o.c.viewer_label+' · '+o.p.id;}
@@ -935,7 +935,8 @@
   }
   function setViewMode(mode){
     if(mode===viewMode)return;
-    var wasWiring=viewMode!=='mechanism';
+    var viewModeBefore=viewMode;
+    var wasWiring=viewMode!=='mechanism'&&viewMode!=='software';
     if((mode==='wiring3d'&&!(window.DispenserReferenceLook&&window.DispenserReferenceLook.wiring))||(mode==='wiringlayout'&&!(window.DispenserReferenceLook&&window.DispenserReferenceLook.wiringLayout))){mode='mechanism';}
     if(viewMode==='wiring3d')leaveWiring3d();
     if(viewMode==='wiringlayout')leaveWiringLayout();
@@ -943,21 +944,23 @@
     viewMode=mode;
     if(mode==='wiring3d')enterWiring3d();
     if(mode==='wiringlayout')enterWiringLayout();
-    if(mode==='wiring2d'){if(!wiringFrame.getAttribute('src'))wiringFrame.src='wiring.html?embed=1';wiringFrame.hidden=false;}
-    if(mode!=='mechanism')lastWiringStyle=mode;
-    document.querySelectorAll('input[name="viewMode"]').forEach(function(r){r.checked=r.value===(mode==='mechanism'?'mechanism':'wiring');});
+    if(mode==='wiring2d'){if(!wiringFrame.getAttribute('src'))wiringFrame.src='wiring.html?embed=1&board='+(window.DispenserWiringBoard||'esp32');wiringFrame.hidden=false;}
+    var isWiring=mode!=='mechanism'&&mode!=='software';
+    if(isWiring)lastWiringStyle=mode;
+    document.querySelectorAll('input[name="viewMode"]').forEach(function(r){r.checked=r.value===(mode==='mechanism'?'mechanism':mode==='software'?'software':'wiring');});
     document.querySelectorAll('input[name="wiringStyle"]').forEach(function(r){r.checked=r.value===lastWiringStyle;});
-    document.body.classList.toggle('wiring-view',mode!=='mechanism');
-    document.getElementById('wiringPanel').hidden=mode==='mechanism';document.getElementById('wiringPins').hidden=mode==='mechanism';if(mode!=='mechanism')buildWiringPanel();
-    showWiringSection(mode!=='mechanism',wasWiring);
+    document.body.classList.toggle('wiring-view',isWiring);document.body.classList.toggle('software-view',mode==='software');
+    document.getElementById('wiringPanel').hidden=!isWiring;document.getElementById('wiringPins').hidden=!isWiring;if(isWiring)buildWiringPanel();
+    var softPanel=document.getElementById('softwarePanel');if(softPanel){softPanel.hidden=mode!=='software';if(mode==='software'&&viewModeBefore!=='software'){setSectionOpen(softPanel,true);panelEl.scrollTop=0;}}
+    showWiringSection(isWiring,wasWiring);
     if(mode!=='wiring2d')resize();
   }
-  document.querySelectorAll('input[name="viewMode"]').forEach(function(r){r.addEventListener('change',function(){if(r.checked)setViewMode(r.value==='wiring'?lastWiringStyle:'mechanism');});});
+  document.querySelectorAll('input[name="viewMode"]').forEach(function(r){r.addEventListener('change',function(){if(r.checked)setViewMode(r.value==='wiring'?lastWiringStyle:r.value==='software'?'software':'mechanism');});});
   document.querySelectorAll('input[name="wiringStyle"]').forEach(function(r){r.addEventListener('change',function(){if(r.checked)setViewMode(r.value);});});
   document.querySelectorAll('input[name="subsystemView"]').forEach(function(r){r.addEventListener('click',function(){if(viewMode!=='mechanism')setViewMode('mechanism');},true);});
   function sendWiringFeed(now,state){var target=viewMode==='wiring2d'&&wiringFrame.contentWindow;if(!target||now-lastWiringFeed<33)return;lastWiringFeed=now;target.postMessage({source:'dispenser-viewer',state:state,drumAngle:state.drumAngle+rotationPreview.angle,groups:wiringGroups,hide:wiringHide},'*');}
   function updateWiring3d(now,state){
-    if(viewMode==='mechanism')return;
+    if(viewMode==='mechanism'||viewMode==='software')return;
     var WM=window.DispenserWiringModel;if(!wiringModelInst)wiringModelInst=WM.create();
     var m=wiringModelInst.derive(state,state.drumAngle+rotationPreview.angle,now),api=viewMode==='wiring2d'?null:wiringApi();
     if(api)api.update(m,now/1000);

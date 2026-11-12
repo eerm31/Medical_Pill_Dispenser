@@ -10,16 +10,17 @@
   <script defer src="demo-controller.js"></script>
   <script defer src="rotation-spec.js"></script>
   <script defer src="wiring-spec.js"></script>
+  <script defer src="wiring-board.js"></script>
   <script defer src="wiring-model.js"></script>
   <script defer src="wiring.js"></script>
 </head>
 <body>
   <header class="topbar">
-    <div><p class="eyebrow">ELECTRONICS · CONCEPT WIRING</p><h1>ESP32-S3 wiring simulation</h1></div>
+    <div><p class="eyebrow">ELECTRONICS · CONCEPT HARDWARE</p><h1 id="pageTitle">ESP32-S3 hardware simulation</h1></div>
     <div class="badges"><span id="sourceBadge" class="badge">STARTING</span><span class="badge warn">ASSUMED / NOT VALIDATED</span></div>
   </header>
   <main class="wrap">
-    <section class="card diagram-card" aria-label="Wiring diagram">
+    <section class="card diagram-card" aria-label="Hardware diagram">
       <div class="card-head"><div><span class="eyebrow">CONNECTIONS</span><h2>Wiring diagram</h2></div><span class="hint">Wires light up with the live signal level</span></div>
       <div class="diagram-scroll"><svg id="diagram" role="img" aria-label="Wiring diagram of the ESP32-S3, ULN2003 driver, stepper, two servos, hall sensor, USB-C inlet and barcode reader" xmlns="http://www.w3.org/2000/svg"></svg></div>
       <p class="notice"><strong>CONCEPT ONLY.</strong> <span id="specNotice"></span> No hardware, current, timing or EMC claim is made.</p>
@@ -39,7 +40,7 @@
 
     <section class="card gpio-card" aria-label="GPIO assignment">
       <div class="card-head"><div><span class="eyebrow">SINGLE SOURCE OF TRUTH</span><h2>GPIO assignment</h2></div><span id="gpioCount" class="hint"></span></div>
-      <div class="table-scroll"><table class="gpio-table"><thead><tr><th>GPIO</th><th>Net</th><th>Connects to</th><th>Function</th><th>Dir</th><th>Live</th></tr></thead><tbody id="gpioRows"></tbody></table></div>
+      <div class="table-scroll"><table class="gpio-table"><thead><tr><th id="pinHead">GPIO</th><th>Net</th><th>Connects to</th><th>Function</th><th>Dir</th><th>Live</th></tr></thead><tbody id="gpioRows"></tbody></table></div>
       <p id="plannedNote" class="note small"></p>
       <details class="note small"><summary>GPIO pins deliberately avoided</summary><ul id="reservedList"></ul></details>
     </section>
@@ -47,9 +48,9 @@
     <section class="card" aria-label="Live signals">
       <div class="card-head"><div><span class="eyebrow">LIVE</span><h2>Signals</h2></div></div>
       <div class="signals-grid">
-        <div><h3>Servo PWM (first 3 ms of each 20 ms frame)</h3><svg id="scope" viewBox="0 0 320 120" class="scope"></svg></div>
+        <div id="scopeBox"><h3>Servo PWM (first 3 ms of each 20 ms frame)</h3><svg id="scope" viewBox="0 0 320 120" class="scope"></svg></div>
         <div><h3 id="phaseTitle">Stepper half-step table</h3><svg id="phaseTable" viewBox="0 0 320 120" class="scope"></svg><p id="stepReadout" class="note small"></p></div>
-        <div><h3 id="uartTitle">Reader UART</h3><pre id="uartLog" class="log" aria-live="off"></pre></div>
+        <div id="uartBox"><h3 id="uartTitle">Reader UART</h3><pre id="uartLog" class="log" aria-live="off"></pre></div>
       </div>
     </section>
 
@@ -59,8 +60,8 @@
       <ul id="powerNotes" class="note small"></ul>
     </section>
 
-    <section class="card" aria-label="Wiring checks">
-      <div class="card-head"><div><span class="eyebrow">CONSISTENCY</span><h2>Wiring checks</h2></div></div>
+    <section class="card" aria-label="Hardware checks">
+      <div class="card-head"><div><span class="eyebrow">CONSISTENCY</span><h2>Hardware checks</h2></div></div>
       <ul id="checks" class="checks"></ul>
     </section>
 

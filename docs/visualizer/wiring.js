@@ -4,6 +4,7 @@
 (function () {
   'use strict';
   var W = window.DispenserWiringSpec, G = window.DispenserRotationSpec && window.DispenserRotationSpec.g;
+  var PFX = (W && W.pin_prefix) || 'GPIO';
   var D = window.DISPENSER_CONCEPT_DATA, Ctrl = window.DispenserDemoController;
   var NS = 'http://www.w3.org/2000/svg', HEAD = 34, ROW = 26, PAD = 8, EXTRA = 16;
   var NET_COLOR = { '5V': '#ef555c', '3V3': '#ef963f', 'GND': '#8795a8' };
@@ -124,7 +125,7 @@
       if (e.kind === 'uart') { uartLines.push(e.text); if (uartLines.length > 40) uartLines.shift(); }
       if (e.kind === 'phase') {
         var m = lastModel;
-        events.unshift(e.sec.toFixed(1).padStart(6, ' ') + ' s  ' + e.phase + '  · S1 ' + m.s1.deg.toFixed(0) + '° ' + (m.s1.us / 1000).toFixed(2) + ' ms · S2 ' + m.s2.deg.toFixed(0) + '° ' + (m.s2.us / 1000).toFixed(2) + ' ms · hall ' + (m.home ? 'LOW' : 'HIGH'));
+        events.unshift(e.sec.toFixed(1).padStart(6, ' ') + ' s  ' + e.phase + (sigByFn.servo1 ? '  · S1 ' + m.s1.deg.toFixed(0) + '° ' + (m.s1.us / 1000).toFixed(2) + ' ms · S2 ' + m.s2.deg.toFixed(0) + '° ' + (m.s2.us / 1000).toFixed(2) + ' ms' : '') + '  · hall ' + (m.home ? 'LOW' : 'HIGH'));
         if (events.length > 60) events.pop();
         var ol = $('eventLog'); ol.replaceChildren();
         events.forEach(function (line) { html('li', {}, ol, line); });
@@ -165,10 +166,11 @@
 
   function renderScope(m) {
     var root = $('scope'); root.replaceChildren();
+    if (!sigByFn.servo1) return;
     var x0 = 64, x1 = 312, k = (x1 - x0) / 3000;
     [['servo1', m.s1, 8], ['servo2', m.s2, 62]].forEach(function (r) {
       var sig = sigByFn[r[0]], hi = r[2] + 6, lo = r[2] + 36, w = r[1].us * k;
-      svg('text', { x: 6, y: r[2] + 25, fill: '#cbd7e6', 'font-size': 11 }, root, 'GPIO' + sig.gpio);
+      svg('text', { x: 6, y: r[2] + 25, fill: '#cbd7e6', 'font-size': 11 }, root, PFX + sig.gpio);
       svg('polyline', { points: x0 + ',' + lo + ' ' + x0 + ',' + hi + ' ' + (x0 + w) + ',' + hi + ' ' + (x0 + w) + ',' + lo + ' ' + x1 + ',' + lo, fill: 'none', stroke: '#ef963f', 'stroke-width': 2 }, root);
     });
     [0, 1, 2, 3].forEach(function (ms) {
@@ -182,7 +184,7 @@
     var seq = W.stepper.sequence, x0 = 50, cw = 33, y0 = 22, rh = 20;
     for (var c = 0; c < seq.length; c++) svg('text', { x: x0 + c * cw + cw / 2, y: 14, fill: '#7e8ea3', 'font-size': 10, 'text-anchor': 'middle' }, root, String(c + 1));
     for (var r = 0; r < 4; r++) {
-      svg('text', { x: 6, y: y0 + r * rh + 14, fill: '#cbd7e6', 'font-size': 11 }, root, 'GPIO' + sigByFn['coil' + (r + 1)].gpio);
+      svg('text', { x: 6, y: y0 + r * rh + 14, fill: '#cbd7e6', 'font-size': 11 }, root, PFX + sigByFn['coil' + (r + 1)].gpio);
       for (var q = 0; q < seq.length; q++) svg('rect', { x: x0 + q * cw + 2, y: y0 + r * rh + 2, width: cw - 4, height: rh - 4, rx: 3, fill: seq[q][r] ? '#1f6f66' : '#162132' }, root);
     }
     svg('rect', { x: x0 + m.idx * cw, y: y0 - 1, width: cw, height: 4 * rh + 2, rx: 4, fill: 'none', stroke: m.moving ? '#71d6c6' : '#4b5b72', 'stroke-width': 2 }, root);
@@ -207,20 +209,23 @@
     var tb = $('gpioRows');
     W.signals.slice().sort(function (a, b) { return a.gpio - b.gpio; }).forEach(function (s) {
       var e = espSideOf(s), o = e === pins[s.from] ? pins[s.to] : pins[s.from], tr = html('tr', { 'data-group': s.group }, tb);
-      html('td', { 'class': 'gpio' }, tr, 'GPIO' + s.gpio); html('td', {}, tr, s.id); html('td', {}, tr, describe(o.comp.id + '.' + o.pin.id));
+      html('td', { 'class': 'gpio' }, tr, PFX + s.gpio); html('td', {}, tr, s.id); html('td', {}, tr, describe(o.comp.id + '.' + o.pin.id));
       html('td', {}, tr, s.role); html('td', {}, tr, s.dir === 'out' ? 'output' : 'input');
       liveCells[s.id] = html('td', { 'class': 'live' }, tr, '');
       rowEls[s.id] = tr;
       tr.addEventListener('mouseenter', function () { tr.classList.add('hot'); wireEls[s.id].setAttribute('stroke-width', 4.5); });
       tr.addEventListener('mouseleave', function () { tr.classList.remove('hot'); wireEls[s.id].setAttribute('stroke-width', 2.4); });
     });
-    $('gpioCount').textContent = W.signals.length + ' GPIOs in use';
-    $('plannedNote').textContent = 'Held back, not wired: ' + W.planned_gpio.map(function (p) { return 'GPIO' + p.gpio + ' (' + p.why + ')'; }).join('; ') + '.';
+    $('gpioCount').textContent = W.signals.length + ' ' + (PFX === 'GPIO' ? 'GPIOs' : 'pins') + ' in use';
+    $('plannedNote').textContent = W.planned_gpio.length ? 'Held back, not wired: ' + W.planned_gpio.map(function (p) { return PFX + p.gpio + ' (' + p.why + ')'; }).join('; ') + '.' : '';
     var rl = $('reservedList');
-    W.reserved_gpio.forEach(function (r) { html('li', {}, rl, 'GPIO ' + r.gpio.join(', ') + ': ' + r.why); });
+    W.reserved_gpio.forEach(function (r) { html('li', {}, rl, PFX + ' ' + r.gpio.join(', ') + ': ' + r.why); });
     $('specNotice').textContent = W.notice;
-    $('phaseTitle').textContent = 'Stepper half-step table (GPIO' + sigByFn.coil1.gpio + ' to GPIO' + sigByFn.coil4.gpio + ')';
-    $('uartTitle').textContent = 'Reader UART (GPIO' + sigByFn.uart_tx.gpio + ' TX, GPIO' + sigByFn.uart_rx.gpio + ' RX)';
+    $('pageTitle').textContent = (W.mcu_name || 'ESP32-S3') + ' hardware simulation'; $('pinHead').textContent = PFX === 'GPIO' ? 'GPIO' : 'Pin';
+    $('phaseTitle').textContent = 'Stepper half-step table (' + PFX + sigByFn.coil1.gpio + ' to ' + PFX + sigByFn.coil4.gpio + ')';
+    if (sigByFn.uart_tx) $('uartTitle').textContent = 'Reader UART (' + PFX + sigByFn.uart_tx.gpio + ' TX, ' + PFX + sigByFn.uart_rx.gpio + ' RX)';
+    else $('uartBox').hidden = true;
+    if (!sigByFn.servo1) $('scopeBox').hidden = true;
     var pn = $('powerNotes');
     W.power.forEach(function (p) { html('li', {}, pn, p.label + ': ' + p.note + '.'); });
   }
@@ -236,11 +241,11 @@
     var wired = {};
     W.signals.concat(W.links).forEach(function (s) { wired[s.from] = true; wired[s.to] = true; });
     Object.keys(pins).forEach(function (id) { var p = pins[id].pin; if ((p.type === 'signal') && !wired[id]) loose.push(id); });
-    out.push([!dup.length, 'Each GPIO drives exactly one net (' + W.signals.length + ' GPIOs, ' + (dup.length ? 'duplicate ' + dup.join(', ') : 'no duplicates') + ').']);
-    out.push([!bad.length, 'No signal uses a strapping, USB, flash/PSRAM, JTAG, UART0 or on-board LED pin' + (bad.length ? ' (GPIO ' + bad.join(', ') + ')' : '') + '.']);
-    out.push([!mism.length, 'Every net lands on the ESP32 pin with the same GPIO number' + (mism.length ? ' (' + mism.join(', ') + ')' : '') + '.']);
+    out.push([!dup.length, 'Each ' + (PFX === 'GPIO' ? 'GPIO' : 'pin') + ' drives exactly one net (' + W.signals.length + ' signals, ' + (dup.length ? 'duplicate ' + dup.join(', ') : 'no duplicates') + ').']);
+    out.push([!bad.length, (W.reserved_text || 'No signal uses a reserved pin') + (bad.length ? ' (' + PFX + ' ' + bad.join(', ') + ')' : '') + '.']);
+    out.push([!mism.length, 'Every net lands on the ' + (W.mcu_name || 'ESP32') + ' pin with the same ' + (PFX === 'GPIO' ? 'GPIO' : 'pin') + ' number' + (mism.length ? ' (' + mism.join(', ') + ')' : '') + '.']);
     out.push([!loose.length, 'No signal pin is left unconnected' + (loose.length ? ' (' + loose.join(', ') + ')' : '') + '.']);
-    out.push([!clash.length, 'Pins held back for Feature 006 do not clash with any wired GPIO.']);
+    out.push([!clash.length, W.planned_gpio.length ? 'Pins held back for Feature 006 do not clash with any wired GPIO.' : 'No pins are held back for later features.']);
     var ul = $('checks'); ul.replaceChildren();
     out.forEach(function (c) { html('li', { 'class': c[0] ? '' : 'bad' }, ul, c[1]); });
   }

@@ -14,6 +14,7 @@
   <script defer src="demo-controller.js"></script>
   <script defer src="rotation-spec.js"></script>
   <script defer src="wiring-spec.js"></script>
+  <script defer src="wiring-board.js"></script>
   <script defer src="wiring-model.js"></script>
   <script defer src="wiring-3d.js"></script>
   <script defer src="wiring-layout3d.js"></script>
@@ -26,6 +27,7 @@
   <script defer src="step-animations.js"></script>
   <script defer src="ring-ui.js"></script>
   <script defer src="ui-nav.js"></script>
+  <script defer src="software-view.js"></script>
   <script defer src="subsystem-ui.js"></script>
   <script defer src="build-controller.js"></script>
   <script defer src="build-ui.js"></script>
@@ -49,7 +51,8 @@
           <label class="seg"><input type="radio" name="designOpt" value="build" autocomplete="off"><span>Current build</span></label>
         </div></div><div class="switch-block"><span class="seg-caption" id="capView">View</span><div class="seg-group view-modes" role="radiogroup" aria-labelledby="capView">
           <label class="seg"><input type="radio" name="viewMode" value="mechanism" checked autocomplete="off"><span>Mechanism</span></label>
-          <label class="seg"><input type="radio" name="viewMode" value="wiring" autocomplete="off"><span>Wiring</span></label>
+          <label class="seg"><input type="radio" name="viewMode" value="wiring" autocomplete="off"><span>Hardware</span></label>
+          <label class="seg"><input type="radio" name="viewMode" value="software" autocomplete="off"><span>Software</span></label>
         </div></div></div></div>
       <div id="sceneHost" class="scene-host" role="img" aria-label="Three-dimensional concept showing four colored cartridges around a rotating drum">
         <span class="scene-hint" id="sceneHint"><b>Drag</b> orbit <i>·</i> <b>Right-drag</b> pan <i>·</i> <b>Scroll</b> zoom <i>·</i> <b>Double-click</b> reset</span>
@@ -72,16 +75,17 @@
           </div>
         </div>
         <div id="wiringHud" class="wiring-hud" hidden>
-          <div class="hud-head"><strong>ESP32-S3 wiring</strong><span id="wiringHudNote" class="hud-note"></span><button id="wiringHudToggle" class="hud-toggle" type="button" aria-expanded="true" aria-label="Collapse wiring panel" title="Collapse">&#9662;</button></div>
+          <div class="hud-head"><strong id="wiringHudTitle">ESP32-S3 hardware</strong><span id="wiringHudNote" class="hud-note"></span><button id="wiringHudToggle" class="hud-toggle" type="button" aria-expanded="true" aria-label="Collapse wiring panel" title="Collapse">&#9662;</button></div>
           <div class="hud-toggles">
             <label><input id="wireSignal" type="checkbox" checked autocomplete="off"> Signals</label>
             <label><input id="wireMotor" type="checkbox" checked autocomplete="off"> Motor cable</label>
             <label><input id="wirePower" type="checkbox" checked autocomplete="off"> 5 V / GND</label>
           </div>
           <ul id="wiringHudRows" class="hud-rows"></ul>
-          <p class="hud-foot">Red +5 V · grey GND · hall OUT also has a 10 kΩ pull-up to 3V3</p>
+          <p id="wiringHudFoot" class="hud-foot">Red +5 V · grey GND · hall OUT also has a 10 kΩ pull-up to 3V3</p>
         </div>
-        <iframe id="wiringFrame" class="wiring-frame" title="Wiring diagram, live from the 3D viewer" hidden></iframe>
+        <iframe id="wiringFrame" class="wiring-frame" title="Hardware diagram, live from the 3D viewer" hidden></iframe>
+        <div id="softwareView" class="sw-pane" role="region" aria-label="Firmware software flowchart" tabindex="0"></div>
         <div id="webglFallback" class="fallback" hidden><strong>WebGL is unavailable</strong><p>Enable hardware acceleration or use a browser/device with WebGL support. The demo controls remain available, but the 3D scene cannot be rendered.</p></div>
       </div>
       <div class="concept-notice"><span aria-hidden="true">ⓘ</span><span><strong>CONCEPT ONLY — NOT VALIDATED / NOT PRINT-READY.</strong> Visual demo only; not hardware or single-dose evidence.</span></div>
@@ -93,9 +97,21 @@
         <span class="panel-bar-actions"><button id="panelExpand" class="quiet-button" type="button">Expand all</button><button id="panelCollapse" class="quiet-button" type="button">Collapse all</button></span>
         <nav id="panelNav" class="panel-nav" aria-label="Jump to a control section"></nav>
       </div>
-      <section class="control-section wiring-panel" id="wiringPanel" data-nav="Wiring" hidden>
-        <div class="section-title"><div><span class="eyebrow">WIRING</span><h2>Systems</h2></div></div>
-        <div class="seg-group wiring-styles" role="radiogroup" aria-label="Wiring view">
+      <section class="control-section software-panel" id="softwarePanel" data-nav="Software" hidden>
+        <div class="section-title"><div><span class="eyebrow">SOFTWARE</span><h2>Firmware flowchart</h2></div></div>
+        <div class="seg-group board-switch" role="radiogroup" aria-label="Board">
+          <label class="seg"><input type="radio" name="boardOptSw" value="esp32" checked autocomplete="off"><span>ESP32-S3</span></label>
+          <label class="seg"><input type="radio" name="boardOptSw" value="uno" autocomplete="off"><span>Arduino UNO</span></label>
+        </div>
+        <p class="small-note" id="softwareNote"></p>
+      </section>
+      <section class="control-section wiring-panel" id="wiringPanel" data-nav="Hardware" hidden>
+        <div class="section-title"><div><span class="eyebrow">HARDWARE</span><h2>Systems</h2></div></div>
+        <div class="seg-group board-switch" role="radiogroup" aria-label="Board">
+          <label class="seg"><input type="radio" name="boardOpt" value="esp32" checked autocomplete="off"><span>ESP32-S3</span></label>
+          <label class="seg"><input type="radio" name="boardOpt" value="uno" autocomplete="off"><span>Arduino UNO</span></label>
+        </div>
+        <div class="seg-group wiring-styles" role="radiogroup" aria-label="Hardware view">
           <label class="seg"><input type="radio" name="wiringStyle" value="wiring3d" checked autocomplete="off"><span>In place 3D</span></label>
           <label class="seg"><input type="radio" name="wiringStyle" value="wiringlayout" autocomplete="off"><span>Layout 3D</span></label>
           <label class="seg"><input type="radio" name="wiringStyle" value="wiring2d" autocomplete="off"><span>2D diagram</span></label>
@@ -107,7 +123,7 @@
         </div>
       </section>
       <section class="control-section wiring-panel" id="wiringPins" data-nav="Pins" hidden>
-        <div class="section-title"><div><span class="eyebrow">WIRING</span><h2>Pin table</h2></div><span id="wiringTableCount" class="count-badge"></span></div>
+        <div class="section-title"><div><span class="eyebrow">HARDWARE</span><h2>Pin table</h2></div><span id="wiringTableCount" class="count-badge"></span></div>
         <div class="pin-table-wrap"><table class="pin-table"><thead><tr><th>Pin</th><th>Signal</th><th>Connects to</th><th>Live</th></tr></thead><tbody id="pinTableRows"></tbody></table></div>
         <p class="small-note">Pins of the ticked systems only; the ESP32's power pins belong to Power supply. ASSUMED / NOT VALIDATED.</p>
       </section>

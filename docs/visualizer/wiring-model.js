@@ -76,8 +76,11 @@
   }
   function loads(m) {
     var L = window.DispenserWiringSpec.loads_ma, coils = m.coils.reduce(function (a, b) { return a + b; }, 0);
-    return [['ESP32-S3', L.esp32], ['28BYJ-48 stepper', coils * L.stepper_per_coil], ['Servo S1', m.s1Moving ? L.servo_moving : L.servo_idle],
-      ['Servo S2', m.s2Moving ? L.servo_moving : L.servo_idle], ['Barcode reader', m.beam ? L.reader_scan : L.reader_idle], ['Hall sensor', L.hall]];
+    var out = [[window.DispenserWiringSpec.mcu_name || 'ESP32-S3', L.esp32], ['28BYJ-48 stepper', coils * L.stepper_per_coil]];
+    if (L.servo_idle !== undefined) out.push(['Servo S1', m.s1Moving ? L.servo_moving : L.servo_idle], ['Servo S2', m.s2Moving ? L.servo_moving : L.servo_idle]);
+    if (L.reader_idle !== undefined) out.push(['Barcode reader', m.beam ? L.reader_scan : L.reader_idle]);
+    out.push(['Hall sensor', L.hall]);
+    return out;
   }
   window.DispenserWiringModel = { create: create, liveText: liveText, isHigh: isHigh, isActive: isActive, loads: loads };
 }());

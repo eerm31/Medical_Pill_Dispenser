@@ -1328,7 +1328,7 @@
       }
       return null;
     }
-    try { if (window.DispenserWiring3D && window.DispenserWiringSpec && window.DispenserWiringModel) { wiring3d = window.DispenserWiring3D.build({ THREE: T, root3d: root3d, W: window.DispenserWiringSpec, S: S, skip: skipForWiring, partGroup: wiringPartGroup, ringAct: function () { return ringMag ? ringMag.ringAct() : null; } }); wiring3d.group.userData.partType = 'electronic'; } }
+    try { if (window.DispenserWiring3D && window.DispenserWiringSpec && window.DispenserWiringSpec.in_place !== false && window.DispenserWiringModel) { wiring3d = window.DispenserWiring3D.build({ THREE: T, root3d: root3d, W: window.DispenserWiringSpec, S: S, skip: skipForWiring, partGroup: wiringPartGroup, ringAct: function () { return ringMag ? ringMag.ringAct() : null; } }); wiring3d.group.userData.partType = 'electronic'; } }
     catch (error) { wiring3d = null; if (window.console) console.error('Wiring harness not built.', error); }
     var wiringLayout = null;
     try { if (window.DispenserWiringLayout3D && window.DispenserWiring3D && window.DispenserWiringSpec) { wiringLayout = window.DispenserWiringLayout3D.build({ THREE: T, root3d: root3d, W: window.DispenserWiringSpec }); wiringLayout.group.userData.partType = 'electronic'; } }

@@ -43,14 +43,17 @@
     function pinLabels(id) {
       Object.keys(pins).forEach(function (pid) {
         var p = pins[pid]; if (p.comp.id !== id) return;
-        var has = p.pin.gpio !== undefined, text = has ? 'GPIO' + p.pin.gpio : p.pin.id, s = tl.textSprite(text, has ? '#71d6c6' : (p.pin.net ? ({ '5V': '#ef555c', '3V3': '#ef963f', 'GND': '#8795a8' }[p.pin.net]) : '#8795a8'), false, 1.7);
+        var has = p.pin.gpio !== undefined, text = has ? (W.pin_prefix || 'GPIO') + p.pin.gpio : p.pin.id, s = tl.textSprite(text, has ? '#71d6c6' : (p.pin.net ? ({ '5V': '#ef555c', '3V3': '#ef963f', 'GND': '#8795a8' }[p.pin.net]) : '#8795a8'), false, 1.7);
         s.position.set(p.x - p.dir * 8.5, p.z + 3.2, -p.y); grp.add(s);
         bx(p.x, p.y, p.z, 2.6, 2.6, 2.6, GOLD);
       });
     }
     function model(id) {
       var k = K[id], x = k.c[0], y = k.c[1], w = k.size[0], d = k.size[1], h = k.size[2], top = h;
-      if (id === 'esp32') {
+      if (id === 'esp32' && W.board_id === 'uno') {
+        bx(x, y, 1, w, d, 2, M(0x0f6b78)); bx(x - w / 2 + 6, y + d / 2 - 10, 5, 14, 16, 8, STEEL); bx(x, y - 6, 3, 8, 22, 2.4, BLACK); bx(x + 8, y + d / 2 - 8, 2.4, 10, 4, 1.4, GOLD);
+        top = 8;
+      } else if (id === 'esp32') {
         bx(x, y, 1, w, d, 2, PCB_K); bx(x, y + 8, 4.5, 26, 30, 5, STEEL); bx(x, y + d / 2 - 7, 2.9, 22, 12, 1.8, GOLD); bx(x, y - d / 2 + 4, 4, 10, 8, 4, STEEL);
         [-1, 1].forEach(function (s) { for (var i = 0; i < 8; i++) bx(x + s * (w / 2 - 2.4), y + d / 2 - 8 - i * 7, 2.6, 4, 4.6, 1.2, GOLD); });
         top = 7;
@@ -79,7 +82,7 @@
     }
     bx(55, 0, -1, 540, 240, 2, PLATE, 'wiring layout plate');
     var parts = {};
-    Object.keys(K).forEach(function (id) { var from = grp.children.length; model(id); parts[id] = grp.children.slice(from); });
+    Object.keys(K).filter(function (id) { return comps[id]; }).forEach(function (id) { var from = grp.children.length; model(id); parts[id] = grp.children.slice(from); });
 
     // ---------- wires ----------
     var wires = [];
@@ -88,7 +91,7 @@
     function colOf(pid) { return K[pins[pid].comp.id].col; }
     function ext(id, side) { var k = K[id]; return k.c[0] + (side === 'r' ? 1 : -1) * (k.size[0] / 2 + (side === 'l' && k.plug ? k.plug : 0)); }
     function colEdge(col, side) {
-      var xs = Object.keys(K).filter(function (id) { return K[id].col === col; }).map(function (id) { return ext(id, side); });
+      var xs = Object.keys(K).filter(function (id) { return K[id].col === col && comps[id]; }).map(function (id) { return ext(id, side); });
       return side === 'r' ? Math.max.apply(null, xs) : Math.min.apply(null, xs);
     }
     var espL = colEdge(2, 'l') - STUB, espR = colEdge(2, 'r') + STUB;
