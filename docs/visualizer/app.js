@@ -583,7 +583,7 @@
       dimensionDetails.hidden=!dimensionsToggle.checked;
     }
     [dimensionsToggle,dimensionCategory].forEach(function(el){el.addEventListener('change',function(){if(rotationPreview.only)renderRotationDimensions();});});
-    host.addEventListener('wheel',function(e){e.preventDefault();orbit.radius=Math.max(56,Math.min(640,orbit.radius+e.deltaY*.12));updateCamera();},{passive:false});
+    host.addEventListener('wheel',function(e){if(document.body.classList.contains('software-view'))return;e.preventDefault();orbit.radius=Math.max(56,Math.min(640,orbit.radius+e.deltaY*.12));updateCamera();},{passive:false});
     host.addEventListener('pointerdown',function(e){pointer={id:e.pointerId,x:e.clientX,y:e.clientY};host.setPointerCapture(e.pointerId);});
     host.addEventListener('pointermove',function(e){if(!pointer||pointer.id!==e.pointerId)return;var dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;pointer.x=e.clientX;pointer.y=e.clientY;orbit.theta-=dx*.008;orbit.phi=Math.max(.22,Math.min(2.75,orbit.phi+dy*.008));updateCamera();});
     host.addEventListener('pointerup',function(){pointer=null;});host.addEventListener('pointercancel',function(){pointer=null;});

@@ -33,6 +33,14 @@ def test_both_boards_use_the_same_page_code():
 
 
 @pytest.mark.parametrize("board", sorted(BOARDS))
+def test_cartridge_inventory_block_is_not_rendered(board):
+    html = _read(BOARDS[board] / "scheduler-ui" / "index.html")
+    assert "Cartridge Inventory" not in html
+    assert 'id="ringState"' not in html
+    assert 'id="ringText"' not in html
+
+
+@pytest.mark.parametrize("board", sorted(BOARDS))
 def test_page_rules_match_the_firmware(board):
     js = _read(BOARDS[board] / "scheduler-ui" / "scheduler.js")
     header = _read(SCHEDULE_H)

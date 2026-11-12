@@ -451,7 +451,6 @@
     $('doseCount').textContent = state.doses.length + ' to add';
     
     renderHistory();
-    renderInventory();
     fireChange();
   }
 
@@ -492,15 +491,6 @@
     $('historyCount').textContent = rows.length + ' of ' + HISTORY_MAX;
   }
 
-  // ---------- cartridge inventory: EMPTY is about the pills, FINISHED is about the doses ----------
-  function renderInventory() {
-    var pills = state.ring.pills, badge = $('ringState');
-    badge.textContent = pills === null ? 'unknown' : (pills === 0 ? 'EMPTY' : 'READY');
-    badge.className = 'count ' + (pills === 0 ? 'bad' : '');
-    $('ringText').textContent = pills === null ? 'The pill count has not been read from the Arduino yet.' :
-      pills + ' of ' + ringMaxShown() + (ringMaxShown() === 1 ? ' pill' : ' pills') + ' left in the cartridge.';
-  }
-  
   // a styled yes/no dialog for things that cannot be undone; the focus starts on Cancel
   var confirmAction = null;
   function askConfirm(title, text, yesLabel, onYes) {

@@ -468,11 +468,18 @@ body.controls-hidden .concept-notice {
 .sw-pane { display: none; position: absolute; inset: 0; z-index: 6; overflow: auto; box-sizing: border-box; padding: 12px 14px 18px; background: #0b111b; border-radius: inherit; }
 body.software-view .sw-pane { display: block; }
 body.software-view #controlPanel .control-section:not(.software-panel) { display: none; }
-.sw-pane svg { display: block; width: 100%; min-width: 760px; max-width: 1180px; height: auto; margin: 0 auto; font-family: inherit; }
-.sw-pane .sw-head { max-width: 1180px; margin: 0 auto 8px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+.sw-pane svg { display: block; width: 100%; min-width: 520px; max-width: 780px; height: auto; margin: 0 auto; font-family: inherit; }
+.sw-pane .sw-head { position: sticky; top: -12px; z-index: 2; max-width: 780px; margin: 0 auto 8px; padding: 12px 0 6px; background: #0b111b; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
 .sw-pane .sw-head strong { font-size: 15px; color: var(--text); }
 .sw-pane .sw-head span { font-size: 11.5px; color: var(--muted); }
-.sw-pane .sw-foot { max-width: 1180px; margin: 8px auto 0; font-size: 11px; color: var(--muted); }
+.sw-pane .sw-foot { max-width: 780px; margin: 8px auto 0; font-size: 11px; color: var(--muted); }
+.sw-pane .sw-full-btn { margin-left: auto; padding: 5px 12px; font-size: 12px; }
+.sw-pane:fullscreen, .sw-pane.sw-full { padding: 12px 20px 14px; border-radius: 0; }
+.sw-pane.sw-full { position: fixed; inset: 0; z-index: 100; }
+body.software-view .sw-pane:fullscreen, body.software-view .sw-pane.sw-full { display: flex; flex-direction: column; overflow: hidden; }
+.sw-pane:fullscreen .sw-head, .sw-pane.sw-full .sw-head { position: static; flex: none; width: 100%; max-width: none; margin: 0 0 6px; padding: 0; }
+.sw-pane:fullscreen svg, .sw-pane.sw-full svg { flex: 1 1 0; min-height: 0; min-width: 0; width: 100%; max-width: none; height: auto; }
+.sw-pane:fullscreen .sw-foot, .sw-pane.sw-full .sw-foot { display: none; }
 
 /* side panel: collapsible sections under a small toolbar */
 .panel { padding-top: 0; }

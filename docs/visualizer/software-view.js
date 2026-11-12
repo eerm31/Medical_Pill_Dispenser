@@ -14,15 +14,11 @@
   var BOARDS = {
     esp32: {
       name: 'ESP32-S3',
-      source: 'electronics-ESP32/scheduling-system/firmware/main.cpp (Arduino framework, PlatformIO)',
-      store: ['EEPROM (emulated in flash)', 'schedule 0 · settings 72', 'dose log 80 (last 10 events)'],
-      notes: ['Stepper GPIO4-7, hall GPIO1', 'Times in whole minutes (HH:MM)', 'No repeat: a dose runs daily', 'Messages via Serial.printf']
+      notes: ['Stepper GPIO4-7, hall GPIO1', 'Times in whole minutes', 'No repeat: dose runs daily', 'Has servos and barcode reader']
     },
     uno: {
       name: 'Arduino UNO',
-      source: 'electronics-Arduino-UNO/scheduling-system/src/scheduling-system.ino (ATmega328P, 2 KB RAM)',
-      store: ['EEPROM', 'schedule 0 · settings 160', 'dose log 168 (last 10 events)'],
-      notes: ['Stepper D8-D11, hall D2', 'Times HH:MM:SS, optional repeat', 'F() strings save RAM', 'No servos, no barcode reader']
+      notes: ['Stepper D8-D11, hall D2', 'Time in seconds, can repeat', 'No servos, no barcode reader']
     }
   };
 
@@ -39,95 +35,123 @@
     return e;
   }
   function label(g, cx, cy, lines, size, bold) {
-    var y0 = cy - (lines.length - 1) * (size + 3) / 2 + size / 3;
+    var y0 = cy - (lines.length - 1) * (size + 5) / 2 + size / 3;
     lines.forEach(function (t, i) {
-      el('text', { x: cx, y: y0 + i * (size + 3), 'text-anchor': 'middle', 'font-size': size, fill: i === 0 && bold ? '#edf3fa' : '#cbd7e6', 'font-weight': i === 0 && bold ? 700 : 400 }, g, t);
+      el('text', { x: cx, y: y0 + i * (size + 5), 'text-anchor': 'middle', 'font-size': size, fill: i === 0 && bold ? '#edf3fa' : '#cbd7e6', 'font-weight': i === 0 && bold ? 700 : 400 }, g, t);
     });
   }
   function node(g, kind, cx, cy, w, h, lines) {
     var c = STYLE[kind];
     if (kind === 'dec') el('polygon', { points: [cx, cy - h / 2, cx + w / 2, cy, cx, cy + h / 2, cx - w / 2, cy].join(' '), fill: c[0], stroke: c[1], 'stroke-width': 1.6 }, g);
     else el('rect', { x: cx - w / 2, y: cy - h / 2, width: w, height: h, rx: kind === 'start' ? h / 2 : 10, fill: c[0], stroke: c[1], 'stroke-width': 1.6 }, g);
-    label(g, cx, cy, lines, kind === 'dec' ? 11.5 : 12, true);
+    label(g, cx, cy, lines, kind === 'dec' ? 13 : 13.5, true);
   }
   function arrow(g, pts, text, tx, ty, dashed, noHead) {
     el('polyline', { points: pts.map(function (p) { return p.join(','); }).join(' '), fill: 'none', stroke: dashed ? '#6aa6e8' : '#8ea3bd', 'stroke-width': 1.6, 'stroke-dasharray': dashed ? '5 4' : '', 'marker-end': noHead ? '' : 'url(#swArrow)' }, g);
-    if (text) el('text', { x: tx, y: ty, 'font-size': 11, fill: dashed ? '#9fc4f0' : '#ffd08a', 'font-weight': 700 }, g, text);
+    if (text) el('text', { x: tx, y: ty, 'font-size': 12, fill: dashed ? '#9fc4f0' : '#ffd08a', 'font-weight': 700 }, g, text);
   }
 
-  function chart(b) {
-    var B = BOARDS[b], svg = el('svg', { viewBox: '0 0 1120 1230', role: 'img', 'aria-label': B.name + ' firmware flowchart', xmlns: NS });
+  function chart(b, wide) {
+    var B = BOARDS[b], svg = el('svg', { viewBox: wide ? '0 0 1410 1040' : '0 0 700 1850', role: 'img', 'aria-label': 'How the ' + B.name + ' dispenser works, step by step', xmlns: NS });
     var defs = el('defs', {}, svg);
     var mk = el('marker', { id: 'swArrow', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' }, defs);
     el('path', { d: 'M0 0 L10 5 L0 10 z', fill: '#8ea3bd' }, mk);
-    var g = el('g', {}, svg), X = 260, SX = 640, RX = 960;
+    var root = el('g', {}, svg), g = root, X = 215, SX = 555, W = 300, LOOP_DX = 710;
+    function place(dx, dy) { g = el('g', { transform: 'translate(' + dx + ' ' + dy + ')' }, root); }
+    function heading(y, text, anchor, x) { el('text', { x: x || 24, y: y, 'text-anchor': anchor || 'start', 'font-size': 13, 'font-weight': 700, 'letter-spacing': '.08em', fill: '#9fd8ff' }, g, text); }
 
-    // loop container
-    el('rect', { x: 60, y: 300, width: 740, height: 780, rx: 16, fill: 'none', stroke: '#2c3e57', 'stroke-dasharray': '6 5' }, g);
-    el('text', { x: 78, y: 324, 'font-size': 12, 'font-weight': 700, fill: '#9fd8ff' }, g, 'loop()  repeats forever');
+    // 1. start-up, once
+    heading(22, 'START-UP (ONCE)');
+    node(g, 'start', X, 56, 240, 38, ['Dispenser switched on']);
+    node(g, 'proc', X, 124, W, 56, ['Get ready', 'Start the motor, memory and clock']);
+    node(g, 'store', X, 200, W, 56, ['Read the saved schedule', 'none saved: use the starter one']);
+    node(g, 'proc', X, 272, W, 40, ['Say "scheduling system ready"']);
+    arrow(g, [[X, 75], [X, 96]]); arrow(g, [[X, 152], [X, 172]]); arrow(g, [[X, 228], [X, 252]]);
+    // wide: the start-up hands over sideways to the loop block; narrow: straight down
+    arrow(g, wide ? [[X + W / 2, 272], [X - W / 2 + LOOP_DX, 272]] : [[X, 292], [X, 364]]);
 
-    // setup chain
-    node(g, 'start', X, 28, 220, 36, ['Power on / reset']);
-    node(g, 'proc', X, 100, 360, 64, ['setup()', 'Serial 115200 · stepper.begin() · store.begin()', 'clock = START_TIME from my_schedule.h']);
-    node(g, 'store', X, 182, 360, 52, ['Load saved schedule and settings', 'none saved: use the doses in my_schedule.h']);
-    node(g, 'proc', X, 254, 360, 50, ['Refilling System starts READY', "print 'scheduling system ready'"]);
-    arrow(g, [[X, 46], [X, 68]]); arrow(g, [[X, 132], [X, 156]]); arrow(g, [[X, 208], [X, 229]]); arrow(g, [[X, 279], [X, 338]]);
+    // 2. the main loop, forever
+    place(wide ? LOOP_DX : 0, wide ? -120 : 0);
+    el('rect', { x: 10, y: 316, width: 680, height: 814, rx: 16, fill: 'none', stroke: '#2c3e57', 'stroke-dasharray': '6 5' }, g);
+    heading(338, 'THEN IT REPEATS THESE STEPS FOREVER', 'end', 676);
+    node(g, 'proc', X, 392, W, 56, ['Check the clock', 'Is a dose due, or missed?']);
+    node(g, 'proc', X, 472, W, 56, ['Move the motor', 'one small step when it is time']);
+    node(g, 'proc', X, 552, W, 56, ['Check the refill', 'tell the computer if it changed']);
+    arrow(g, [[X, 420], [X, 444]]); arrow(g, [[X, 500], [X, 524]]); arrow(g, [[X, 580], [X, 615]]);
 
-    // loop body
-    node(g, 'proc', X, 366, 360, 54, ['Clock tick, once per second', 'schedule.setClock(): PENDING, DUE, MISSED']);
-    node(g, 'proc', X, 440, 360, 50, ['turner.update(micros())', 'one stepper half-step when it is time']);
-    node(g, 'proc', X, 512, 360, 50, ['refill.update(millis())', 'print the refill status when it changed']);
-    arrow(g, [[X, 393], [X, 415]]); arrow(g, [[X, 465], [X, 487]]); arrow(g, [[X, 537], [X, 572]]);
-
-    // decisions with a side action; the side box returns to the main line
-    function decision(cy, q, side, sh, no, next) {
-      node(g, 'dec', X, cy, 330, 68, q);
-      arrow(g, [[X + 165, cy], [SX - 140, cy]], 'yes', X + 178, cy - 7);
-      node(g, 'io', SX, cy, 280, sh, side);
-      arrow(g, [[SX, cy + sh / 2], [SX, next - 22], [X, next - 22]], '', 0, 0, false, true);
-      arrow(g, [[X, cy + 34], [X, next]], no, X + 8, cy + 52);
+    // a question with a side action; the side box rejoins the main line
+    function decision(cy, q, side, sh, nextTop) {
+      node(g, 'dec', X, cy, W, 70, q);
+      arrow(g, [[X + W / 2, cy], [SX - 120, cy]], 'yes', X + W / 2 + 22, cy - 8);
+      node(g, 'io', SX, cy, 240, sh, side);
+      arrow(g, [[SX, cy + sh / 2], [SX, nextTop - 22], [X, nextTop - 22]], '', 0, 0, false, true);
+      arrow(g, [[X, cy + 35], [X, nextTop]], 'no', X + 8, cy + 58);
     }
-    decision(606, ['Active dose', 'was deleted?'], ['interruptDose()', 'stop the motor', "print 'dose was deleted'"], 64, 'no', 694);
-    decision(728, ['Dose DUE, cartridge free,', 'no refill running?'], ['beginTake(id): ring has enough pills?', "yes: TAKING, turner.start(n), 'dose start'", 'no: log FINISHED 0/n, nothing turns'], 76, 'no', 826);
-    decision(860, ['A pill move', 'has finished?'], ['schedule.confirmPill(), save to EEPROM', "print 'pill k/n left r'", 'last pill: TAKEN, log COMPLETED'], 76, 'no', 952);
-    // last decision loops back to the top of the loop
-    node(g, 'dec', X, 986, 330, 68, ['Serial line', 'received?']);
-    arrow(g, [[X + 165, 986], [SX - 140, 986]], 'yes', X + 178, 979);
-    node(g, 'io', SX, 986, 280, 92, ['handleCommand(line)', 'time · add · rm · clear · save · refill', 'pills · set · list · log · step · stop', 'help']);
-    arrow(g, [[X, 1020], [X, 1100], [40, 1100], [40, 366], [80, 366]], 'no', X + 8, 1050);
-    arrow(g, [[SX, 1032], [SX, 1100], [X, 1100]], '', 0, 0, false, true);
-    el('text', { x: 26, y: 700, 'font-size': 11, fill: '#9fc4f0', transform: 'rotate(-90 26 700)', 'text-anchor': 'middle' }, g, 'next pass');
+    decision(650, ['Was the current dose', 'deleted?'], ['Stop the motor', 'Say "dose was deleted"'], 56, 745);
+    decision(780, ['Dose due, cartridge free,', 'no refill running?'], ['Enough pills for the dose?', 'yes: start turning the cartridge', 'no: skip it, nothing turns'], 76, 875);
+    decision(910, ['Did a pill just', 'come out?'], ['Count the pill and save it', 'Say how many are left', 'last pill: dose is taken'], 76, 1005);
+    // the last question loops back to the top
+    node(g, 'dec', X, 1040, W, 70, ['Message from', 'the computer?']);
+    arrow(g, [[X + W / 2, 1040], [SX - 120, 1040]], 'yes', X + W / 2 + 22, 1032);
+    node(g, 'io', SX, 1040, 240, 76, ['Do what the message asks', 'set time · add or remove a dose', 'save · refill · list · stop']);
+    arrow(g, [[X, 1075], [X, 1110], [40, 1110], [40, 392], [X - W / 2, 392]], 'no', X + 8, 1098);
+    arrow(g, [[SX, 1078], [SX, 1110], [X, 1110]], '', 0, 0, false, true);
+    el('text', { x: 26, y: 760, 'font-size': 12, fill: '#9fc4f0', transform: 'rotate(-90 26 760)', 'text-anchor': 'middle' }, g, 'back to the top');
 
-    // refill state machine
-    el('text', { x: RX, y: 300, 'text-anchor': 'middle', 'font-size': 13, 'font-weight': 700, fill: '#9fd8ff' }, g, 'Refilling System');
-    var states = [['READY', 'a refill can begin'], ['REFILL_MODE', 'ring chosen, cartridge locked'], ['POSITIONING', 'one 30° move'], ['WAITING_FOR_REFILL', 'pills put in, count told'], ['SAVING_INVENTORY', 'count saved'], ['COMPLETED', 'ring count is the new count']];
-    var labels = ['refill <ring>', 'move starts', 'move done', 'pills <n>', 'refill complete'];
+    // 3. refilling the cartridge
+    place(0, wide ? -830 : 0);
+    heading(1170, 'REFILLING THE CARTRIDGE');
+    el('text', { x: 24, y: 1192, 'font-size': 12, fill: '#8795a8' }, g, '"Check the refill" above moves it along, one step at a time');
+    var states = [['Ready', 'no refill going on'], ['Refill requested', 'the cartridge is locked'], ['Turning', 'one 30° step'], ['Waiting for pills', 'you add pills and tell the count'], ['Saving', 'the new count is stored'], ['Done', 'the cartridge count is updated']];
+    var steps = ['you ask to refill', 'the cartridge turns', 'the turn is finished', 'you tell the count', 'count saved'];
     states.forEach(function (s, i) {
-      var y = 350 + i * 80;
-      node(g, i === states.length - 1 ? 'start' : 'state', RX, y, 230, 50, [s[0], s[1]]);
-      if (i) arrow(g, [[RX, y - 80 + 25], [RX, y - 25]], labels[i - 1], RX + 8, y - 34);
+      var y = 1250 + i * 76;
+      node(g, i === states.length - 1 ? 'start' : 'state', X, y, W, 50, [s[0], s[1]]);
+      if (i) arrow(g, [[X, y - 51], [X, y - 25]], steps[i - 1], X + 8, y - 34);
     });
-    node(g, 'bad', RX, 830, 230, 64, ['CANCELLED · ERROR', 'cancel, timeout, save failed', 'counts stay as they were']);
-    arrow(g, [[RX + 115, 350 + 3 * 80], [1088, 350 + 3 * 80], [1088, 830], [RX + 115, 830]], '', 0, 0, true);
-    arrow(g, [[X + 180, 512], [RX - 115, 512]], 'refill.update', 520, 504, true);
+    node(g, 'bad', SX, 1478, 240, 76, ['Stopped', 'cancel, timeout or save error', 'counts stay as they were']);
+    arrow(g, [[X + W / 2, 1478], [SX - 120, 1478]], 'problem', X + W / 2 + 8, 1470, true);
 
-    // storage and board notes
-    node(g, 'store', RX, 960, 230, 70, B.store);
-    node(g, 'proc', RX, 1075, 230, 96, ['This board'].concat(B.notes));
-    el('text', { x: X, y: 1150, 'text-anchor': 'middle', 'font-size': 11, fill: '#8795a8' }, g, 'Yellow: decision · purple: board action · green: stored data');
+    // 4. what is kept, and this board
+    place(0, wide ? -830 : 0);
+    heading(1700, 'KEPT AND BOARD NOTES');
+    node(g, 'store', X, 1760, W, 76, ['Kept when switched off', 'the schedule and settings', 'the last 10 doses']);
+    node(g, 'proc', SX, 1760, 240, 34 + (B.notes.length + 1) * 18, ['About this board'].concat(B.notes));
+    el('text', { x: 350, y: 1836, 'text-anchor': 'middle', 'font-size': 12, fill: '#8795a8' }, g, 'Yellow: question · purple: action · green: saved data · red: stopped');
     return svg;
   }
+
+  function isFull() { return document.fullscreenElement === pane || pane.classList.contains('sw-full'); }
+  function syncFull() {
+    var b = pane.querySelector('.sw-full-btn'); if (!b) return;
+    b.textContent = isFull() ? 'Exit full screen' : 'Full screen';
+    b.setAttribute('aria-pressed', isFull() ? 'true' : 'false');
+  }
+  function toggleFull() {
+    if (document.fullscreenElement === pane) { document.exitFullscreen(); return; }
+    if (pane.classList.contains('sw-full')) { pane.classList.remove('sw-full'); render(); return; }
+    var req = pane.requestFullscreen && pane.requestFullscreen();
+    if (req && req.catch) req.catch(function () { pane.classList.add('sw-full'); render(); });
+    else if (!req) { pane.classList.add('sw-full'); render(); }
+  }
+  document.addEventListener('fullscreenchange', render);
+  ['pointerdown', 'pointerup', 'pointermove', 'touchstart', 'wheel', 'dblclick'].forEach(function (n) { pane.addEventListener(n, function (e) { e.stopPropagation(); }); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && pane.classList.contains('sw-full')) toggleFull(); });
 
   function render() {
     var B = BOARDS[board];
     pane.replaceChildren();
     var head = document.createElement('div'); head.className = 'sw-head';
-    var t = document.createElement('strong'); t.textContent = B.name + ' firmware flow';
-    var s = document.createElement('span'); s.textContent = B.source;
-    head.appendChild(t); head.appendChild(s); pane.appendChild(head);
-    pane.appendChild(chart(board));
+    var t = document.createElement('strong'); t.textContent = 'How the ' + B.name + ' dispenser works';
+    head.appendChild(t);
+    var fs = document.createElement('button'); fs.type = 'button'; fs.className = 'quiet-button sw-full-btn';
+    fs.addEventListener('click', toggleFull);
+    head.appendChild(fs);
+    pane.appendChild(head);
+    syncFull();
+    pane.appendChild(chart(board, isFull()));
     var foot = document.createElement('p'); foot.className = 'sw-foot';
-    foot.textContent = 'CONCEPT ONLY. A hand-drawn summary of the sketch logic, not generated from the code and not validated on hardware.';
+    foot.textContent = 'Read from top to bottom. Scroll to follow the whole chart.';
     pane.appendChild(foot);
   }
 
@@ -164,8 +188,6 @@
       inPlace.disabled = W.in_place === false;
       var lab = inPlace.closest('label'); if (lab) lab.title = W.in_place === false ? 'The 3D scene has no Arduino UNO model; use Layout 3D or the 2D diagram' : '';
     }
-    var note = document.getElementById('softwareNote');
-    if (note) note.textContent = 'Flowchart of the sketch: setup, the main loop, the refill states and what is stored. Pick the board above. ASSUMED / NOT VALIDATED.';
   }
 
   // ---------- restore the view after a board reload ----------
