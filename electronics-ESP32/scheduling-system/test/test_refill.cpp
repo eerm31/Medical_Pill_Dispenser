@@ -59,11 +59,11 @@ public:
         pills[0] = 4;
     }
     bool cartridgeFree() { return freeCartridge; }
-    bool moveOneSlot() {
+    bool moveSlots(int n) {
         if (refuseMove) {
             return false;
         }
-        moves++;
+        moves += n;
         finished = false;
         return true;
     }
@@ -106,11 +106,16 @@ void testModuleAlone() {
     CHECK(rs.updateRefillInventory(2) == false);   // no pills before the cartridge is in place
     CHECK(rs.finishRefill() == false);
 
-    // ONE move, however often it is asked for
-    CHECK(rs.startRefill());
+    // the moves before the first pill: from 0 up to 10, never more
+    CHECK(rs.startRefill(-1) == false && rs.getRefillError() == RefillError::BAD_AMOUNT);
+    CHECK(rs.startRefill(REFILL_MAX_PILLS) == false && rs.getRefillError() == RefillError::BAD_AMOUNT);
+    CHECK(rs.getRefillStatus() == RefillStatus::REFILL_MODE && host.moves == 0);
+
+    // two moves, however often it is asked for
+    CHECK(rs.startRefill(2));
     CHECK(rs.getRefillStatus() == RefillStatus::POSITIONING);
-    CHECK(rs.startRefill() == false);
-    CHECK(host.moves == 1 && rs.getMovesAsked() == 1);
+    CHECK(rs.startRefill(2) == false);
+    CHECK(host.moves == 2 && rs.getMovesAsked() == 2);
     CHECK(rs.cancelRefill() == false);   // the cartridge cannot be called back while it turns
     rs.update(1000);
     CHECK(rs.getRefillStatus() == RefillStatus::POSITIONING);
@@ -118,7 +123,7 @@ void testModuleAlone() {
     rs.update(2000);
     CHECK(rs.getRefillStatus() == RefillStatus::WAITING_FOR_REFILL);
     rs.update(3000);
-    CHECK(host.moves == 1);
+    CHECK(host.moves == 2);
 
     // the amount: nothing below 1, nothing above the room that is left (4 + 8 would be 12)
     CHECK(rs.updateRefillInventory(0) == false && rs.getRefillError() == RefillError::BAD_AMOUNT);
@@ -141,12 +146,19 @@ void testModuleAlone() {
     CHECK(rs.requestRefill(0));
     CHECK(rs.cancelRefill());
     CHECK(rs.getRefillStatus() == RefillStatus::CANCELLED && rs.isRefillActive() == false);
-    CHECK(host.pills[0] == 6 && host.stores == 1 && host.moves == 1);
+    CHECK(host.pills[0] == 6 && host.stores == 1 && host.moves == 2);
+
+    // no move asked for: nothing turns, straight to waiting for the pills (the filling hole is assumed to be empty)
+    CHECK(rs.requestRefill(0));
+    CHECK(rs.startRefill());
+    CHECK(rs.getRefillStatus() == RefillStatus::WAITING_FOR_REFILL && host.moves == 2);
+    CHECK(rs.startRefill() == false);
+    CHECK(rs.cancelRefill());
 
     // a move the cartridge refuses ends in ERROR and does not stay locked
     host.refuseMove = true;
     CHECK(rs.requestRefill(0));
-    CHECK(rs.startRefill() == false && rs.getRefillError() == RefillError::MOVE_REFUSED);
+    CHECK(rs.startRefill(1) == false && rs.getRefillError() == RefillError::MOVE_REFUSED);
     CHECK(rs.getRefillStatus() == RefillStatus::ERROR && rs.isRefillActive() == false);
     host.refuseMove = false;
 
@@ -171,7 +183,7 @@ void testModuleAlone() {
     CHECK(host.pills[0] == 6);
 
     // a motor that was stopped from outside mid-move
-    CHECK(rs.requestRefill(0) && rs.startRefill());
+    CHECK(rs.requestRefill(0) && rs.startRefill(1));
     rs.motorFault();
     CHECK(rs.getRefillStatus() == RefillStatus::ERROR && rs.isRefillActive() == false);
 }
@@ -244,7 +256,7 @@ int main() {
     command("time 07:00:00");
     CHECK(schedule.getCount() == 0);
 
-    // ---- A: first refill with no schedule: one move of 30 degrees, then 5 pills ----
+    // ---- A: first refill with no schedule: nothing turns for the first pill, then 5 pills ----
     command("pills 0");
     size_t mark = Serial.lines.size();
     command("refill list");
@@ -259,13 +271,10 @@ int main() {
     command("step");
     CHECK(g_pinWrites == pinsBefore);
     command("refill start");
-    CHECK(has("refill status POSITIONING ring 0 pills 0", mark));
-    runMs(1500);
-    CHECK(has("refill status WAITING_FOR_REFILL ring 0 pills 0 slot 1", mark));
-    CHECK(g_pinWrites - pinsBefore == 341 * 4);   // exactly one move of 30 degrees: 341 of the 4096 half-steps
-    CHECK(turner.getSlot() == 1);
+    CHECK(has("refill status WAITING_FOR_REFILL ring 0 pills 0 slot 0", mark));
     runMs(30000);
-    CHECK(g_pinWrites - pinsBefore == 341 * 4 + 4);   // only the coils were switched off afterwards
+    CHECK(g_pinWrites == pinsBefore);   // no move at all: the filling hole is assumed to be empty
+    CHECK(turner.getSlot() == 0);
     command("refill add 5");
     CHECK(has("refill saved ring 0 prev 0 added 5 new 5", mark));
     CHECK(has("ring 5 READY", mark));
@@ -274,7 +283,7 @@ int main() {
     CHECK(has("refill done ring 0 prev 0 added 5 new 5", mark));
     CHECK(has("refill status COMPLETED ring 0 pills 5", mark));
     CHECK(refill.isRefillActive() == false);
-    CHECK(g_pinWrites - pinsBefore == 341 * 4 + 4);   // no second move, no other ring
+    CHECK(g_pinWrites == pinsBefore);   // no move, no other ring
 
     // ---- F: the new count is in the board's memory, although no dose is saved ----
     Scheduler restarted;
@@ -324,7 +333,7 @@ int main() {
     mark = Serial.lines.size();
     runMs(6000);
     command("refill request 0");
-    command("refill start");
+    command("refill start 1");
     runMs(100);
     command("stop");
     CHECK(has("refill status ERROR ring 0 pills 6", mark));
@@ -357,6 +366,53 @@ int main() {
     runMs(REFILL_TIMEOUT_MS + 5000);
     CHECK(has("refill status CANCELLED ring 0 pills 3", mark));
     CHECK(refill.isRefillActive() == false && schedule.ringPills(RED) == 3);
+
+    // ---- every pill the person confirms turns the cartridge one more move ----
+    runMs(6000);
+    command("pills 9");   // room for exactly two more pills
+    mark = Serial.lines.size();
+    refillUntilWaiting(mark);
+    runMs(6000);   // the hold after the first move is over
+    int slotBeforePill = turner.getSlot();
+    size_t markPill = Serial.lines.size();
+    command("refill pill");
+    CHECK(has("refill status POSITIONING ring 0 pills 9", markPill));
+    command("refill pill");
+    CHECK(has("refill error WRONG_STATE", markPill));   // not twice while it turns
+    runMs(1500);
+    CHECK(turner.getSlot() == (slotBeforePill + 1) % 12);
+    CHECK(refill.getRefillStatus() == RefillStatus::WAITING_FOR_REFILL);
+    command("refill pill");
+    CHECK(has("refill error CARTRIDGE_BUSY", markPill));   // still holding its position: ask again in a moment
+    CHECK(refill.getPillsStaged() == 1);
+    runMs(6000);
+    command("refill pill");
+    runMs(1500);
+    CHECK(turner.getSlot() == (slotBeforePill + 2) % 12);
+    runMs(6000);
+    command("refill pill");
+    CHECK(has("refill error BAD_AMOUNT", markPill));   // the ring has no room for a third pill
+    CHECK(refill.getRefillStatus() == RefillStatus::WAITING_FOR_REFILL);
+    CHECK(refill.getPillsStaged() == 2);
+    command("refill add 2");
+    command("refill finish");
+    CHECK(schedule.ringPills(RED) == 11);
+
+    // ---- the page asks for moves first (the pills dispensed since the last fill, minus one) ----
+    runMs(6000);
+    command("pills 4");
+    mark = Serial.lines.size();
+    command("refill request 0");
+    int slotStart = turner.getSlot();
+    command("refill start 11");
+    CHECK(has("refill error BAD_AMOUNT", mark));   // never a full turn and more
+    CHECK(refill.getRefillStatus() == RefillStatus::REFILL_MODE);
+    command("refill start 2");
+    CHECK(has("refill status POSITIONING ring 0 pills 4", mark));
+    runMs(7000);   // two moves, one every 5 s here
+    CHECK(turner.getSlot() == (slotStart + 2) % 12);
+    CHECK(refill.getRefillStatus() == RefillStatus::WAITING_FOR_REFILL);
+    command("refill cancel");
 
     printf("%d checks, %d failures\n", checks, failures);
     if (failures > 0) {

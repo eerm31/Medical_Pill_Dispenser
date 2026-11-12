@@ -443,10 +443,8 @@ bool Scheduler::finishTake(uint8_t id, Verdict verdict) {
 
     // If this is a recurring dose, schedule the next occurrence
     if (e->recur_interval > 0) {
-        // Estimate dispense time as 1 second per pill
-        uint32_t dispense_duration = e->pills;
-        // Next occurrence: now + dispense time + recurrence interval
-        uint32_t next_time = seconds + dispense_duration + e->recur_interval;
+        // the interval starts when the last pill of this dose has come out, not before
+        uint32_t next_time = seconds + e->recur_interval;
         
         // Wrap to next day if needed
         if (next_time >= DAY_SECONDS) {

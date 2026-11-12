@@ -14,7 +14,7 @@
 // How the cartridge turns when a dose is due (there is no pin, turning the cartridge is the dispensing).
 // Every pill is one move of DEGREES_PER_PILL. A new move starts PAUSE_MS_AFTER_MOVE after the last one started.
 #define DEGREES_PER_PILL 30        // 30 degrees = 12 moves for a full turn (it must divide 360)
-#define PAUSE_MS_AFTER_MOVE 5000   // time between two pills of a dose, in milliseconds (the sketch never allows less)
+#define PAUSE_MS_AFTER_MOVE 1000   // time between two pills of a dose, in milliseconds (the sketch never allows less)
 #define STEP_INTERVAL_US 1500      // time between motor steps, smaller = faster
 #define TURN_DIRECTION 1           // 1 or -1, swap it if the cartridge turns the wrong way
 

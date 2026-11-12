@@ -6,6 +6,7 @@
   <title>UI System</title>
   <link rel="stylesheet" href="scheduler.css">
   <link rel="stylesheet" href="refill.css">
+  <link rel="stylesheet" href="wizard.css">
   <script>
     window.SCHEDULER_BOARD = {
       name: 'Arduino Uno', short: 'uno', baud: 115200, settleMs: 3000,
@@ -16,6 +17,7 @@
   </script>
   <script defer src="scheduler.js"></script>
   <script defer src="refill.js"></script>
+  <script defer src="wizard.js"></script>
 </head>
 <body>
   <header class="top">
@@ -25,6 +27,11 @@
   </header>
 
   <main class="page">
+    <section id="pauseWarn" class="warn-card" role="alert" hidden>
+      <div><strong id="pauseWarnTitle"></strong><p id="pauseWarnText" class="hint"></p></div>
+      <button id="pauseFillBtn" type="button" class="fill-btn shimmer">Fill</button>
+    </section>
+
     <section class="card" aria-labelledby="hSchedule">
       <div class="card-head">
         <div><h2 id="hSchedule">Saved Schedules</h2><p class="hint">Medications saved to the Arduino.</p></div>
@@ -34,7 +41,7 @@
         <thead><tr><th>Medication</th><th>Time</th><th>Per dose</th><th>Recurrence</th><th>Pills left</th><th>Status</th><th><span class="sr">Expand</span></th><th><span class="sr">Edit</span></th><th><span class="sr">Remove</span></th></tr></thead>
         <tbody id="savedRows"></tbody>
       </table>
-      <p id="savedEmptyMsg" class="empty">No saved medications yet.</p>
+      <p id="savedEmptyMsg" class="empty">No saved medications yet. Press Fill to set one up.</p>
       <button id="emptyFillBtn" type="button" class="fill-btn" hidden>Fill</button>
     </section>
 

@@ -112,6 +112,8 @@ std::string fmt(const char* format, ...) {
 
 int main() {
     setup();
+    CHECK(turner.getConfig().pauseUs == 1000000UL);   // the pills of a dose follow each other 1 s apart
+    command("set 30 5000 1500 1");   // the scenarios below were written for one pill every 5 s
 
     // ---- the ring starts with 5 pills, dose A at 08:00 and dose B at 20:00 both need 2 pills ----
     command("time 07:59:50");
@@ -326,11 +328,35 @@ int main() {
     CHECK(hasLine(fmt("dose end #%d 23:00:00 INCOMPLETE 0/1 left 5", H).c_str(), mark));
     CHECK(schedule.ringPills(RED) == 5);
 
-    // ---- the time between pills cannot be set below 5 seconds ----
-    mark = Serial.lines.size();
+    // ---- a repeating dose turns all its pills in a row (1 s apart); its interval counts from the last pill ----
     command("set 30 1000 1500 1");
-    CHECK(hasLine("the time between pills must be at least 5000 ms", mark));
-    CHECK(turner.getConfig().pauseUs == 5000000UL);
+    command("clear");
+    command("pills 11");
+    command("add 06:00:00 3 7");
+    schedule.sorted(list);
+    const int R = list[0]->id;
+    mark = Serial.lines.size();
+    command("time 05:59:55");
+    runMs(25000);
+    std::vector<LoggedLine> rp = linesStarting(fmt("pill #%d ", R).c_str(), mark);
+    requireLines(rp.size(), 6, __LINE__);
+    CHECK(rp[1].atUs - rp[0].atUs > 900000UL && rp[1].atUs - rp[0].atUs < 1100000UL);
+    CHECK(rp[2].atUs - rp[1].atUs > 900000UL && rp[2].atUs - rp[1].atUs < 1100000UL);
+    CHECK(rp[3].atUs - rp[2].atUs > 6500000UL && rp[3].atUs - rp[2].atUs < 7500000UL);   // 7 s, not 10
+    CHECK(rp[4].atUs - rp[3].atUs > 900000UL && rp[4].atUs - rp[3].atUs < 1100000UL);
+    command("clear");
+
+    // ---- the time between pills cannot be set below 1 second ----
+    mark = Serial.lines.size();
+    command("set 30 999 1500 1");
+    CHECK(hasLine("the time between pills must be at least 1000 ms", mark));
+    CHECK(turner.getConfig().pauseUs == 1000000UL);
+
+    // ---- a restart replaces the old 5 s pause that an earlier sketch saved in memory ----
+    command("set 30 5000 1500 1");
+    command("save");
+    setup();
+    CHECK(turner.getConfig().pauseUs == 1000000UL);
 
     printf("%d checks, %d failures\n", checks, failures);
     if (failures > 0) {

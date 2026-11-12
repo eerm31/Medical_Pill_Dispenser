@@ -1,0 +1,17 @@
+/* Set-up window: one question at a time, big and plain. */
+.modal-content.wizard { width: 440px; max-width: calc(100vw - 32px); }
+.wizard-step { margin-bottom: 6px; color: var(--muted); font-size: 13px; font-weight: 600; }
+.wizard h3 { margin: 0 0 14px; font-size: 22px; }
+.wizard-help { margin: 12px 0 0; color: var(--muted); line-height: 1.5; }
+.wizard input[type="text"], .wizard input[type="time"], .wizard input[type="number"], .wizard select { width: 100%; min-height: 52px; font-size: 20px; }
+.wizard-repeat { display: grid; grid-template-columns: 1fr 1.4fr; gap: 12px; }
+.wizard-msg { min-height: 20px; margin: 10px 0 0; }
+.wizard .modal-buttons { flex-wrap: wrap; margin-top: 12px; }
+.wizard .modal-buttons button { min-height: 48px; font-size: 16px; }
+.wizard-four button { flex: 1 1 40%; }
+.wizard-add { width: 100%; min-height: 72px; margin-top: 14px; border-color: var(--ok); background: var(--ok); color: #fff; font-size: 26px; font-weight: 700; }
+.wizard-add:hover:not(:disabled) { border-color: #146644; background: #146644; color: #fff; }
+.wizard-summary { margin: 14px 0 0; border-top: 1px solid var(--line); }
+.wizard-summary div { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.wizard-summary span { color: var(--muted); }
+.wizard-summary strong { text-align: right; }

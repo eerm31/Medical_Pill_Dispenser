@@ -17,7 +17,26 @@
 /* the layer */
 .fill-layer { min-width: 300px; text-align: center; }
 .fill-info { margin-bottom: 14px; color: var(--muted); line-height: 1.5; }
-.fill-count { margin-bottom: 14px; font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.fill-add { width: 100%; min-height: 72px; margin-bottom: 8px; border-color: var(--ok); background: var(--ok); color: #fff; font-size: 26px; font-weight: 700; }
-.fill-add:hover:not(:disabled) { border-color: #146644; background: #146644; color: #fff; }
+.fill-count { margin: 0 0 10px; font-size: 64px; line-height: 1; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text); }
+/* the plus button: one pill at a time, locked until the person confirms the pill is in */
+.fill-layer .fill-add { display: grid; place-items: center; width: 84px; height: 84px; min-height: 0; margin: 0 auto 14px; padding: 0; border: 0; border-radius: 50%; background: linear-gradient(160deg, #26a974, var(--ok)); color: #fff; box-shadow: 0 6px 16px rgba(26, 127, 86, .32), inset 0 1px 0 rgba(255, 255, 255, .3); cursor: pointer; transition: transform .12s ease, box-shadow .12s ease, background .12s ease; }
+.fill-layer .fill-add svg { width: 40px; height: 40px; }
+.fill-layer .fill-add:hover:not(:disabled) { color: #fff; transform: translateY(-1px); box-shadow: 0 9px 20px rgba(26, 127, 86, .4), inset 0 1px 0 rgba(255, 255, 255, .3); }
+.fill-layer .fill-add:active:not(:disabled) { transform: scale(.95); }
+.fill-layer .fill-add:focus-visible { outline: 3px solid rgba(26, 127, 86, .35); outline-offset: 3px; }
+.fill-layer .fill-add:disabled { background: #c8d4dc; box-shadow: none; cursor: not-allowed; opacity: 1; }
+.fill-confirm { margin: 0 0 6px; padding: 14px 16px 6px; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--primary-soft); }
+.fill-ask { font-weight: 600; line-height: 1.45; }
+.fill-confirm .modal-buttons { margin-top: 12px; }
 .fill-layer .modal-buttons button { min-height: 52px; font-size: 17px; }
+
+/* a schedule that waits for pills, and the take-out check after a cancel */
+.status-label.paused { color: var(--warn); font-weight: 700; }
+.status-label.dispensing { color: var(--ok); font-weight: 700; }
+.warn-line { margin-top: 2px; color: var(--warn); font-size: 12.5px; font-weight: 600; }
+.warn-card { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; padding: 16px 20px; border: 1px solid #e6c27a; border-radius: 14px; background: var(--warn-soft); }
+.warn-card strong { color: var(--warn); font-size: 16px; }
+.warn-card p { margin-top: 4px; color: var(--text); }
+.warn-card .fill-btn { flex: none; min-height: 48px; padding: 6px 28px; font-size: 17px; }
+.modal-content .takeout-check { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 6px 0 4px; font-size: 17px; font-weight: 600; cursor: pointer; }
+.modal-content .takeout-check input { width: 22px; height: 22px; }

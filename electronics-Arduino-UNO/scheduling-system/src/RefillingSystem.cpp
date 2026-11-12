@@ -11,6 +11,7 @@ RefillingSystem::RefillingSystem() {
     added = 0;
     updated = 0;
     movesAsked = 0;
+    pillsStaged = 0;
     lastActionMs = 0;
     restartTimer = true;
 }
@@ -55,22 +56,57 @@ bool RefillingSystem::requestRefill(int ringID) {
     added = 0;
     updated = previous;
     movesAsked = 0;
+    pillsStaged = 0;
     restartTimer = true;
     status = RefillStatus::REFILL_MODE;
     return true;
 }
 
-bool RefillingSystem::startRefill() {
+bool RefillingSystem::startRefill(int movesFirst) {
     if (status != RefillStatus::REFILL_MODE || movesAsked > 0) {
         error = RefillError::WRONG_STATE;
         return false;
     }
-    movesAsked = 1;   // one request, one move: nothing here asks for a second one
-    if (host->moveOneSlot() == false) {
+    if (movesFirst < 0 || movesFirst >= REFILL_MAX_PILLS) {
+        error = RefillError::BAD_AMOUNT;   // nothing turned, the person can start again
+        return false;
+    }
+    error = RefillError::NONE;
+    restartTimer = true;
+    if (movesFirst == 0) {
+        status = RefillStatus::WAITING_FOR_REFILL;   // the filling hole is assumed to be empty: nothing turns
+        return true;
+    }
+    movesAsked = movesFirst;   // one request, one batch of moves: nothing here asks for a second batch
+    if (host->moveSlots(movesFirst) == false) {
         error = RefillError::MOVE_REFUSED;
         release(RefillStatus::ERROR);
         return false;
     }
+    status = RefillStatus::POSITIONING;
+    return true;
+}
+
+// The person says one pill went in. The cartridge turns one move so the next pill meets a free position.
+bool RefillingSystem::pillIn() {
+    if (status != RefillStatus::WAITING_FOR_REFILL) {
+        error = RefillError::WRONG_STATE;
+        return false;
+    }
+    if (pillsStaged >= REFILL_MAX_PILLS - host->ringPills(ring)) {
+        error = RefillError::BAD_AMOUNT;   // the ring has no room for one more
+        return false;
+    }
+    if (host->cartridgeFree() == false) {
+        error = RefillError::CARTRIDGE_BUSY;   // still holding its last position: nothing changes, ask again in a moment
+        return false;
+    }
+    if (host->moveSlots(1) == false) {
+        error = RefillError::MOVE_REFUSED;
+        release(RefillStatus::ERROR);
+        return false;
+    }
+    pillsStaged++;
     error = RefillError::NONE;
     restartTimer = true;
     status = RefillStatus::POSITIONING;

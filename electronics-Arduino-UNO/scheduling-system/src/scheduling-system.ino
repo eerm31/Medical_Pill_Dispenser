@@ -46,7 +46,7 @@ uint8_t turnReported = 0;   // pills of the dose already confirmed
 bool testMove = false;      // true while a "step" test move is turning
 
 // the time between two pills is never shorter than this
-#define MIN_PILL_INTERVAL_MS 5000UL
+#define MIN_PILL_INTERVAL_MS 1000UL
 
 // The single ring of this board is RED. Its pill count is shared by all doses and only goes down when a pill is confirmed.
 #define RING RED
@@ -231,12 +231,17 @@ const __FlashStringHelper* refillErrorText(RefillError e) {
     return F("NONE");
 }
 
-// The refill borrows the cartridge for ONE move; its status is printed whenever it changes.
+// The refill borrows the cartridge: the moves the page asks for before the first pill (none when nothing was dispensed),
+// then one more for every pill the person confirms. Its status is printed whenever it changes.
 class SketchRefillHost : public RefillHost {
 public:
+    int asked = 0;   // moves of the batch in progress
     bool cartridgeFree() { return turnDoseId == 0 && turner.isBusy() == false; }
-    bool moveOneSlot() { return turner.start(1); }
-    bool moveDone() { return turner.getPillsDone() >= 1; }   // a finished move, not a finished hold
+    bool moveSlots(int count) {
+        asked = count;
+        return turner.start(count);
+    }
+    bool moveDone() { return turner.getPillsDone() >= asked; }   // finished moves, not a finished hold
     int ringPills(int r) { return schedule.ringPills((Color)r); }
     bool storePills(int r, int pills) {
         if (schedule.setRingPills((Color)r, pills) == false) {
@@ -301,7 +306,9 @@ void refillCommand(const char* sub, const char* value) {
     if (strcmp(sub, "request") == 0) {
         ok = refill.requestRefill(value != NULL ? atoi(value) : 0);
     } else if (strcmp(sub, "start") == 0) {
-        ok = refill.startRefill();
+        ok = refill.startRefill(value != NULL ? atoi(value) : 0);   // moves to make before the first pill
+    } else if (strcmp(sub, "pill") == 0) {
+        ok = refill.pillIn();   // one pill went in: the cartridge turns one move
     } else if (strcmp(sub, "add") == 0 && value != NULL) {
         ok = refill.updateRefillInventory(atoi(value));
         if (ok) {
@@ -316,7 +323,7 @@ void refillCommand(const char* sub, const char* value) {
     } else if (strcmp(sub, "cancel") == 0) {
         ok = refill.cancelRefill();
     } else {
-        Serial.println(F("refill list | request <ring> | start | add <pills> | finish | cancel | status"));
+        Serial.println(F("refill list | request <ring> | start [moves] | pill | add <pills> | finish | cancel | status"));
         return;
     }
     if (ok == false) {
@@ -418,7 +425,7 @@ void handleCommand(char* line) {
         c.stepIntervalUs = (uint32_t)atoi(arg3);
         c.direction = atoi(arg4);
         if (c.pauseUs < MIN_PILL_INTERVAL_MS * 1000UL) {
-            Serial.println(F("the time between pills must be at least 5000 ms"));
+            Serial.println(F("the time between pills must be at least 1000 ms"));
         } else if (turner.setConfig(c)) {
             Serial.println(F("settings ok"));
         } else {
@@ -488,7 +495,9 @@ void setup() {
 
     TurnConfig saved = turner.getConfig();
     if (saved.load(settingsBytes, sizeof(settingsBytes))) {
-        if (saved.pauseUs < MIN_PILL_INTERVAL_MS * 1000UL) {
+        if (saved.pauseUs == 5000000UL) {
+            saved.pauseUs = (uint32_t)PAUSE_MS_AFTER_MOVE * 1000UL;   // the old default pause an earlier sketch saved, not a choice
+        } else if (saved.pauseUs < MIN_PILL_INTERVAL_MS * 1000UL) {
             saved.pauseUs = MIN_PILL_INTERVAL_MS * 1000UL;   // settings saved by an older sketch had a shorter pause
         }
         turner.setConfig(saved);

@@ -88,7 +88,7 @@
       arrow(g, [[X, cy + 35], [X, nextTop]], 'no', X + 8, cy + 58);
     }
     decision(650, ['Was the current dose', 'deleted?'], ['Stop the motor', 'Say "dose was deleted"'], 56, 745);
-    decision(780, ['Dose due, cartridge free,', 'no refill running?'], ['Enough pills for the dose?', 'yes: start turning the cartridge', 'no: skip it, nothing turns'], 76, 875);
+    decision(780, ['Dose due, cartridge free,', 'no refill running?'], ['Enough pills for the dose?', 'yes: start turning the cartridge', 'no: pause until a refill'], 76, 875);
     decision(910, ['Did a pill just', 'come out?'], ['Count the pill and save it', 'Say how many are left', 'last pill: dose is taken'], 76, 1005);
     // the last question loops back to the top
     node(g, 'dec', X, 1040, W, 70, ['Message from', 'the computer?']);
@@ -101,16 +101,20 @@
     // 3. refilling the cartridge
     place(0, wide ? -830 : 0);
     heading(1170, 'REFILLING THE CARTRIDGE');
-    el('text', { x: 24, y: 1192, 'font-size': 12, fill: '#8795a8' }, g, '"Check the refill" above moves it along, one step at a time');
-    var states = [['Ready', 'no refill going on'], ['Refill requested', 'the cartridge is locked'], ['Turning', 'one 30° step'], ['Waiting for pills', 'you add pills and tell the count'], ['Saving', 'the new count is stored'], ['Done', 'the cartridge count is updated']];
-    var steps = ['you ask to refill', 'the cartridge turns', 'the turn is finished', 'you tell the count', 'count saved'];
+    el('text', { x: 24, y: 1192, 'font-size': 12, fill: '#8795a8' }, g, 'Doses wait while a refill is open, then carry on');
+    var states = [['Ready', 'no refill going on'], ['Refill requested', 'cartridge locked, schedules wait'], ['First position', 'turns = dispensed - 1, often none'], ['Waiting for pills', 'press +, drop a pill, confirm it'], ['Saving', 'the new count is stored'], ['Done', 'count updated, schedules go on']];
+    var steps = ['you press Fill', 'page asks for the turns', 'cartridge in position', 'you press Done', 'count saved'];
     states.forEach(function (s, i) {
       var y = 1250 + i * 76;
       node(g, i === states.length - 1 ? 'start' : 'state', X, y, W, 50, [s[0], s[1]]);
       if (i) arrow(g, [[X, y - 51], [X, y - 25]], steps[i - 1], X + 8, y - 34);
     });
-    node(g, 'bad', SX, 1478, 240, 76, ['Stopped', 'cancel, timeout or save error', 'counts stay as they were']);
-    arrow(g, [[X + W / 2, 1478], [SX - 120, 1478]], 'problem', X + W / 2 + 8, 1470, true);
+    // every confirmed pill turns the cartridge one step, then it waits for the next pill
+    node(g, 'io', SX, 1478, 240, 56, ['Turn one step', 'after each confirmed pill']);
+    arrow(g, [[X + W / 2, 1468], [SX - 120, 1468]], 'pill in', X + W / 2 + 22, 1460);
+    arrow(g, [[SX - 120, 1488], [X + W / 2, 1488]]);
+    node(g, 'bad', SX, 1578, 240, 76, ['Stopped', 'cancel, timeout or save error', 'counts stay; take pills out']);
+    arrow(g, [[X + W / 2, 1498], [400, 1498], [400, 1578], [SX - 120, 1578]], '', 0, 0, true);
 
     // 4. what is kept, and this board
     place(0, wide ? -830 : 0);
@@ -122,19 +126,26 @@
   }
 
   function isFull() { return document.fullscreenElement === pane || pane.classList.contains('sw-full'); }
+  var shownFull = false;   // what the chart was last drawn for
+  function refreshFull() { if (isFull() !== shownFull) render(); }
   function syncFull() {
     var b = pane.querySelector('.sw-full-btn'); if (!b) return;
     b.textContent = isFull() ? 'Exit full screen' : 'Full screen';
     b.setAttribute('aria-pressed', isFull() ? 'true' : 'false');
   }
   function toggleFull() {
-    if (document.fullscreenElement === pane) { document.exitFullscreen(); return; }
+    if (document.fullscreenElement === pane) {
+      var leaving = document.exitFullscreen();
+      if (leaving && leaving.then) leaving.then(refreshFull, refreshFull);
+      return;
+    }
     if (pane.classList.contains('sw-full')) { pane.classList.remove('sw-full'); render(); return; }
     var req = pane.requestFullscreen && pane.requestFullscreen();
-    if (req && req.catch) req.catch(function () { pane.classList.add('sw-full'); render(); });
+    if (req && req.then) req.then(refreshFull, function () { pane.classList.add('sw-full'); render(); });
     else if (!req) { pane.classList.add('sw-full'); render(); }
   }
-  document.addEventListener('fullscreenchange', render);
+  document.addEventListener('fullscreenchange', refreshFull);
+  window.addEventListener('resize', refreshFull);
   ['pointerdown', 'pointerup', 'pointermove', 'touchstart', 'wheel', 'dblclick'].forEach(function (n) { pane.addEventListener(n, function (e) { e.stopPropagation(); }); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && pane.classList.contains('sw-full')) toggleFull(); });
 
@@ -149,7 +160,7 @@
     head.appendChild(fs);
     pane.appendChild(head);
     syncFull();
-    pane.appendChild(chart(board, isFull()));
+    pane.appendChild(chart(board, shownFull = isFull()));
     var foot = document.createElement('p'); foot.className = 'sw-foot';
     foot.textContent = 'Read from top to bottom. Scroll to follow the whole chart.';
     pane.appendChild(foot);

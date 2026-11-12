@@ -28,8 +28,48 @@ def _num(pattern, text):
 
 
 def test_both_boards_use_the_same_page_code():
-    for name in ("scheduler.js", "scheduler.css"):
+    for name in ("scheduler.js", "scheduler.css", "refill.js", "refill.css", "wizard.js", "wizard.css"):
         assert _read(BOARDS["uno"] / "scheduler-ui" / name) == _read(BOARDS["esp32"] / "scheduler-ui" / name), name
+
+
+@pytest.mark.parametrize("board", sorted(BOARDS))
+def test_empty_schedule_fill_button_opens_the_setup_window(board):
+    ui = BOARDS[board] / "scheduler-ui"
+    html, js, wizard = _read(ui / "index.html"), _read(ui / "scheduler.js"), _read(ui / "wizard.js")
+    assert 'src="wizard.js"' in html and 'href="wizard.css"' in html
+    assert "new CustomEvent('ui:setup')" in js and "addEventListener('ui:setup'" in wizard
+    assert "className = 'fill-btn shimmer'" in js   # shimmers whenever there is no schedule
+    for label in ("'Renew'", "'Edit'", "'Cancel'", "'Confirm'", "'Add'"):
+        assert label in wizard, label
+
+
+@pytest.mark.parametrize("board", sorted(BOARDS))
+def test_a_dose_the_cartridge_cannot_give_pauses_the_schedule(board):
+    ui = BOARDS[board] / "scheduler-ui"
+    js, html = _read(ui / "scheduler.js"), _read(ui / "index.html")
+    assert "'PAUSED'" in js and 'id="pauseWarn"' in html and 'id="pauseFillBtn"' in html
+    assert "endSchedule('FINISHED'" not in js   # the board's "schedule FINISHED" line pauses, it does not remove the schedule
+
+
+@pytest.mark.parametrize("board", sorted(BOARDS))
+def test_each_pill_is_confirmed_before_it_counts_and_the_schedule_waits_only_while_filling(board):
+    ui = BOARDS[board] / "scheduler-ui"
+    refill, js = _read(ui / "refill.js"), _read(ui / "scheduler.js")
+    assert "'+ Add'" not in refill and "aria-label': 'Add a pill'" in refill and "plusIcon()" in refill
+    assert "Did the pill go in?" in refill and "pending = true" in refill
+    assert "addBtn.disabled = !ready || pending" in refill   # locked until the person answers
+    assert "UI.setRefilling(open)" in refill and "setRefilling:" in js
+    assert "UI.send('refill pill')" in refill and "count.textContent = String(added)" in refill   # the cartridge turns for each pill; the count is just the number
+    assert 'strcmp(sub, "pill") == 0' in _read(FIRMWARE_MAINS[board])
+    # the cartridge first turns (pills dispensed since the last fill - 1) times, and not at all for a new cartridge
+    assert "UI.send('refill start ' + Math.max(0, dispensed - 1))" in refill
+    assert "startRefill(value != NULL ? atoi(value) : 0)" in _read(FIRMWARE_MAINS[board])
+
+
+@pytest.mark.parametrize("board", sorted(BOARDS))
+def test_cancelled_refill_waits_until_the_pills_are_taken_out(board):
+    refill = _read(BOARDS[board] / "scheduler-ui" / "refill.js")
+    assert "Take the pills out" in refill and "takeOutSure" in refill and "setTakeOut(null)" in refill
 
 
 @pytest.mark.parametrize("board", sorted(BOARDS))

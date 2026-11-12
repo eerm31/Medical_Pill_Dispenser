@@ -182,12 +182,17 @@ const char* refillErrorText(RefillError e) {
     return "NONE";
 }
 
-// The refill borrows the cartridge for ONE move; its status is printed whenever it changes.
+// The refill borrows the cartridge: the moves the page asks for before the first pill (none when nothing was dispensed),
+// then one more for every pill the person confirms. Its status is printed whenever it changes.
 class SketchRefillHost : public RefillHost {
 public:
+    int asked = 0;   // moves of the batch in progress
     bool cartridgeFree() { return turnDoseId == 0 && turner.isBusy() == false; }
-    bool moveOneSlot() { return turner.start(1); }
-    bool moveDone() { return turner.getPillsDone() >= 1; }   // a finished move, not a finished hold
+    bool moveSlots(int count) {
+        asked = count;
+        return turner.start(count);
+    }
+    bool moveDone() { return turner.getPillsDone() >= asked; }   // finished moves, not a finished hold
     int ringPills(int r) { return schedule.ringPills((Color)r); }
     bool storePills(int r, int pills) {
         if (schedule.setRingPills((Color)r, pills) == false) {
@@ -234,7 +239,9 @@ void refillCommand(const char* sub, const char* value) {
     if (strcmp(sub, "request") == 0) {
         ok = refill.requestRefill(value != NULL ? atoi(value) : 0);
     } else if (strcmp(sub, "start") == 0) {
-        ok = refill.startRefill();
+        ok = refill.startRefill(value != NULL ? atoi(value) : 0);   // moves to make before the first pill
+    } else if (strcmp(sub, "pill") == 0) {
+        ok = refill.pillIn();   // one pill went in: the cartridge turns one move
     } else if (strcmp(sub, "add") == 0 && value != NULL) {
         ok = refill.updateRefillInventory(atoi(value));
         if (ok) {
@@ -249,7 +256,7 @@ void refillCommand(const char* sub, const char* value) {
     } else if (strcmp(sub, "cancel") == 0) {
         ok = refill.cancelRefill();
     } else {
-        Serial.println("refill list | request <ring> | start | add <pills> | finish | cancel | status");
+        Serial.println("refill list | request <ring> | start [moves] | pill | add <pills> | finish | cancel | status");
         return;
     }
     if (ok == false) {
